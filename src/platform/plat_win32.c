@@ -1,9 +1,4 @@
 
-#define WIN32_LEAN_AND_MEAN
-#define UNICODE
-#include <windows.h>
-#include <bcrypt.h>
-
 void plat_exit(i32 code) {
     ExitProcess((u32)code);
 }

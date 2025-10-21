@@ -1,4 +1,17 @@
 
+#if defined(PLATFORM_WIN32)
+
+#define UNICODE
+#include <windows.h>
+#include <bcrypt.h>
+
+#elif defined(PLATFORM_LINUX)
+
+
+#endif
+
+
+
 void plat_exit(i32 code);
 
 u32 plat_page_size(void);
