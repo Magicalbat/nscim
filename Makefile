@@ -1,6 +1,6 @@
 
 CC = clang
-CFLAGS = -m64 -std=c99 -Isrc 
+CFLAGS = -m64 -std=c11 -Isrc 
 DEBUG_CFLAGS = -DDEBUG -g -O0 -fsanitize=address
 RELEASE_CFLAGS = -DNDEBUG -O2
 
@@ -15,7 +15,6 @@ else
 	CFLAGS += $(RELEASE_CFLAGS)
 endif
 
-
 # OS-Specific Stuff
 LFLAGS = 
 MKDIR_BIN = 
@@ -28,7 +27,8 @@ ifeq ($(OS), Windows_NT)
 	RM_BIN = rd /s /q bin
 	BIN_EXT = .exe
 else
-	LFLAGS += -lm 
+	CFLAGS += -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE
+	LFLAGS += -lm
 	MKDIR_BIN = mkdir -p bin/$(config)
 	RM_BIN = rm -r bin
 endif

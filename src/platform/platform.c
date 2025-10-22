@@ -1,7 +1,7 @@
 
 #if defined(PLATFORM_LINUX)
-#include "plat_linux.c"
+#include "platform_linux.c"
 #elif defined(PLATFORM_WIN32)
-#include "plat_win32.c"
+#include "platform_win32.c"
 #endif
 

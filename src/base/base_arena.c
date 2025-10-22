@@ -37,7 +37,7 @@ void arena_destroy(mem_arena* arena) {
 
     while (current != NULL) {
         mem_arena* prev = current->prev;
-        plat_mem_release(current);
+        plat_mem_release(current, current->reserve_size);
 
         current = prev;
     }
@@ -120,7 +120,7 @@ void arena_pop(mem_arena* arena, u64 size) {
         mem_arena* prev = current->prev;
 
         size -= current->pos;
-        plat_mem_release(current);
+        plat_mem_release(current, current->reserve_size);
 
         current = prev;
     }
