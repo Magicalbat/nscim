@@ -5,15 +5,15 @@ typedef struct _term_backend {
     struct termios orig_termios;
 } _term_backend;
 
-term_context* term_init(mem_arena* arena) {
+b32 _term_init_backend(mem_arena* arena, term_context* context) {
     struct termios orig = { 0 };
     struct termios raw = { 0 };
 
     if (tcgetattr(STDIN_FILENO, &orig) != 0) {
-        return NULL;
+        return false;
     }
     if (tcgetattr(STDIN_FILENO, &raw) != 0) {
-        return NULL;
+        return false;
     }
 
     raw.c_iflag &= (u32)~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
@@ -24,14 +24,13 @@ term_context* term_init(mem_arena* arena) {
     raw.c_cc[VTIME] = 0;
 
     if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) != 0) {
-        return NULL;
+        return false;
     }
 
-    term_context* context = PUSH_STRUCT(arena, term_context);
     context->backend = PUSH_STRUCT(arena, _term_backend);
     context->backend->orig_termios = orig;
 
-    return context;
+    return true;
 }
 
 void term_quit(term_context* context) {
@@ -42,5 +41,15 @@ u32 term_read(term_context* context, u8* chars, u32 capacity) {
     UNUSED(context);
 
     return (u32)read(STDIN_FILENO, chars, capacity);
+}
+
+void term_flush(term_context* context) {
+    i64 written = write(STDOUT_FILENO, context->draw_buf, (u64)context->draw_buf_pos);
+
+    if (written != (i64)context->draw_buf_pos) {
+        plat_fatal_error("Failed to write to terminal", 1);
+    }
+
+    context->draw_buf_pos = 0;
 }
 

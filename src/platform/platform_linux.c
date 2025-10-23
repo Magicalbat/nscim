@@ -3,6 +3,11 @@ void plat_exit(i32 code) {
     exit(code);
 }
 
+void plat_fatal_error(const char* msg, i32 code) {
+    fprintf(stderr, "\x1b[31m%s\n\x1b[39m", msg);
+    exit(code);
+}
+
 #define _POSIX_C_SOURCE 200809L 
 #include <time.h>
 

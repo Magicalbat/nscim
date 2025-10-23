@@ -95,7 +95,7 @@ void term_flush(term_context* context) {
     );
 
     if (ret == FALSE || written != context->draw_buf_pos) {
-        plat_fatal_error("Failed to write to console", 1);
+        plat_fatal_error("Failed to write to terminal", 1);
     }
 
     context->draw_buf_pos = 0;
