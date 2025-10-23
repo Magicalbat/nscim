@@ -17,6 +17,7 @@
 #endif
 
 void plat_exit(i32 code);
+void plat_fatal_error(const char* msg, i32 code);
 
 void plat_sleep_ms(u32 ms);
 

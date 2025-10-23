@@ -12,8 +12,7 @@ mem_arena* arena_create(u64 reserve_size, u64 commit_size, b32 growable) {
     }
 
     if (arena == NULL) {
-        fprintf(stderr, "Fatal error: unable to commit memory for arena\n");
-        plat_exit(1);
+        plat_fatal_error("Fatal error: unable to commit memory for arena", 1);
     }
 
     // TODO: ASAN stuff for memory
@@ -99,8 +98,7 @@ void* arena_push(mem_arena* arena, u64 size, b32 non_zero) {
     }
 
     if (out == NULL) {
-        fprintf(stderr, "Fatal error: failed to allocate memory on arena\n");
-        plat_exit(1);
+        plat_fatal_error("Fatal error: failed to allocate memory on arena", 1);
     }
 
     current->pos = new_pos;

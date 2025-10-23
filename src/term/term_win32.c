@@ -1,19 +1,24 @@
 
 typedef struct _term_backend {
     HANDLE stdin_handle;
+    HANDLE stdout_handle;
     DWORD orig_mode;
 } _term_backend;
 
-term_context* term_init(mem_arena* arena) {
+b32 _term_init_backend(mem_arena* arena, term_context* context) {
     HANDLE stdin_handle = GetStdHandle(STD_INPUT_HANDLE);
+    HANDLE stdout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
 
-    if (stdin_handle == INVALID_HANDLE_VALUE) {
-        return NULL;
+    if (
+        stdin_handle == INVALID_HANDLE_VALUE ||
+        stdout_handle == INVALID_HANDLE_VALUE
+    ) {
+        return false;
     }
 
     DWORD orig_mode = 0;
     if (GetConsoleMode(stdin_handle, &orig_mode) == 0) {
-        return NULL;
+        return false;
     }
 
     DWORD new_mode =
@@ -21,16 +26,16 @@ term_context* term_init(mem_arena* arena) {
         ENABLE_VIRTUAL_TERMINAL_INPUT;
 
     if (SetConsoleMode(stdin_handle, new_mode) == 0) {
-        return NULL;
+        return false;
     }
 
-    term_context* context = PUSH_STRUCT(arena, term_context);
     context->backend = PUSH_STRUCT(arena, _term_backend);
 
     context->backend->stdin_handle = stdin_handle;
+    context->backend->stdout_handle = stdout_handle;
     context->backend->orig_mode = orig_mode;
 
-    return context;
+    return true;
 }
 
 void term_quit(term_context* context) {
@@ -79,4 +84,20 @@ u32 term_read(term_context* context, u8* chars, u32 capacity) {
     return num_written;
 }
 
+void term_flush(term_context* context) {
+    DWORD written = 0;
+
+    b32 ret = WriteConsoleA(
+        context->backend->stdout_handle,
+        context->draw_buf,
+        context->draw_buf_pos,
+        &written, NULL
+    );
+
+    if (ret == FALSE || written != context->draw_buf_pos) {
+        plat_fatal_error("Failed to write to console", 1);
+    }
+
+    context->draw_buf_pos = 0;
+}
 
