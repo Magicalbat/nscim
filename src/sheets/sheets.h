@@ -1,0 +1,201 @@
+
+#define SHEET_CHUNK_COLS 16
+#define SHEET_CHUNK_ROWS 128
+#define SHEET_CHUNK_SIZE (SHEET_CHUNK_COLS * SHEET_CHUNK_ROWS)
+
+#define SHEET_MAX_COLS KiB(32)
+#define SHEET_MAX_ROWS MiB(2)
+
+#define SHEET_CHUNKS_X (SHEET_MAX_COLS / SHEET_CHUNK_COLS)
+#define SHEET_CHUNKS_Y (SHEET_MAX_ROWS / SHEET_CHUNK_ROWS)
+#define SHEET_MAX_CHUNKS (SHEET_CHUNKS_X * SHEET_CHUNKS_Y)
+
+// Minimum allocation for strings
+#define SHEET_MIN_STRLEN (1 << 4)
+// This applies to strings and formulas
+#define SHEET_MAX_STRLEN (1 << 11)
+// Valid strlens are at each power of two between min and max (inclusive)
+#define SHEET_NUM_STRLENS 8
+
+// To convert from cell to chunk pos, simply divide each element
+// by the corresponding chunk size
+typedef struct {
+    // Zero-based
+    u32 row, col;
+} sheet_cell_pos;
+
+typedef struct {
+    // Zero-based
+    u32 row, col;
+} sheet_chunk_pos;
+
+typedef enum {
+    SHEET_CELL_TYPE_NONE = 0,
+
+    SHEET_CELL_TYPE_NUM,
+    SHEET_CELL_TYPE_STRING,
+
+    SHEET_CELL_TYPE_COUNT
+} sheet_cell_type_enum;
+
+// Used to ensure the size of the enum
+typedef struct {
+    u8 t;
+} sheet_cell_type;
+
+STATIC_ASSERT(SHEET_CELL_TYPE_COUNT < 255, cell_type_count);
+
+typedef struct sheet_string {
+    u8* str;
+
+    u32 size;
+    u32 capacity;
+} sheet_string;
+
+#define SHEET_STR_BUCKET_SIZE 16
+
+// Used for string free lists
+typedef struct sheet_string_bucket {
+    struct sheet_string_bucket* next;
+
+    u32 num_strings;
+
+    sheet_string strings[SHEET_STR_BUCKET_SIZE];
+} sheet_string_bucket;
+
+// Used for string free lists
+typedef struct {
+    sheet_string_bucket* first;
+    sheet_string_bucket* last;
+
+    // Capcity of each string stored in the list
+    u32 str_capacity;
+} sheet_string_list;
+
+typedef struct sheet_chunk {
+    sheet_chunk_pos pos;
+    // Computed exclusively from chunk_row and chunk_col;
+    u64 hash;
+
+    // Used for hash collisions and free lists
+    struct sheet_chunk* next;
+
+    // Cell data, all stored column major
+    sheet_cell_type cell_types[SHEET_CHUNK_SIZE];
+    f64 cell_nums[SHEET_CHUNK_SIZE];
+    sheet_string* cell_strings[SHEET_CHUNK_SIZE];
+} sheet_chunk;
+
+// Stores the actual data inside each sheet
+// Akin to vim buffers
+typedef struct sheet_buffer {
+    string8 name;
+
+    // Used for global buffer list and buffer free list
+    struct sheet_buffer* next;
+    struct sheet_buffer* prev;
+
+    u32 map_capacity;
+    u32 num_chunks;
+    // Mapping chunk positions -> chunk pointers
+    sheet_chunk** chunk_map;
+    // Used for rehashing
+    sheet_chunk** temp_map;
+
+    u32 num_column_widths;
+    u32 num_row_heights;
+    // Currently stored as numbers of characcters
+    u16* column_widths;
+    // Currently stored as numbers of characcters
+    u8* row_heights;
+} sheet_buffer;
+
+typedef enum {
+    SHEET_WIN_SPILT_VERT,
+    SHEET_WIN_SPILT_HORZ,
+} sheet_window_split_enum;
+
+// Used to ensure the enum size
+typedef struct {
+    u32 s;
+} sheet_window_split;
+
+// Stores information about how the user is editing a sheet
+// Akin to vim windows
+typedef struct sheet_window {
+    struct sheet_window* parent;
+
+    // For free-list
+    struct sheet_window* next;
+
+    // Left or top child
+    struct sheet_window* child0;
+    // Right or bottom child
+    struct sheet_window* child1;
+
+    // Total characters taken up by the entire view of the window
+    u32 num_rows;
+    u32 num_cols;
+
+    sheet_window_split split_dir;
+
+    // If the window is internal, it only exists to hold its 
+    // children and should not reference a buffer 
+    b32 internal;
+
+    // Everything below is only for non-internal windows
+
+    sheet_buffer* buffer;
+
+    // Top-left scroll pos
+    sheet_cell_pos scroll_pos;
+    // Current position of cursor
+    sheet_cell_pos cursor_pos;
+    // Position where selection started
+    sheet_cell_pos select_pos;
+
+    // Input line info (for entering cell data)
+    u32 input_size;
+    u32 input_cursor;
+    u32 input_select_start;
+    u8 input_buf[SHEET_MAX_STRLEN];
+} sheet_window;
+
+typedef struct workbook {
+    // This arena stores everything but the buffer allocations
+    // (the empty buffer is stored on this arena)
+    mem_arena* arena;
+
+    // Windows
+    sheet_window* root_win;
+    sheet_window* active_win;
+
+    sheet_window* first_free_win;
+    sheet_window* last_free_win;
+
+    // Buffers
+    u32 num_buffers;
+    sheet_buffer* first_buffer;
+    sheet_buffer* last_buffer;
+
+    sheet_buffer* first_free_buffer;
+    sheet_buffer* last_free_buffer;
+
+    // Used when opening a new window or empty workbook
+    // Cannot actually store any data
+    sheet_buffer* empty_buffer;
+
+    // TODO: copy/paste and undo/redo buffers
+
+    sheet_chunk* first_free_chunk;
+    sheet_chunk* last_free_chunk;
+
+    sheet_string_list free_strings[SHEET_NUM_STRLENS];
+
+    u32 cmd_size;
+    u32 cmd_cursor;
+    u32 cmd_select_start;
+    u8 cmd_buf[SHEET_MAX_STRLEN];
+} workbook;
+
+

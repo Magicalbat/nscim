@@ -76,3 +76,19 @@ STATIC_ASSERT(sizeof(f64) == 8, f64_size);
     ((f) = (l) = NULL) :                  \
     ((f) = (f)->next))                    \
 
+#define DLL_PUSH_BACK(f, l, n) ((f) == 0 ? \
+    ((f) = (l) = (n), (n)->next = (n)->prev = 0) :  \
+    ((n)->prev = (l), (l)->next = (n), (l) = (n), (n)->next = 0))
+
+#define DLL_PUSH_FRONT(f, l, n) DLL_PUSH_BACK(l, f, n)
+
+#define DLL_REMOVE(f, l, n) ( \
+    (f) == (n) ? \
+        ((f) == (l) ? \
+            ((f) = (l) = (0)) : \
+            ((f) = (f)->next, (f)->prev = 0)) : \
+        (l) == (n) ? \
+            ((l) = (l)->prev, (l)->next = 0) : \
+            ((n)->next->prev = (n)->prev, \
+            (n)->prev->next = (n)->next))
+
