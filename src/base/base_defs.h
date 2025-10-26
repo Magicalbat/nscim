@@ -7,9 +7,19 @@
 #include <stddef.h>
 
 #if defined(__linux__)
-#define PLATFORM_LINUX
+#   define PLATFORM_LINUX
 #elif defined(_WIN32)
-#define PLATFORM_WIN32
+#   define PLATFORM_WIN32
+#endif
+
+#if defined(__clang__)
+#   define COMPILER_CLANG
+#elif defined(__GNUC__) || defined(__GNUG__)
+#   define COMPILER_GCC
+#elif defined(_MSC_VER)
+#   define COMPILER_MSVC
+#else
+#   define COMPILER_UNKNOWN
 #endif
 
 

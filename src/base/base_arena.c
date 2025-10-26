@@ -2,7 +2,7 @@
 mem_arena* arena_create(u64 reserve_size, u64 commit_size, b32 growable) {
     u32 page_size = plat_page_size();
 
-    reserve_size = ALIGN_UP_POW2(reserve_size, page_size);
+    reserve_size = ALIGN_UP_POW2(reserve_size + ARENA_HEADER_SIZE, page_size);
     commit_size = ALIGN_UP_POW2(commit_size, page_size);
 
     mem_arena* arena = plat_mem_reserve(reserve_size);
@@ -25,7 +25,7 @@ mem_arena* arena_create(u64 reserve_size, u64 commit_size, b32 growable) {
     arena->growable = growable;
 
     arena->base_pos = 0;
-    arena->pos = sizeof(mem_arena);
+    arena->pos = ARENA_HEADER_SIZE;
     arena->commit_pos = commit_size;
 
     return arena;
@@ -62,8 +62,8 @@ void* arena_push(mem_arena* arena, u64 size, b32 non_zero) {
             u64 reserve_size = arena->reserve_size;
             u64 commit_size = arena->commit_size;
 
-            if (size + sizeof(mem_arena) > reserve_size) {
-                reserve_size = ALIGN_UP_POW2(size + sizeof(mem_arena), ARENA_ALIGN);
+            if (size + ARENA_HEADER_SIZE > reserve_size) {
+                reserve_size = ALIGN_UP_POW2(size + ARENA_HEADER_SIZE, ARENA_ALIGN);
             }
 
             mem_arena* new_arena = arena_create(reserve_size, commit_size, true);
@@ -124,7 +124,7 @@ void arena_pop(mem_arena* arena, u64 size) {
     }
 
     arena->current = current;
-    size = MIN(current->pos - sizeof(mem_arena), size);
+    size = MIN(current->pos - ARENA_HEADER_SIZE, size);
     current->pos -= size;
 }
 

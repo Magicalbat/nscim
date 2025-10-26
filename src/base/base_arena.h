@@ -1,7 +1,8 @@
 
+#define ARENA_HEADER_SIZE sizeof(mem_arena)
 #define ARENA_ALIGN sizeof(void*)
-#define ARENA_NUM_SCRATCH 2
 
+#define ARENA_NUM_SCRATCH 2
 #define ARENA_SCRATCH_RESERVE MiB(64)
 #define ARENA_SCRATCH_COMMIT KiB(64)
 
