@@ -12,7 +12,12 @@
 int main(void) {
     mem_arena* perm_arena = arena_create(MiB(64), MiB(1), true);
 
-    term_context* term = term_init(perm_arena, MiB(4));
+    sheet_buffer* test_sheet = _sheet_buffer_create();
+
+    _sheet_buffer_destroy(test_sheet);
+
+
+    /*term_context* term = term_init(perm_arena, MiB(4));
 
     u8 input_buf[64] = { 0 };
 
@@ -47,7 +52,7 @@ int main(void) {
         }
     }
 
-    term_quit(term);
+    term_quit(term);*/
 
     arena_destroy(perm_arena);
 

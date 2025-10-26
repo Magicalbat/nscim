@@ -18,28 +18,130 @@ Sheet Buffer Memory Allocation Scheme
     itself followed by page_size - sizeof(sheet_buffer) padding bytes
 - All of the offsets are only computed once and stored in a static struct
 
+
+Is this kind of insane, overkill, and possibly dangerous?
+Yes, but its also fun, and should be incredibly fast.
+
 */
 
+static struct {
+    u64 page_size;
+
+    u64 chunk_map_off;
+    u64 column_widths_off;
+    u64 row_heights_off;
+
+    u64 total_reserve;
+
+    b32 initialized;
+} _sb_mem_info = { 0 };
+
+static void _sb_init_mem_info(void) {
+    _sb_mem_info.page_size = plat_page_size();
+
+#ifndef NDEBUG
+    if (sizeof(sheet_buffer) > _sb_mem_info.page_size) {
+        plat_fatal_error("sheet_buffer cannot fit in memory page", 1);
+    }
+#endif
+
+    _sb_mem_info.chunk_map_off = _sb_mem_info.page_size;
+    _sb_mem_info.column_widths_off = ALIGN_UP_POW2(
+        _sb_mem_info.chunk_map_off + sizeof(sheet_chunk*) * SHEET_MAX_CHUNKS,
+        _sb_mem_info.page_size
+    );
+    _sb_mem_info.row_heights_off = ALIGN_UP_POW2(
+        _sb_mem_info.column_widths_off + sizeof(u16) * SHEET_MAX_COLS,
+        _sb_mem_info.page_size
+    );
+
+    _sb_mem_info.total_reserve = ALIGN_UP_POW2(
+        _sb_mem_info.row_heights_off + sizeof(u8) * SHEET_MAX_ROWS,
+        _sb_mem_info.page_size
+    );
+
+    _sb_mem_info.initialized = true;
+}
 
 sheet_buffer* _sheet_buffer_create(void) {
+    if (!_sb_mem_info.initialized) {
+        _sb_init_mem_info();
+    }
+
+    u8* mem = plat_mem_reserve(_sb_mem_info.total_reserve);
+
+    if (mem == NULL || !plat_mem_commit(mem, _sb_mem_info.page_size)) {
+        plat_fatal_error("Failed to allocate memory for sheet buffer", 1);
+    }
+
+    MEM_ZERO(mem, _sb_mem_info.page_size);
+    sheet_buffer* sheet = (sheet_buffer*)mem;
+
+    sheet->chunk_map = (sheet_chunk**)(mem + _sb_mem_info.chunk_map_off);
+    sheet->column_widths = (u16*)(mem + _sb_mem_info.column_widths_off);
+    sheet->row_heights = (u8*)(mem + _sb_mem_info.row_heights_off);
+
+    return NULL;
 }
 
-void _sheet_buffer_reset(sheet_buffer* sheet);
+void _sheet_buffer_reset(sheet_buffer* sheet) {
+    if (sheet->map_capacity > 0) {
+        plat_mem_decommit(sheet->chunk_map, sheet->map_capacity);
+    }
+
+    if (sheet->num_column_widths > 0) {
+        plat_mem_decommit(sheet->column_widths, sheet->num_column_widths);
+    }
+
+    if (sheet->num_row_heights > 0) {
+        plat_mem_decommit(sheet->row_heights, sheet->num_row_heights);
+    }
+}
 
 void _sheet_buffer_destroy(sheet_buffer* sheet) {
+    plat_mem_release(sheet, _sb_mem_info.total_reserve);
 }
 
-sheet_chunk* sheet_get_chunk(sheet_buffer* sheet, b32 create_if_empty);
+sheet_chunk* sheet_get_chunk(
+    workbook* wb, sheet_buffer* sheet, b32 create_if_empty
+);
 
-sheet_chunk_arr sheet_get_chunks_range(sheet_buffer* sheet, sheet_cell_range range, b32 create_if_empty);
+sheet_chunk_arr sheet_get_chunks_range(
+    workbook* wb, sheet_buffer* sheet, sheet_cell_range range, b32 create_if_empty
+);
 
-sheet_cell_ref sheet_get_cell(sheet_buffer* sheet, sheet_cell_pos pos, b32 create_if_empty);
+sheet_cell_ref sheet_get_cell(
+    workbook* wb, sheet_buffer* sheet, sheet_cell_pos pos, b32 create_if_empty
+);
 
-u32 sheet_get_col_width(sheet_buffer* sheet, u32 col);
+void _sb_grow_array(void* mem, u32 elem_size, u32 old_size, u32* new_size) {
+    u8* ptr = (u8*)mem + old_size;
+
+    u32 to_commit = ALIGN_UP_POW2(*new_size - old_size, _sb_mem_info.page_size);
+    *new_size = old_size + to_commit;
+
+    if (!plat_mem_commit(ptr, to_commit)) {
+        plat_fatal_error("Failed to allocate memory for sheet buffer", 1);
+    }
+}
+
+u32 sheet_get_col_width(sheet_buffer* sheet, u32 col) {
+    if (col >= sheet->num_column_widths) {
+        return SHEET_DEF_COL_WIDTH;
+    }
+
+    return sheet->column_widths[col];
+}
 
 void sheet_set_col_width(sheet_buffer* sheet, u32 col, u32 width);
 
-u32 sheet_get_row_height(sheet_buffer* sheet, u32 row);
+u32 sheet_get_row_height(sheet_buffer* sheet, u32 row) {
+    if (row >= sheet->num_row_heights) {
+        return SHEET_DEF_ROW_HEIGHT;
+    }
+
+    return sheet->row_heights[row];
+}
 
 void sheet_set_row_height(sheet_buffer* sheet, u32 row, u32 height);
 

@@ -265,9 +265,15 @@ void wb_win_inc_height(workbook* wb, u32 amount);
 
 void wb_win_update_sizes(workbook* wb, u32 total_width, u32 total_height);
 
-sheet_chunk* sheet_get_chunk(sheet_buffer* sheet, b32 create_if_empty);
-sheet_chunk_arr sheet_get_chunks_range(sheet_buffer* sheet, sheet_cell_range range, b32 create_if_empty);
-sheet_cell_ref sheet_get_cell(sheet_buffer* sheet, sheet_cell_pos pos, b32 create_if_empty);
+sheet_chunk* sheet_get_chunk(
+    workbook* wb, sheet_buffer* sheet, b32 create_if_empty
+);
+sheet_chunk_arr sheet_get_chunks_range(
+    workbook* wb, sheet_buffer* sheet, sheet_cell_range range, b32 create_if_empty
+);
+sheet_cell_ref sheet_get_cell(
+    workbook* wb, sheet_buffer* sheet, sheet_cell_pos pos, b32 create_if_empty
+);
 
 u32 sheet_get_col_width(sheet_buffer* sheet, u32 col);
 void sheet_set_col_width(sheet_buffer* sheet, u32 col, u32 width);
