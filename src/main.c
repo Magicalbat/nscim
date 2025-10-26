@@ -2,10 +2,12 @@
 #include "base/base.h"
 #include "platform/platform.h"
 #include "term/term.h"
+#include "sheets/sheets.h"
 
 #include "base/base.c"
 #include "platform/platform.c"
 #include "term/term.c"
+#include "sheets/sheets.c"
 
 int main(void) {
     mem_arena* perm_arena = arena_create(MiB(64), MiB(1), true);

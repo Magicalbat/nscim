@@ -118,10 +118,9 @@ typedef struct sheet_buffer {
 
     u32 map_capacity;
     u32 num_chunks;
+
     // Mapping chunk positions -> chunk pointers
     sheet_chunk** chunk_map;
-    // Used for rehashing
-    sheet_chunk** temp_map;
 
     u32 num_column_widths;
     u32 num_row_heights;
@@ -198,8 +197,13 @@ typedef struct sheet_window {
 // between open sheets and windows
 typedef struct workbook {
     // This arena stores everything but the buffer allocations
-    // (the empty buffer is stored on this arena)
+    // and the scratch chunks array (the empty buffer is stored
+    // on this arena)
     mem_arena* arena;
+
+    // Used when opening a new window or empty workbook
+    // Cannot actually store any data
+    sheet_buffer* empty_buffer;
 
     // Windows
     sheet_window* root_win;
@@ -216,9 +220,12 @@ typedef struct workbook {
     sheet_buffer* first_free_buffer;
     sheet_buffer* last_free_buffer;
 
-    // Used when opening a new window or empty workbook
-    // Cannot actually store any data
-    sheet_buffer* empty_buffer;
+    // Used when sheet_buffers need to rehash
+    // Allocated on its own
+    // Can only be used by one buffer at a time
+    sheet_chunk** scratch_chunks;
+    u64 scratch_chunks_reserve;
+    u64 scratch_chunks_commit;
 
     // TODO: copy/paste and undo/redo buffers
 
@@ -236,13 +243,6 @@ typedef struct workbook {
 workbook* wb_create(void);
 void wb_destroy(workbook* wb);
 
-// Both of these operate on the active window
-void wb_split_win(workbook* wb, sheet_window_split split);
-void wb_close_win(workbook* wb);
-// Will attempt to increment the current win's width or height
-void wb_inc_win_width(workbook* wb, u32 amount);
-void wb_inc_win_height(workbook* wb, u32 amount);
-
 sheet_buffer* wb_create_buffer(workbook* wb);
 sheet_buffer* wb_get_buffer(workbook* wb, string8 name);
 void wb_free_buffer(workbook* wb, sheet_buffer* buffer);
@@ -252,8 +252,18 @@ void wb_free_chunk(workbook* wb, sheet_chunk* chunk);
 
 // Size must be a power of two between SHEET_MIN_STRLEN
 // and SHEET_MAX_STRLEN (inclusive)
+// Invalid sizes will get rounded up and capped at SHEET_MAX_STRLEN
 sheet_string wb_create_string(workbook* wb, u32 size);
 void wb_free_string(workbook* wb, sheet_string str);
+
+// Both of these operate on the active window
+void wb_win_split(workbook* wb, sheet_window_split split);
+void wb_win_close(workbook* wb);
+// Will attempt to increment the current win's width or height
+void wb_win_inc_width(workbook* wb, u32 amount);
+void wb_win_inc_height(workbook* wb, u32 amount);
+
+void wb_win_update_sizes(workbook* wb, u32 total_width, u32 total_height);
 
 sheet_chunk* sheet_get_chunk(sheet_buffer* sheet, b32 create_if_empty);
 sheet_chunk_arr sheet_get_chunks_range(sheet_buffer* sheet, sheet_cell_range range, b32 create_if_empty);

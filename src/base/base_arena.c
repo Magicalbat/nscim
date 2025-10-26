@@ -2,7 +2,7 @@
 mem_arena* arena_create(u64 reserve_size, u64 commit_size, b32 growable) {
     u32 page_size = plat_page_size();
 
-    reserve_size = ALIGN_UP_POW2(reserve_size + ARENA_HEADER_SIZE, page_size);
+    reserve_size = ALIGN_UP_POW2(reserve_size, page_size);
     commit_size = ALIGN_UP_POW2(commit_size, page_size);
 
     mem_arena* arena = plat_mem_reserve(reserve_size);
