@@ -19,7 +19,7 @@ Sheet Buffer Memory Allocation Scheme
 - All of the offsets are only computed once and stored in a static struct
 
 
-Is this kind of insane, overkill, and possibly dangerous?
+Is this kind of insane, overkill, and dangerous?
 Yes, but its also fun, and should be incredibly fast.
 
 */
@@ -81,7 +81,7 @@ sheet_buffer* _sheet_buffer_create(void) {
     sheet->column_widths = (u16*)(mem + _sb_mem_info.column_widths_off);
     sheet->row_heights = (u8*)(mem + _sb_mem_info.row_heights_off);
 
-    return NULL;
+    return sheet;
 }
 
 void _sheet_buffer_reset(sheet_buffer* sheet) {
@@ -115,17 +115,20 @@ sheet_cell_ref sheet_get_cell(
 );
 
 void _sb_grow_array(void* mem, u32 elem_size, u32 old_size, u32* new_size) {
-    u8* ptr = (u8*)mem + old_size;
+    u8* ptr = (u8*)mem + (old_size * elem_size);
 
-    u32 to_commit = ALIGN_UP_POW2(*new_size - old_size, _sb_mem_info.page_size);
-    *new_size = old_size + to_commit;
+    u32 to_commit = (u32)ALIGN_UP_POW2(
+        (*new_size - old_size) * elem_size,
+        _sb_mem_info.page_size
+    );
+    *new_size = old_size + to_commit / elem_size;
 
     if (!plat_mem_commit(ptr, to_commit)) {
         plat_fatal_error("Failed to allocate memory for sheet buffer", 1);
     }
 }
 
-u32 sheet_get_col_width(sheet_buffer* sheet, u32 col) {
+u16 sheet_get_col_width(sheet_buffer* sheet, u32 col) {
     if (col >= sheet->num_column_widths) {
         return SHEET_DEF_COL_WIDTH;
     }
@@ -133,9 +136,29 @@ u32 sheet_get_col_width(sheet_buffer* sheet, u32 col) {
     return sheet->column_widths[col];
 }
 
-void sheet_set_col_width(sheet_buffer* sheet, u32 col, u32 width);
+void sheet_set_col_width(sheet_buffer* sheet, u32 col, u16 width) {
+    if (col >= SHEET_MAX_COLS) {
+        return;
+    }
 
-u32 sheet_get_row_height(sheet_buffer* sheet, u32 row) {
+    if (col >= sheet->num_column_widths) {
+        u32 old_size = sheet->num_column_widths;
+        sheet->num_column_widths = col + 1;
+
+        _sb_grow_array(
+            sheet->column_widths, sizeof(u16),
+            old_size, &sheet->num_column_widths
+        );
+
+        for (u32 i = old_size; i < sheet->num_column_widths; i++) {
+            sheet->column_widths[i] = SHEET_DEF_COL_WIDTH;
+        }
+    }
+
+    sheet->column_widths[col] = width;
+}
+
+u8 sheet_get_row_height(sheet_buffer* sheet, u32 row) {
     if (row >= sheet->num_row_heights) {
         return SHEET_DEF_ROW_HEIGHT;
     }
@@ -143,6 +166,27 @@ u32 sheet_get_row_height(sheet_buffer* sheet, u32 row) {
     return sheet->row_heights[row];
 }
 
-void sheet_set_row_height(sheet_buffer* sheet, u32 row, u32 height);
+void sheet_set_row_height(sheet_buffer* sheet, u32 row, u8 height) {
+    if (row >= SHEET_MAX_ROWS) {
+        return;
+    }
+
+    if (row >= sheet->num_row_heights) {
+        u32 old_size = sheet->num_row_heights;
+        sheet->num_row_heights = row + 1;
+
+        _sb_grow_array(
+            sheet->row_heights, sizeof(u8),
+            old_size, &sheet->num_row_heights
+        );
+
+        for (u32 i = old_size; i < sheet->num_row_heights; i++) {
+            sheet->row_heights[i] = SHEET_DEF_ROW_HEIGHT;
+        }
+    }
+
+    sheet->row_heights[row] = height;
+
+}
 
 

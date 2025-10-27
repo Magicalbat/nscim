@@ -275,8 +275,8 @@ sheet_cell_ref sheet_get_cell(
     workbook* wb, sheet_buffer* sheet, sheet_cell_pos pos, b32 create_if_empty
 );
 
-u32 sheet_get_col_width(sheet_buffer* sheet, u32 col);
-void sheet_set_col_width(sheet_buffer* sheet, u32 col, u32 width);
-u32 sheet_get_row_height(sheet_buffer* sheet, u32 row);
-void sheet_set_row_height(sheet_buffer* sheet, u32 row, u32 height);
+u16 sheet_get_col_width(sheet_buffer* sheet, u32 col);
+void sheet_set_col_width(sheet_buffer* sheet, u32 col, u16 width);
+u8 sheet_get_row_height(sheet_buffer* sheet, u32 row);
+void sheet_set_row_height(sheet_buffer* sheet, u32 row, u8 height);
 

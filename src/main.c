@@ -14,8 +14,20 @@ int main(void) {
 
     sheet_buffer* test_sheet = _sheet_buffer_create();
 
-    _sheet_buffer_destroy(test_sheet);
+    u8 c = 1;
+    for (u32 i = 1; i <= KiB(32); i *= 2, c++) {
+        printf("i: %u\n", i);
+        printf("Orig width: %u\n", sheet_get_col_width(test_sheet, i-1));
+        printf("Orig height: %u\n", sheet_get_row_height(test_sheet, i));
 
+        sheet_set_col_width(test_sheet, i-1, c);
+        sheet_set_row_height(test_sheet, i, c);
+
+        printf("New width: %u\n", sheet_get_col_width(test_sheet, i-1));
+        printf("New height: %u\n\n", sheet_get_row_height(test_sheet, i));
+    }
+
+    _sheet_buffer_destroy(test_sheet);
 
     /*term_context* term = term_init(perm_arena, MiB(4));
 
