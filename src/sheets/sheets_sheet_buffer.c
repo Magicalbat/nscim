@@ -102,6 +102,11 @@ void _sheet_buffer_reset(sheet_buffer* sheet) {
     if (sheet->num_row_heights > 0) {
         plat_mem_decommit(sheet->row_heights, sheet->num_row_heights);
     }
+
+    sheet->map_capacity = 0;
+    sheet->num_chunks = 0;
+    sheet->num_column_widths = 0;
+    sheet->num_row_heights = 0;
 }
 
 void _sheet_buffer_destroy(sheet_buffer* sheet) {
@@ -184,6 +189,7 @@ sheet_cell_ref sheet_get_cell(
     workbook* wb, sheet_buffer* sheet, sheet_cell_pos pos, b32 create_if_empty
 );
 
+// Bounds checking already happens in the functions that call this
 void _sb_grow_array(void* mem, u32 elem_size, u32 old_size, u32* new_size) {
     u8* ptr = (u8*)mem + (old_size * elem_size);
 

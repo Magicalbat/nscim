@@ -268,6 +268,8 @@ void wb_win_update_sizes(workbook* wb, u32 total_width, u32 total_height);
 sheet_chunk* sheet_get_chunk(
     workbook* wb, sheet_buffer* sheet, b32 create_if_empty
 );
+// Chunks will be returned column-major in the array,
+// but there may be less than expected if `create_if_empty` is false
 sheet_chunk_arr sheet_get_chunks_range(
     workbook* wb, sheet_buffer* sheet, sheet_cell_range range, b32 create_if_empty
 );
