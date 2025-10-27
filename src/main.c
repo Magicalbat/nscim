@@ -10,22 +10,41 @@
 #include "sheets/sheets.c"
 
 int main(void) {
+    {
+        u64 seeds[2] = { 0 };
+        plat_get_entropy(seeds, sizeof(seeds));
+        prng_seed(seeds[0], seeds[1]);
+    }
+
     mem_arena* perm_arena = arena_create(MiB(64), MiB(1), true);
 
     sheet_buffer* test_sheet = _sheet_buffer_create();
 
-    u8 c = 1;
-    for (u32 i = 1; i <= KiB(32); i *= 2, c++) {
-        printf("i: %u\n", i);
-        printf("Orig width: %u\n", sheet_get_col_width(test_sheet, i-1));
-        printf("Orig height: %u\n", sheet_get_row_height(test_sheet, i));
+    u64* counts = PUSH_ARRAY(perm_arena, u64, 256);
 
-        sheet_set_col_width(test_sheet, i-1, c);
-        sheet_set_row_height(test_sheet, i, c);
+    for (u32 col = 0; col < SHEET_CHUNKS_Y; col++) {
+        for (u32 row = 0; row < SHEET_CHUNKS_X; row++) {
+            sheet_chunk_pos pos = { row, col };
+            u64 hash = _sb_chunk_hash(pos);
 
-        printf("New width: %u\n", sheet_get_col_width(test_sheet, i-1));
-        printf("New height: %u\n\n", sheet_get_row_height(test_sheet, i));
+            counts[hash & 0xff]++;
+        }
     }
+
+    f64 mean = 0.0f;
+    for (u32 i = 0; i < 256; i++) {
+        mean += (f64)counts[i];
+    }
+    mean /= 256.0f;
+
+    f64 std_dev = 0.0f;
+    for (u32 i = 0; i < 256; i++) {
+        std_dev += ((f64)counts[i] - mean) * ((f64)counts[i] - mean);
+    }
+    std_dev /= 256.0f;
+    std_dev = sqrt(std_dev);
+
+    printf("mean: %f, std_dev: %f\n", mean, std_dev);
 
     _sheet_buffer_destroy(test_sheet);
 

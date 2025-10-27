@@ -33,53 +33,59 @@ static struct {
 
     u64 total_reserve;
 
+    u64 siphash_k0;
+    u64 siphash_k1;
+
     b32 initialized;
-} _sb_mem_info = { 0 };
+} _sb_info = { 0 };
 
 static void _sb_init_mem_info(void) {
-    _sb_mem_info.page_size = plat_page_size();
+    _sb_info.page_size = plat_page_size();
 
 #ifndef NDEBUG
-    if (sizeof(sheet_buffer) > _sb_mem_info.page_size) {
+    if (sizeof(sheet_buffer) > _sb_info.page_size) {
         plat_fatal_error("sheet_buffer cannot fit in memory page", 1);
     }
 #endif
 
-    _sb_mem_info.chunk_map_off = _sb_mem_info.page_size;
-    _sb_mem_info.column_widths_off = ALIGN_UP_POW2(
-        _sb_mem_info.chunk_map_off + sizeof(sheet_chunk*) * SHEET_MAX_CHUNKS,
-        _sb_mem_info.page_size
+    _sb_info.chunk_map_off = _sb_info.page_size;
+    _sb_info.column_widths_off = ALIGN_UP_POW2(
+        _sb_info.chunk_map_off + sizeof(sheet_chunk*) * SHEET_MAX_CHUNKS,
+        _sb_info.page_size
     );
-    _sb_mem_info.row_heights_off = ALIGN_UP_POW2(
-        _sb_mem_info.column_widths_off + sizeof(u16) * SHEET_MAX_COLS,
-        _sb_mem_info.page_size
-    );
-
-    _sb_mem_info.total_reserve = ALIGN_UP_POW2(
-        _sb_mem_info.row_heights_off + sizeof(u8) * SHEET_MAX_ROWS,
-        _sb_mem_info.page_size
+    _sb_info.row_heights_off = ALIGN_UP_POW2(
+        _sb_info.column_widths_off + sizeof(u16) * SHEET_MAX_COLS,
+        _sb_info.page_size
     );
 
-    _sb_mem_info.initialized = true;
+    _sb_info.total_reserve = ALIGN_UP_POW2(
+        _sb_info.row_heights_off + sizeof(u8) * SHEET_MAX_ROWS,
+        _sb_info.page_size
+    );
+
+    _sb_info.siphash_k0 = ((u64)prng_rand() << 32) | (u64)prng_rand();
+    _sb_info.siphash_k1 = ((u64)prng_rand() << 32) | (u64)prng_rand();
+
+    _sb_info.initialized = true;
 }
 
 sheet_buffer* _sheet_buffer_create(void) {
-    if (!_sb_mem_info.initialized) {
+    if (!_sb_info.initialized) {
         _sb_init_mem_info();
     }
 
-    u8* mem = plat_mem_reserve(_sb_mem_info.total_reserve);
+    u8* mem = plat_mem_reserve(_sb_info.total_reserve);
 
-    if (mem == NULL || !plat_mem_commit(mem, _sb_mem_info.page_size)) {
+    if (mem == NULL || !plat_mem_commit(mem, _sb_info.page_size)) {
         plat_fatal_error("Failed to allocate memory for sheet buffer", 1);
     }
 
-    MEM_ZERO(mem, _sb_mem_info.page_size);
+    MEM_ZERO(mem, _sb_info.page_size);
     sheet_buffer* sheet = (sheet_buffer*)mem;
 
-    sheet->chunk_map = (sheet_chunk**)(mem + _sb_mem_info.chunk_map_off);
-    sheet->column_widths = (u16*)(mem + _sb_mem_info.column_widths_off);
-    sheet->row_heights = (u8*)(mem + _sb_mem_info.row_heights_off);
+    sheet->chunk_map = (sheet_chunk**)(mem + _sb_info.chunk_map_off);
+    sheet->column_widths = (u16*)(mem + _sb_info.column_widths_off);
+    sheet->row_heights = (u8*)(mem + _sb_info.row_heights_off);
 
     return sheet;
 }
@@ -99,7 +105,71 @@ void _sheet_buffer_reset(sheet_buffer* sheet) {
 }
 
 void _sheet_buffer_destroy(sheet_buffer* sheet) {
-    plat_mem_release(sheet, _sb_mem_info.total_reserve);
+    plat_mem_release(sheet, _sb_info.total_reserve);
+}
+
+#define _SB_SIPHASH_CROUNDS 2
+#define _SB_SIPHASH_DROUNDS 2
+
+#define _SB_SIPHASH_ROTL(x, b) (u64)(((x) << (b)) | ((x) >> (64 - (b))))
+
+#define _SB_SIPHASH_SIPROUND             \
+    do {                                 \
+        v0 += v1;                        \
+        v1 = _SB_SIPHASH_ROTL(v1, 13);   \
+        v1 ^= v0;                        \
+        v0 = _SB_SIPHASH_ROTL(v0, 32);   \
+        v2 += v3;                        \
+        v3 = _SB_SIPHASH_ROTL(v3, 16);   \
+        v3 ^= v2;                        \
+        v0 += v3;                        \
+        v3 = _SB_SIPHASH_ROTL(v3, 21);   \
+        v3 ^= v0;                        \
+        v2 += v1;                        \
+        v1 = _SB_SIPHASH_ROTL(v1, 17);   \
+        v1 ^= v2;                        \
+        v2 = _SB_SIPHASH_ROTL(v2, 32);   \
+    } while (0);
+
+// This is based on siphash
+// https://github.com/veorq/SipHash/blob/master/siphash.c
+u64 _sb_chunk_hash(sheet_chunk_pos pos) {
+    uint64_t v0 = UINT64_C(0x736f6d6570736575);
+    uint64_t v1 = UINT64_C(0x646f72616e646f6d);
+    uint64_t v2 = UINT64_C(0x6c7967656e657261);
+    uint64_t v3 = UINT64_C(0x7465646279746573);
+    uint64_t k0 = _sb_info.siphash_k0;
+    uint64_t k1 = _sb_info.siphash_k1;
+
+    u64 b = (u64)sizeof(u64) << 56;
+
+    v3 ^= k1;
+    v2 ^= k0;
+    v1 ^= k1;
+    v0 ^= k0;
+
+    u64 m = ((u64)pos.row << 32) | (u64)pos.col;
+
+    v3 ^= m;
+    for (u32 i = 0; i < _SB_SIPHASH_CROUNDS; i++) {
+        _SB_SIPHASH_SIPROUND;
+    }
+    v0 ^= m;
+
+    v3 ^= b;
+    for (u32 i = 0; i < _SB_SIPHASH_CROUNDS; i++) {
+        _SB_SIPHASH_SIPROUND;
+    }
+    v0 ^= b;
+
+    v2 ^= 0xff;
+
+    for (u32 i = 0; i < _SB_SIPHASH_DROUNDS; i++) {
+        _SB_SIPHASH_SIPROUND;
+    }
+
+    u64 out = v0 ^ v1 ^ v2 ^ v3;
+    return out;
 }
 
 sheet_chunk* sheet_get_chunk(
@@ -119,7 +189,7 @@ void _sb_grow_array(void* mem, u32 elem_size, u32 old_size, u32* new_size) {
 
     u32 to_commit = (u32)ALIGN_UP_POW2(
         (*new_size - old_size) * elem_size,
-        _sb_mem_info.page_size
+        _sb_info.page_size
     );
     *new_size = old_size + to_commit / elem_size;
 
