@@ -18,7 +18,7 @@ int main(void) {
 
     mem_arena* perm_arena = arena_create(MiB(64), MiB(1), true);
 
-    sheet_buffer* test_sheet = _sheet_buffer_create();
+    /*sheet_buffer* test_sheet = _sheet_buffer_create();
 
     u64* counts = PUSH_ARRAY(perm_arena, u64, 256);
 
@@ -46,7 +46,7 @@ int main(void) {
 
     printf("mean: %f, std_dev: %f\n", mean, std_dev);
 
-    _sheet_buffer_destroy(test_sheet);
+    _sheet_buffer_destroy(test_sheet);*/
 
     /*term_context* term = term_init(perm_arena, MiB(4));
 

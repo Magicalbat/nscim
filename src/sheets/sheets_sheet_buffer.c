@@ -84,8 +84,8 @@ sheet_buffer* _sheet_buffer_create(void) {
     sheet_buffer* sheet = (sheet_buffer*)mem;
 
     sheet->chunk_map = (sheet_chunk**)(mem + _sb_info.chunk_map_off);
-    sheet->column_widths = (u16*)(mem + _sb_info.column_widths_off);
-    sheet->row_heights = (u8*)(mem + _sb_info.row_heights_off);
+    sheet->_column_widths = (u16*)(mem + _sb_info.column_widths_off);
+    sheet->_row_heights = (u8*)(mem + _sb_info.row_heights_off);
 
     return sheet;
 }
@@ -96,11 +96,11 @@ void _sheet_buffer_reset(sheet_buffer* sheet) {
     }
 
     if (sheet->num_column_widths > 0) {
-        plat_mem_decommit(sheet->column_widths, sheet->num_column_widths);
+        plat_mem_decommit(sheet->_column_widths, sheet->num_column_widths);
     }
 
     if (sheet->num_row_heights > 0) {
-        plat_mem_decommit(sheet->row_heights, sheet->num_row_heights);
+        plat_mem_decommit(sheet->_row_heights, sheet->num_row_heights);
     }
 
     sheet->map_capacity = 0;
@@ -209,7 +209,7 @@ u16 sheet_get_col_width(sheet_buffer* sheet, u32 col) {
         return SHEET_DEF_COL_WIDTH;
     }
 
-    return sheet->column_widths[col];
+    return sheet->_column_widths[col];
 }
 
 void sheet_set_col_width(sheet_buffer* sheet, u32 col, u16 width) {
@@ -222,16 +222,16 @@ void sheet_set_col_width(sheet_buffer* sheet, u32 col, u16 width) {
         sheet->num_column_widths = col + 1;
 
         _sb_grow_array(
-            sheet->column_widths, sizeof(u16),
+            sheet->_column_widths, sizeof(u16),
             old_size, &sheet->num_column_widths
         );
 
         for (u32 i = old_size; i < sheet->num_column_widths; i++) {
-            sheet->column_widths[i] = SHEET_DEF_COL_WIDTH;
+            sheet->_column_widths[i] = SHEET_DEF_COL_WIDTH;
         }
     }
 
-    sheet->column_widths[col] = width;
+    sheet->_column_widths[col] = width;
 }
 
 u8 sheet_get_row_height(sheet_buffer* sheet, u32 row) {
@@ -239,7 +239,7 @@ u8 sheet_get_row_height(sheet_buffer* sheet, u32 row) {
         return SHEET_DEF_ROW_HEIGHT;
     }
 
-    return sheet->row_heights[row];
+    return sheet->_row_heights[row];
 }
 
 void sheet_set_row_height(sheet_buffer* sheet, u32 row, u8 height) {
@@ -252,16 +252,16 @@ void sheet_set_row_height(sheet_buffer* sheet, u32 row, u8 height) {
         sheet->num_row_heights = row + 1;
 
         _sb_grow_array(
-            sheet->row_heights, sizeof(u8),
+            sheet->_row_heights, sizeof(u8),
             old_size, &sheet->num_row_heights
         );
 
         for (u32 i = old_size; i < sheet->num_row_heights; i++) {
-            sheet->row_heights[i] = SHEET_DEF_ROW_HEIGHT;
+            sheet->_row_heights[i] = SHEET_DEF_ROW_HEIGHT;
         }
     }
 
-    sheet->row_heights[row] = height;
+    sheet->_row_heights[row] = height;
 
 }
 

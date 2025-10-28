@@ -14,11 +14,13 @@
 #define SHEET_DEF_ROW_HEIGHT 1
 
 // Minimum allocation for strings
-#define SHEET_MIN_STRLEN (1 << 4)
 // This applies to strings and formulas
-#define SHEET_MAX_STRLEN (1 << 11)
+#define SHEET_MIN_STRLEN_EXP 4
+#define SHEET_MAX_STRLEN_EXP 11
+#define SHEET_MIN_STRLEN (1 << SHEET_MIN_STRLEN_EXP)
+#define SHEET_MAX_STRLEN (1 << SHEET_MAX_STRLEN_EXP)
 // Valid strlens are at each power of two between min and max (inclusive)
-#define SHEET_NUM_STRLENS 8
+#define SHEET_NUM_STRLENS (SHEET_MAX_STRLEN_EXP - SHEET_MIN_STRLEN_EXP + 1)
 
 // To convert from cell to chunk pos, simply divide each element
 // by the corresponding chunk size
@@ -54,27 +56,20 @@ typedef struct {
 STATIC_ASSERT(SHEET_CELL_TYPE_COUNT < 255, cell_type_count);
 
 typedef struct sheet_string {
-    u8* str;
-
     u32 size;
     u32 capacity;
+
+    // For free list
+    struct sheet_string* next;
+
+    // Array of length capacity
+    // Dynamically allocated with the struct
+    u8 str[];
 } sheet_string;
 
-#define SHEET_STR_BUCKET_SIZE 16
-
-// Used for string free lists
-typedef struct sheet_string_bucket {
-    struct sheet_string_bucket* next;
-
-    u32 num_strings;
-
-    sheet_string strings[SHEET_STR_BUCKET_SIZE];
-} sheet_string_bucket;
-
-// Used for string free lists
 typedef struct {
-    sheet_string_bucket* first;
-    sheet_string_bucket* last;
+    sheet_string* first;
+    sheet_string* last;
 
     // Capcity of each string stored in the list
     u32 str_capacity;
@@ -124,10 +119,12 @@ typedef struct sheet_buffer {
 
     u32 num_column_widths;
     u32 num_row_heights;
+
+    // These two should not be accessed directly
     // Currently stored as numbers of characcters
-    u16* column_widths;
+    u16* _column_widths;
     // Currently stored as numbers of characcters
-    u8* row_heights;
+    u8* _row_heights;
 } sheet_buffer;
 
 typedef enum {
@@ -172,7 +169,9 @@ typedef struct sheet_window {
 
     // Everything below is only for non-internal windows
 
-    sheet_buffer* buffer;
+    // Buffer should not be accessed directly
+    // Use `wb_win_get_buffer`
+    sheet_buffer* _buffer;
 
     // Top-left scroll pos
     sheet_cell_pos scroll_pos;
@@ -253,10 +252,11 @@ void wb_free_chunk(workbook* wb, sheet_chunk* chunk);
 // Size must be a power of two between SHEET_MIN_STRLEN
 // and SHEET_MAX_STRLEN (inclusive)
 // Invalid sizes will get rounded up and capped at SHEET_MAX_STRLEN
-sheet_string wb_create_string(workbook* wb, u32 size);
-void wb_free_string(workbook* wb, sheet_string str);
+sheet_string* wb_create_string(workbook* wb, u32 capacity);
+void wb_free_string(workbook* wb, sheet_string* str);
 
-// Both of these operate on the active window
+void wb_win_get_buffer(workbook* wb, sheet_window* win, b32 create_if_empty);
+// All of these below operate on the active window
 void wb_win_split(workbook* wb, sheet_window_split split);
 void wb_win_close(workbook* wb);
 // Will attempt to increment the current win's width or height
