@@ -94,7 +94,7 @@ typedef struct sheet_chunk {
     // Cell data, all stored column major
     sheet_cell_type cell_types[SHEET_CHUNK_SIZE];
     f64 cell_nums[SHEET_CHUNK_SIZE];
-    sheet_string cell_strings[SHEET_CHUNK_SIZE];
+    sheet_string* cell_strings[SHEET_CHUNK_SIZE];
 } sheet_chunk;
 
 typedef struct {
@@ -145,10 +145,17 @@ typedef struct sheet_window {
     // For free-list
     struct sheet_window* next;
 
-    // Left or top child
-    struct sheet_window* child0;
-    // Right or bottom child
-    struct sheet_window* child1;
+    // Union to make operations on both children easier
+    union {
+        struct {
+            // Left or top child
+            struct sheet_window* child0;
+            // Right or bottom child
+            struct sheet_window* child1;
+        };
+
+        struct sheet_window* children[2];
+    };
 
     // Fraction of parent's size the window takes up
     // along the axis perpendicular to the split
@@ -170,8 +177,8 @@ typedef struct sheet_window {
     // Everything below is only for non-internal windows
 
     // Buffer should not be accessed directly
-    // Use `wb_win_get_buffer`
-    sheet_buffer* _buffer;
+    // Use `wb_win_get_sheet`
+    sheet_buffer* _sheet;
 
     // Top-left scroll pos
     sheet_cell_pos scroll_pos;
@@ -204,20 +211,22 @@ typedef struct workbook {
     // Cannot actually store any data
     sheet_buffer* empty_buffer;
 
-    // Windows
+    // Stores the number of total window nodes
+    // Some may be internal windows
+    u32 num_windows;
     sheet_window* root_win;
+    // Active win must not be internal
     sheet_window* active_win;
 
     sheet_window* first_free_win;
     sheet_window* last_free_win;
 
-    // Buffers
-    u32 num_buffers;
-    sheet_buffer* first_buffer;
-    sheet_buffer* last_buffer;
+    u32 num_sheets;
+    sheet_buffer* first_sheet;
+    sheet_buffer* last_sheet;
 
-    sheet_buffer* first_free_buffer;
-    sheet_buffer* last_free_buffer;
+    sheet_buffer* first_free_sheet;
+    sheet_buffer* last_free_sheet;
 
     // Used when sheet_buffers need to rehash
     // Allocated on its own
@@ -242,9 +251,9 @@ typedef struct workbook {
 workbook* wb_create(void);
 void wb_destroy(workbook* wb);
 
-sheet_buffer* wb_create_buffer(workbook* wb);
-sheet_buffer* wb_get_buffer(workbook* wb, string8 name);
-void wb_free_buffer(workbook* wb, sheet_buffer* buffer);
+sheet_buffer* wb_create_sheet_buffer(workbook* wb);
+sheet_buffer* wb_get_sheet_buffer(workbook* wb, string8 name);
+void wb_free_sheet_buffer(workbook* wb, sheet_buffer* sheet);
 
 sheet_chunk* wb_create_chunk(workbook* wb);
 void wb_free_chunk(workbook* wb, sheet_chunk* chunk);
@@ -255,15 +264,19 @@ void wb_free_chunk(workbook* wb, sheet_chunk* chunk);
 sheet_string* wb_create_string(workbook* wb, u32 capacity);
 void wb_free_string(workbook* wb, sheet_string* str);
 
-void wb_win_get_buffer(workbook* wb, sheet_window* win, b32 create_if_empty);
+sheet_buffer* wb_win_get_sheet(workbook* wb, sheet_window* win, b32 create_if_empty);
 // All of these below operate on the active window
-void wb_win_split(workbook* wb, sheet_window_split split);
+// If `open_in_both` is true, both children windows will have the same
+// buffer open. Otherwise, only the first child will
+void wb_win_split(workbook* wb, sheet_window_split split, b32 open_in_both);
 void wb_win_close(workbook* wb);
+
+void wb_win_compute_sizes(workbook* wb, u32 total_width, u32 total_height);
+
 // Will attempt to increment the current win's width or height
+// Must call after calling `wb_win_compute_sizes`
 void wb_win_inc_width(workbook* wb, u32 amount);
 void wb_win_inc_height(workbook* wb, u32 amount);
-
-void wb_win_update_sizes(workbook* wb, u32 total_width, u32 total_height);
 
 sheet_chunk* sheet_get_chunk(
     workbook* wb, sheet_buffer* sheet, b32 create_if_empty

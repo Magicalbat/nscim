@@ -10,7 +10,7 @@ workbook* wb_create(void) {
     wb->empty_buffer = PUSH_STRUCT(arena, sheet_buffer);
 
     sheet_window* root_win = PUSH_STRUCT(arena, sheet_window);
-    root_win->_buffer = wb->empty_buffer;
+    root_win->_sheet = wb->empty_buffer;
 
     wb->root_win = root_win;
     wb->active_win = root_win;
@@ -36,7 +36,7 @@ void wb_destroy(workbook* wb) {
 
     sheet_buffer* next = NULL;
     for (
-        sheet_buffer* sheet = wb->first_buffer;
+        sheet_buffer* sheet = wb->first_sheet;
         sheet != NULL; sheet = next
     ) {
         next = sheet->next;
@@ -45,7 +45,7 @@ void wb_destroy(workbook* wb) {
 
     next = NULL;
     for (
-        sheet_buffer* sheet = wb->first_free_buffer;
+        sheet_buffer* sheet = wb->first_free_sheet;
         sheet != NULL; sheet = next
     ) {
         next = sheet->next;
@@ -55,24 +55,26 @@ void wb_destroy(workbook* wb) {
     arena_destroy(wb->arena);
 }
 
-sheet_buffer* wb_create_buffer(workbook* wb) {
+sheet_buffer* wb_create_sheet_buffer(workbook* wb) {
     sheet_buffer* sheet = NULL;
 
-    if (wb->first_free_buffer != NULL) {
-        sheet = wb->first_free_buffer;
-        DLL_REMOVE(wb->first_free_buffer, wb->last_free_buffer, sheet);
+    if (wb->first_free_sheet != NULL) {
+        sheet = wb->first_free_sheet;
+        DLL_REMOVE(wb->first_free_sheet, wb->last_free_sheet, sheet);
     } else {
         sheet = _sheet_buffer_create();
     }
 
-    DLL_PUSH_BACK(wb->first_buffer, wb->last_buffer, sheet);
+    DLL_PUSH_BACK(wb->first_sheet, wb->last_sheet, sheet);
+
+    wb->num_sheets++;
 
     return sheet;
 }
 
-sheet_buffer* wb_get_buffer(workbook* wb, string8 name) {
+sheet_buffer* wb_get_sheet_buffer(workbook* wb, string8 name) {
     for (
-        sheet_buffer* sheet = wb->first_buffer;
+        sheet_buffer* sheet = wb->first_sheet;
         sheet != NULL; sheet = sheet->next
     ) {
         if (str8_equals(sheet->name, name)) {
@@ -83,12 +85,15 @@ sheet_buffer* wb_get_buffer(workbook* wb, string8 name) {
     return NULL;
 }
 
-void wb_free_buffer(workbook* wb, sheet_buffer* buffer) {
+void wb_free_sheet_buffer(workbook* wb, sheet_buffer* buffer) {
+    wb->num_sheets--;
     _sheet_buffer_reset(buffer);
-    DLL_PUSH_BACK(wb->first_free_buffer, wb->last_free_buffer, buffer);
+    DLL_PUSH_BACK(wb->first_free_sheet, wb->last_free_sheet, buffer);
 }
 
 sheet_window* _wb_create_win(workbook* wb) {
+    wb->num_windows++;
+
     if (wb->first_free_win != NULL) {
         sheet_window* win = wb->first_free_win;
         SLL_POP_FRONT(wb->first_free_win, wb->last_free_win);
@@ -97,14 +102,16 @@ sheet_window* _wb_create_win(workbook* wb) {
     }
 
     sheet_window* win = PUSH_STRUCT(wb->arena, sheet_window);
-    win->_buffer = wb->empty_buffer;
+    win->_sheet = wb->empty_buffer;
 
     return win;
 }
 
 void _wb_free_win(workbook* wb, sheet_window* win) {
+    wb->num_windows--;
+
     MEM_ZERO(win, sizeof(sheet_window));
-    win->_buffer = wb->empty_buffer;
+    win->_sheet = wb->empty_buffer;
 
     SLL_PUSH_BACK(wb->first_free_win, wb->last_free_win, win);
 }
