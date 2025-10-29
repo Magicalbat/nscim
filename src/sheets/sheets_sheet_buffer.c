@@ -36,6 +36,15 @@ static struct {
     u64 siphash_k0;
     u64 siphash_k1;
 
+    // Used to create empty `sheet_cell_ref` structs with valid pointers
+    struct {
+        sheet_cell_type type;
+        f64 num;
+        sheet_string* str;
+    } empty_cell;
+
+    sheet_cell_ref empty_ref;
+
     b32 initialized;
 } _sb_info = { 0 };
 
@@ -66,7 +75,36 @@ static void _sb_init_mem_info(void) {
     _sb_info.siphash_k0 = ((u64)prng_rand() << 32) | (u64)prng_rand();
     _sb_info.siphash_k1 = ((u64)prng_rand() << 32) | (u64)prng_rand();
 
+    _sb_info.empty_cell.type.t = SHEET_CELL_TYPE_NONE;
+    _sb_info.empty_cell.num = 0.0;
+    _sb_info.empty_cell.str = NULL;
+
+    _sb_info.empty_ref = (sheet_cell_ref){
+        .type = &_sb_info.empty_cell.type,
+        .num = &_sb_info.empty_cell.num,
+        .str = &_sb_info.empty_cell.str,
+    };
+
     _sb_info.initialized = true;
+}
+
+// Grow size is in `sheet_chunk*`s, not bytes
+void _sb_chunk_map_grow(sheet_buffer* sheet, u64 grow_size) {
+    grow_size = ALIGN_UP_POW2(grow_size, _sb_info.page_size);
+
+    if (sheet->map_capacity + grow_size > SHEET_MAX_CHUNKS) {
+        grow_size = SHEET_MAX_CHUNKS - sheet->map_capacity;
+    }
+
+    sheet_chunk** cur_commit = sheet->chunk_map + sheet->map_capacity;
+
+    if (!plat_mem_commit(cur_commit, grow_size * sizeof(sheet_chunk*))) {
+        plat_fatal_error("Failed to commit memory for sheet chunks", 1);
+    }
+
+    MEM_ZERO(cur_commit, grow_size * sizeof(sheet_chunk*));
+
+    sheet->map_capacity += grow_size;
 }
 
 sheet_buffer* _sheet_buffer_create(void) {
@@ -87,6 +125,9 @@ sheet_buffer* _sheet_buffer_create(void) {
     sheet->_column_widths = (u16*)(mem + _sb_info.column_widths_off);
     sheet->_row_heights = (u8*)(mem + _sb_info.row_heights_off);
 
+    // Allocate initial page for chunks
+    _sb_chunk_map_grow(sheet, _sb_info.page_size / sizeof(sheet_chunk*));
+
     return sheet;
 }
 
@@ -94,6 +135,9 @@ void _sheet_buffer_reset(sheet_buffer* sheet) {
     if (sheet->map_capacity > 0) {
         plat_mem_decommit(sheet->chunk_map, sheet->map_capacity);
     }
+
+    // Reset initial map space
+    _sb_chunk_map_grow(sheet, _sb_info.page_size / sizeof(sheet_chunk*));
 
     if (sheet->num_column_widths > 0) {
         plat_mem_decommit(sheet->_column_widths, sheet->num_column_widths);
@@ -178,16 +222,83 @@ u64 _sb_chunk_hash(sheet_chunk_pos pos) {
 }
 
 sheet_chunk* sheet_get_chunk(
-    workbook* wb, sheet_buffer* sheet, b32 create_if_empty
-);
+    workbook* wb, sheet_buffer* sheet,
+    sheet_chunk_pos chunk_pos, b32 create_if_empty
+) {
+    u64 chunk_hash = _sb_chunk_hash(chunk_pos);
+    u64 chunk_idx = chunk_hash % sheet->map_capacity;
+
+    sheet_chunk* chunk = sheet->chunk_map[chunk_idx];
+    while (
+        chunk != NULL && 
+        chunk->pos.row != chunk_pos.row &&
+        chunk->pos.col != chunk_pos.col
+    ) {
+        chunk = chunk->next;
+    }
+
+    if (chunk == NULL && create_if_empty) {
+        chunk = wb_create_chunk(wb);
+        chunk->pos = chunk_pos;
+        chunk->hash = chunk_hash;
+
+        if (sheet->chunk_map[chunk_idx] == NULL) {
+            chunk->next = sheet->chunk_map[chunk_idx];
+        }
+        sheet->chunk_map[chunk_idx] = chunk;
+
+        // TODO: rehashing
+    }
+
+    return chunk;
+}
 
 sheet_chunk_arr sheet_get_chunks_range(
-    workbook* wb, sheet_buffer* sheet, sheet_cell_range range, b32 create_if_empty
-);
+    workbook* wb, sheet_buffer* sheet,
+    sheet_cell_range cell_range, b32 create_if_empty
+) {
+}
 
 sheet_cell_ref sheet_get_cell(
-    workbook* wb, sheet_buffer* sheet, sheet_cell_pos pos, b32 create_if_empty
-);
+    workbook* wb, sheet_buffer* sheet,
+    sheet_cell_pos cell_pos, b32 create_if_empty
+) {
+    sheet_chunk_pos chunk_pos = {
+        cell_pos.row / SHEET_CHUNK_ROWS,
+        cell_pos.col / SHEET_CHUNK_COLS
+    };
+
+    sheet_chunk* chunk = NULL;
+
+    if (
+        sheet->last_chunk != NULL &&
+        sheet->last_chunk->pos.row == chunk_pos.row &&
+        sheet->last_chunk->pos.col == chunk_pos.col
+    ) {
+        chunk = sheet->last_chunk;
+    } else {
+        chunk = sheet_get_chunk(wb, sheet, chunk_pos, create_if_empty);
+    }
+
+    if (chunk == NULL) {
+        return _sb_info.empty_ref;
+    }
+
+    // Update last chunk for the next time
+    sheet->last_chunk = chunk;
+
+    u32 local_row = cell_pos.row % SHEET_CHUNK_ROWS;
+    u32 local_col = cell_pos.col % SHEET_CHUNK_COLS;
+    u32 index = local_row + local_col * SHEET_CHUNK_ROWS;
+
+    sheet_cell_ref cell_ref = {
+        .type = &chunk->types[index],
+        .num = &chunk->nums[index],
+        .str = &chunk->strings[index]
+    };
+
+    return cell_ref;
+}
 
 // Bounds checking already happens in the functions that call this
 void _sb_grow_array(void* mem, u32 elem_size, u32 old_size, u32* new_size) {

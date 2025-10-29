@@ -76,11 +76,9 @@ typedef struct {
 } sheet_string_list;
 
 typedef struct {
-    sheet_cell_pos pos;
-
     sheet_cell_type* type;
     f64* num;
-    sheet_string* str;
+    sheet_string** str;
 } sheet_cell_ref;
 
 typedef struct sheet_chunk {
@@ -92,9 +90,9 @@ typedef struct sheet_chunk {
     struct sheet_chunk* next;
 
     // Cell data, all stored column major
-    sheet_cell_type cell_types[SHEET_CHUNK_SIZE];
-    f64 cell_nums[SHEET_CHUNK_SIZE];
-    sheet_string* cell_strings[SHEET_CHUNK_SIZE];
+    sheet_cell_type types[SHEET_CHUNK_SIZE];
+    f64 nums[SHEET_CHUNK_SIZE];
+    sheet_string* strings[SHEET_CHUNK_SIZE];
 } sheet_chunk;
 
 typedef struct {
@@ -117,6 +115,9 @@ typedef struct sheet_buffer {
     // Mapping chunk positions -> chunk pointers
     sheet_chunk** chunk_map;
 
+    // Used to speed up repeated `sheet_get_cell` calls
+    sheet_chunk* last_chunk;
+
     u32 num_column_widths;
     u32 num_row_heights;
 
@@ -128,17 +129,20 @@ typedef struct sheet_buffer {
 } sheet_buffer;
 
 sheet_chunk* sheet_get_chunk(
-    workbook* wb, sheet_buffer* sheet, b32 create_if_empty
+    workbook* wb, sheet_buffer* sheet,
+    sheet_chunk_pos chunk_pos, b32 create_if_empty
 );
 
 // Chunks will be returned column-major in the array,
 // but there may be less than expected if `create_if_empty` is false
 sheet_chunk_arr sheet_get_chunks_range(
-    workbook* wb, sheet_buffer* sheet, sheet_cell_range range, b32 create_if_empty
+    workbook* wb, sheet_buffer* sheet,
+    sheet_cell_range cell_range, b32 create_if_empty
 );
 
 sheet_cell_ref sheet_get_cell(
-    workbook* wb, sheet_buffer* sheet, sheet_cell_pos pos, b32 create_if_empty
+    workbook* wb, sheet_buffer* sheet,
+    sheet_cell_pos cell_pos, b32 create_if_empty
 );
 
 u16 sheet_get_col_width(sheet_buffer* sheet, u32 col);
