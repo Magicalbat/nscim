@@ -85,7 +85,7 @@ void wb_win_compute_sizes(workbook* wb, u32 total_width, u32 total_height) {
         sheet_window* parent = cur->parent;
         b32 is_child1 = parent->child1 == cur;
 
-        u32 child_case = (parent->split_dir.s << 1) | is_child1;
+        u32 child_case = (parent->split_dir.s << 1) | (u32)is_child1;
 
         switch (child_case) {
             // Vertical, child0
@@ -146,7 +146,6 @@ void _wb_win_expand(workbook* wb, i32 amount, sheet_window_split split) {
     }
 
     sheet_window* parent = cur->parent;
-    u32 child_idx = parent->child0 == cur ? 0 : 1;
 
     u32 parent_dim = 1;
     u32 child_dim = 1;
@@ -159,9 +158,9 @@ void _wb_win_expand(workbook* wb, i32 amount, sheet_window_split split) {
         child_dim = cur->height;
     }
 
-    amount = CLAMP(amount, -((i32)child_dim), parent_dim - child_dim);
+    amount = CLAMP(amount, -((i32)child_dim), (i32)(parent_dim - child_dim));
 
-    child_dim += amount;
+    child_dim = (u32)((i32)child_dim + amount);
     f64 new_fraction = (f64)parent_dim / (f64)child_dim;
 
     cur->parent_fraction = new_fraction;
