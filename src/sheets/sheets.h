@@ -128,8 +128,8 @@ typedef struct sheet_buffer {
 } sheet_buffer;
 
 typedef enum {
-    SHEET_WIN_SPILT_VERT,
-    SHEET_WIN_SPILT_HORZ,
+    SHEET_WIN_SPLIT_VERT = 0b0,
+    SHEET_WIN_SPLIT_HORZ = 0b1,
 } sheet_window_split_enum;
 
 // Used to ensure the enum size
@@ -159,6 +159,8 @@ typedef struct sheet_window {
 
     // Fraction of parent's size the window takes up
     // along the axis perpendicular to the split
+    // Only child0's parent_fraction is actually used
+    // during calculations
     f64 parent_fraction;
 
     // Top left of window, in characters
@@ -194,8 +196,8 @@ typedef struct sheet_window {
     u8 input_buf[SHEET_MAX_STRLEN];
 } sheet_window;
 
-#define WORKBOOK_RESERVE_SIZE MiB(256)
-#define WORKBOOK_COMMIT_SIZE MiB(4)
+#define WORKBOOK_RESERVE_SIZE GiB(1)
+#define WORKBOOK_COMMIT_SIZE MiB(16)
 
 // Workbooks store the state of all open sheets and windows
 // All allocations for sheets (besides buffers themselves)
@@ -275,8 +277,13 @@ void wb_win_compute_sizes(workbook* wb, u32 total_width, u32 total_height);
 
 // Will attempt to increment the current win's width or height
 // Must call after calling `wb_win_compute_sizes`
-void wb_win_inc_width(workbook* wb, u32 amount);
-void wb_win_inc_height(workbook* wb, u32 amount);
+void wb_win_inc_width(workbook* wb, i32 amount);
+void wb_win_inc_height(workbook* wb, i32 amount);
+
+// Moves cursor to active window left (-1) or right (+1)
+void wb_win_change_active_horz(workbook* wb, i32 dir);
+// Moves cursor to active window above (-1) or below (+1)
+void wb_win_change_active_vert(workbook* wb, i32 dir);
 
 sheet_chunk* sheet_get_chunk(
     workbook* wb, sheet_buffer* sheet, b32 create_if_empty
