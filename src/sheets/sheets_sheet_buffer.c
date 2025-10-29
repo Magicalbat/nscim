@@ -253,10 +253,55 @@ sheet_chunk* sheet_get_chunk(
     return chunk;
 }
 
-sheet_chunk_arr sheet_get_chunks_range(
-    workbook* wb, sheet_buffer* sheet,
+sheet_chunk_arr sheet_get_chunk_range(
+    mem_arena* arena, workbook* wb, sheet_buffer* sheet,
     sheet_cell_range cell_range, b32 create_if_empty
 ) {
+    u32 min_cell_row = MIN(cell_range.start.row, cell_range.end.row);
+    u32 min_cell_col = MIN(cell_range.start.col, cell_range.end.col);
+    u32 max_cell_row = MAX(cell_range.start.row, cell_range.end.row);
+    u32 max_cell_col = MAX(cell_range.start.col, cell_range.end.col);
+
+    sheet_chunk_pos min_chunk_pos = {
+        min_cell_row / SHEET_CHUNK_ROWS,
+        min_cell_col / SHEET_CHUNK_COLS
+    };
+
+    sheet_chunk_pos max_chunk_pos = {
+        max_cell_row / SHEET_CHUNK_ROWS,
+        max_cell_col / SHEET_CHUNK_COLS
+    };
+
+    u32 max_chunks = (max_chunk_pos.row - min_chunk_pos.row + 1) *
+        (max_chunk_pos.col - max_chunk_pos.col + 1);
+
+    mem_arena_temp scratch = arena_scratch_get(&arena, 1);
+
+    u32 num_chunks = 0;
+    sheet_chunk** temp_chunks = PUSH_ARRAY(scratch.arena, sheet_chunk*, max_chunks);
+
+    for (u32 c_col = min_chunk_pos.col; c_col <= max_chunk_pos.col; c_col++) {
+        for (u32 c_row = min_chunk_pos.row; c_row <= max_chunk_pos.row; c_row++) {
+            sheet_chunk_pos pos = { c_row, c_col };
+
+            sheet_chunk* cur_chunk = sheet_get_chunk(wb, sheet, pos, create_if_empty);
+
+            if (cur_chunk != NULL) {
+                temp_chunks[num_chunks++] = cur_chunk;
+            }
+        }
+    }
+
+    sheet_chunk_arr chunk_arr = {
+        .num_chunks = num_chunks,
+        .chunks = PUSH_ARRAY_NZ(arena, sheet_chunk*, num_chunks)
+    };
+
+    memcpy(chunk_arr.chunks, temp_chunks, sizeof(sheet_chunk*) * num_chunks);
+
+    arena_scratch_release(scratch);
+
+    return chunk_arr;
 }
 
 sheet_cell_ref sheet_get_cell(

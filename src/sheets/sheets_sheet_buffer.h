@@ -135,8 +135,8 @@ sheet_chunk* sheet_get_chunk(
 
 // Chunks will be returned column-major in the array,
 // but there may be less than expected if `create_if_empty` is false
-sheet_chunk_arr sheet_get_chunks_range(
-    workbook* wb, sheet_buffer* sheet,
+sheet_chunk_arr sheet_get_chunk_range(
+    mem_arena* arena, workbook* wb, sheet_buffer* sheet,
     sheet_cell_range cell_range, b32 create_if_empty
 );
 
