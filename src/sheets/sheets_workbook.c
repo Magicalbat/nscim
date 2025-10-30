@@ -40,7 +40,7 @@ void wb_destroy(workbook* wb) {
         sheet != NULL; sheet = next
     ) {
         next = sheet->next;
-        _sheet_buffer_destroy(sheet);
+        _sheet_buffer_destroy(wb, sheet);
     }
 
     next = NULL;
@@ -49,7 +49,7 @@ void wb_destroy(workbook* wb) {
         sheet != NULL; sheet = next
     ) {
         next = sheet->next;
-        _sheet_buffer_destroy(sheet);
+        _sheet_buffer_destroy(wb, sheet);
     }
 
     arena_destroy(wb->arena);
@@ -87,7 +87,7 @@ sheet_buffer* wb_get_sheet_buffer(workbook* wb, string8 name) {
 
 void wb_free_sheet_buffer(workbook* wb, sheet_buffer* buffer) {
     wb->num_sheets--;
-    _sheet_buffer_reset(buffer);
+    _sheet_buffer_reset(wb, buffer);
     DLL_PUSH_BACK(wb->first_free_sheet, wb->last_free_sheet, buffer);
 }
 
@@ -130,6 +130,12 @@ sheet_chunk* wb_create_chunk(workbook* wb) {
 }
 
 void wb_free_chunk(workbook* wb, sheet_chunk* chunk) {
+    for (u32 i = 0; i < SHEET_CHUNK_SIZE; i++) {
+        if (chunk->strings[i] != NULL) {
+            wb_free_string(wb, chunk->strings[i]);
+        }
+    }
+
     MEM_ZERO(chunk, sizeof(sheet_chunk));
 
     SLL_PUSH_BACK(wb->first_free_chunk, wb->last_free_chunk, chunk);

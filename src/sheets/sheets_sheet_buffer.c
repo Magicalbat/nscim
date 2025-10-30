@@ -90,7 +90,7 @@ static void _sb_init_mem_info(void) {
 
 // Grow size is in `sheet_chunk*`s, not bytes
 void _sb_chunk_map_grow(sheet_buffer* sheet, u64 grow_size) {
-    grow_size = ALIGN_UP_POW2(grow_size, _sb_info.page_size);
+    grow_size = ALIGN_UP_POW2(grow_size, _sb_info.page_size / sizeof(sheet_chunk*));
 
     if (sheet->map_capacity + grow_size > SHEET_MAX_CHUNKS) {
         grow_size = SHEET_MAX_CHUNKS - sheet->map_capacity;
@@ -131,7 +131,24 @@ sheet_buffer* _sheet_buffer_create(void) {
     return sheet;
 }
 
-void _sheet_buffer_reset(sheet_buffer* sheet) {
+void _sb_free_chunks(workbook* wb, sheet_buffer* sheet) {
+    for (u32 i = 0; i < sheet->map_capacity; i++) {
+        sheet_chunk* cur_chunk = sheet->chunk_map[i];
+        sheet_chunk* next = NULL;
+
+        while (cur_chunk != NULL) {
+            next = cur_chunk->next;
+
+            wb_free_chunk(wb, cur_chunk);
+
+            cur_chunk = next;
+        }
+    }
+}
+
+void _sheet_buffer_reset(workbook* wb, sheet_buffer* sheet) {
+    _sb_free_chunks(wb, sheet);
+
     if (sheet->map_capacity > 0) {
         plat_mem_decommit(sheet->chunk_map, sheet->map_capacity);
     }
@@ -153,7 +170,9 @@ void _sheet_buffer_reset(sheet_buffer* sheet) {
     sheet->num_row_heights = 0;
 }
 
-void _sheet_buffer_destroy(sheet_buffer* sheet) {
+void _sheet_buffer_destroy(workbook* wb, sheet_buffer* sheet) {
+    _sb_free_chunks(wb, sheet);
+
     plat_mem_release(sheet, _sb_info.total_reserve);
 }
 
@@ -221,6 +240,49 @@ u64 _sb_chunk_hash(sheet_chunk_pos pos) {
     return out;
 }
 
+// TODO: profile this function
+// Would it be worth it to multithread?
+void _sb_chunk_rehash(workbook* wb, sheet_buffer* sheet) {
+    sheet_chunk** scratch_chunks = _wb_get_scratch_chunks(
+        wb, sheet->num_chunks * sizeof(sheet_chunk*)
+    );
+
+    u32 chunk_index = 0;
+
+    for (u32 i = 0; i < sheet->map_capacity; i++) {
+        sheet_chunk* cur_chunk = sheet->chunk_map[i];
+        sheet_chunk* next = NULL;
+
+        while (cur_chunk != NULL) {
+            next = cur_chunk->next;
+            cur_chunk->next = NULL;
+
+            scratch_chunks[chunk_index++] = cur_chunk;
+
+            cur_chunk = next;
+        }
+    }
+
+    ASSERT(chunk_index == sheet->num_chunks);
+
+    MEM_ZERO(sheet->chunk_map, sizeof(sheet_chunk*) * sheet->map_capacity);
+
+    // Double in size
+    // TODO: test other growth factors?
+    _sb_chunk_map_grow(sheet, sheet->map_capacity);
+
+    for (u32 i = 0; i < sheet->num_chunks; i++) {
+        sheet_chunk* chunk = scratch_chunks[i];
+
+        u32 chunk_idx = chunk->hash % sheet->map_capacity;
+
+        // If there is no chunk there, the pointer should be NULL,
+        // so this line will still work correctly
+        chunk->next = sheet->chunk_map[chunk_idx];
+        sheet->chunk_map[chunk_idx] = chunk;
+    }
+}
+
 sheet_chunk* sheet_get_chunk(
     workbook* wb, sheet_buffer* sheet,
     sheet_chunk_pos chunk_pos, b32 create_if_empty
@@ -231,8 +293,8 @@ sheet_chunk* sheet_get_chunk(
     sheet_chunk* chunk = sheet->chunk_map[chunk_idx];
     while (
         chunk != NULL && 
-        chunk->pos.row != chunk_pos.row &&
-        chunk->pos.col != chunk_pos.col
+        (chunk->pos.row != chunk_pos.row ||
+        chunk->pos.col != chunk_pos.col)
     ) {
         chunk = chunk->next;
     }
@@ -242,18 +304,23 @@ sheet_chunk* sheet_get_chunk(
         chunk->pos = chunk_pos;
         chunk->hash = chunk_hash;
 
-        if (sheet->chunk_map[chunk_idx] == NULL) {
-            chunk->next = sheet->chunk_map[chunk_idx];
-        }
+        sheet->num_chunks++;
+
+        // If there is no chunk there, the pointer should be NULL,
+        // so this line will still work correctly
+        chunk->next = sheet->chunk_map[chunk_idx];
         sheet->chunk_map[chunk_idx] = chunk;
 
-        // TODO: rehashing
+        // TODO: test other load factor thresholds?
+        if (sheet->num_chunks > sheet->map_capacity) {
+            _sb_chunk_rehash(wb, sheet);
+        }
     }
 
     return chunk;
 }
 
-sheet_chunk_arr sheet_get_chunk_range(
+sheet_chunk_arr sheet_get_range(
     mem_arena* arena, workbook* wb, sheet_buffer* sheet,
     sheet_cell_range cell_range, b32 create_if_empty
 ) {
@@ -293,7 +360,7 @@ sheet_chunk_arr sheet_get_chunk_range(
     }
 
     sheet_chunk_arr chunk_arr = {
-        .num_chunks = num_chunks,
+        .size = num_chunks,
         .chunks = PUSH_ARRAY_NZ(arena, sheet_chunk*, num_chunks)
     };
 
@@ -326,6 +393,10 @@ sheet_cell_ref sheet_get_cell(
     }
 
     if (chunk == NULL) {
+        _sb_info.empty_cell.type.t = SHEET_CELL_TYPE_NONE;
+        _sb_info.empty_cell.num = 0.0;
+        _sb_info.empty_cell.str = NULL;
+
         return _sb_info.empty_ref;
     }
 

@@ -69,6 +69,7 @@ typedef struct sheet_window {
 } sheet_window;
 
 sheet_buffer* wb_win_get_sheet(workbook* wb, sheet_window* win, b32 create_if_empty);
+sheet_buffer* wb_win_active_sheet(workbook* wb, b32 create_if_empty);
 
 // Operates on the active win
 // If `open_in_both` is true, both children windows will have the same

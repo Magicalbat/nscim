@@ -11,6 +11,10 @@ sheet_buffer* wb_win_get_sheet(workbook* wb, sheet_window* win, b32 create_if_em
     return win->_sheet;
 }
 
+sheet_buffer* wb_win_active_sheet(workbook* wb, b32 create_if_empty) {
+    return wb_win_get_sheet(wb, wb->active_win, create_if_empty);
+}
+
 void wb_win_split(workbook* wb, sheet_window_split split, b32 open_in_both) {
     sheet_window* win = wb->active_win;
 

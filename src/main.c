@@ -18,35 +18,43 @@ int main(void) {
 
     mem_arena* perm_arena = arena_create(MiB(64), MiB(1), true);
 
-    /*sheet_buffer* test_sheet = _sheet_buffer_create();
+    workbook* wb = wb_create();
 
-    u64* counts = PUSH_ARRAY(perm_arena, u64, 256);
+    sheet_buffer* sheet = wb_win_active_sheet(wb, true);
 
-    for (u32 col = 0; col < SHEET_CHUNKS_Y; col++) {
-        for (u32 row = 0; row < SHEET_CHUNKS_X; row++) {
-            sheet_chunk_pos pos = { row, col };
-            u64 hash = _sb_chunk_hash(pos);
+    for (u32 i = 0; i < 10000; i++) {
+        sheet_cell_pos cell_pos = { .row = i * SHEET_CHUNK_ROWS, .col = 0 };
 
-            counts[hash & 0xff]++;
+        sheet_cell_ref cell = sheet_get_cell(wb, sheet, cell_pos, true);
+
+        cell.type->t = SHEET_CELL_TYPE_NUM;
+        *cell.num = sin(i);
+    }
+
+    sheet_chunk_arr chunk_arr = sheet_get_range(
+        perm_arena, wb, sheet, 
+        (sheet_cell_range){ 
+            .start = { 0, 0 },
+            .end = { 10000 * SHEET_CHUNK_ROWS, 0 }
+        }, false
+    );
+
+    for (u32 i = 0; i < chunk_arr.size; i++) {
+        sheet_chunk* chunk = chunk_arr.chunks[i];
+
+        u8 type = chunk->types[0].t;
+        f64 num = chunk->nums[0];
+
+        if ((i % 1000) == 0) {
+            printf(
+                "chunk (%u %u), cell (0, 0) - %u %f\n",
+                chunk->pos.row, chunk->pos.col,
+                type, num
+            );
         }
     }
 
-    f64 mean = 0.0f;
-    for (u32 i = 0; i < 256; i++) {
-        mean += (f64)counts[i];
-    }
-    mean /= 256.0f;
-
-    f64 std_dev = 0.0f;
-    for (u32 i = 0; i < 256; i++) {
-        std_dev += ((f64)counts[i] - mean) * ((f64)counts[i] - mean);
-    }
-    std_dev /= 256.0f;
-    std_dev = sqrt(std_dev);
-
-    printf("mean: %f, std_dev: %f\n", mean, std_dev);
-
-    _sheet_buffer_destroy(test_sheet);*/
+    wb_destroy(wb);
 
     /*term_context* term = term_init(perm_arena, MiB(4));
 

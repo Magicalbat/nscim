@@ -97,7 +97,7 @@ typedef struct sheet_chunk {
 
 typedef struct {
     sheet_chunk** chunks;
-    u32 num_chunks;
+    u32 size;
 } sheet_chunk_arr;
 
 // Stores the actual data inside each sheet
@@ -135,7 +135,7 @@ sheet_chunk* sheet_get_chunk(
 
 // Chunks will be returned column-major in the array,
 // but there may be less than expected if `create_if_empty` is false
-sheet_chunk_arr sheet_get_chunk_range(
+sheet_chunk_arr sheet_get_range(
     mem_arena* arena, workbook* wb, sheet_buffer* sheet,
     sheet_cell_range cell_range, b32 create_if_empty
 );

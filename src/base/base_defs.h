@@ -23,15 +23,36 @@
 #endif
 
 
-#if defined(__clang__) || defined(__GNUC__)
+#if defined(COMPILER_CLANG) || defined(COMPILER_GCC)
 #    define THREAD_LOCAL __thread
-#elif defined(_MSC_VER)
+#elif defined(COMPILER_MSVC)
 #    define T_HREAD_LOCAL __declspec(thread)
 #elif (__STDC_VERSION__ >= 201112L)
 #    define T_HREAD_LOCAL _Thread_local
 #else
 #    error "Invalid compiler/version for thead variable; Use Clang, GCC, or MSVC, or use C11 or greater"
 #endif
+
+#if defined(COMPILER_CLANG) || defined(COMPILER_GCC)
+#   define TRAP() __builtin_trap()
+#elif defined(COMPILER_MSVC)
+#   define TRAP() __debugbreak()
+#else
+#   error "Unknown trap for this compiler"
+#endif
+
+#define ASSERT_ALWAYS(x) do{ if(!(x)) { TRAP(); } } while (0);
+
+#ifndef NDEBUG
+#   define ASSERT(x) ASSERT_ALWAYS(x)
+#else
+#   define ASSERT(x) (void)(x)
+#endif
+
+#define STATIC_ASSERT(c, id) static u8 CONCAT(id, __LINE__)[(c) ? 1 : -1]
+
+#define CONCAT_NX(a, b) a##b
+#define CONCAT(a, b) CONCAT_NX(a, b)
 
 typedef int8_t i8;
 typedef int16_t i16;
@@ -47,11 +68,6 @@ typedef i32 b32;
 
 typedef float f32;
 typedef double f64;
-
-#define CONCAT_NX(a, b) a##b
-#define CONCAT(a, b) CONCAT_NX(a, b)
-
-#define STATIC_ASSERT(c, id) static u8 CONCAT(id, __LINE__)[(c) ? 1 : -1]
 
 STATIC_ASSERT(sizeof(f32) == 4, f32_size);
 STATIC_ASSERT(sizeof(f64) == 8, f64_size);
