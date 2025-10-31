@@ -17,6 +17,8 @@ term_context* term_init(mem_arena* arena, u32 draw_buf_capacity);
 // Exits raw mode
 void term_quit(term_context* context);
 
+void term_get_size(term_context* context, u32* width, u32* height);
+
 // Returns the number of characters written
 u32 term_read(term_context* context, u8* chars, u32 capacity);
 

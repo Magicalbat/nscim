@@ -8,6 +8,10 @@ void plat_fatal_error(const char* msg, i32 code) {
     ExitProcess((u32)code);
 }
 
+void plat_sleep_ms(u32 ms) {
+    Sleep(ms);
+}
+
 u32 plat_page_size(void) {
     SYSTEM_INFO sysinfo = { 0 };
     GetSystemInfo(&sysinfo);

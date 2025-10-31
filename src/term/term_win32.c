@@ -45,6 +45,22 @@ void term_quit(term_context* context) {
     );
 }
 
+void term_get_size(term_context* context, u32* width, u32* height) {
+    CONSOLE_SCREEN_BUFFER_INFO console_info = { 0 };
+
+    if (!GetConsoleScreenBufferInfo(
+        context->backend->stdout_handle, &console_info
+    )) {
+        *width = 0;
+        *height = 0;
+    }
+
+    SMALL_RECT win_rect = console_info.srWindow;
+
+    *width = (u32)(win_rect.Right - win_rect.Left + 1);
+    *height = (u32)(win_rect.Bottom - win_rect.Top + 1);
+}
+
 u32 term_read(term_context* context, u8* chars, u32 capacity) {
     u32 num_events = 0;
 

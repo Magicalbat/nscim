@@ -26,9 +26,9 @@
 #if defined(COMPILER_CLANG) || defined(COMPILER_GCC)
 #    define THREAD_LOCAL __thread
 #elif defined(COMPILER_MSVC)
-#    define T_HREAD_LOCAL __declspec(thread)
+#    define THREAD_LOCAL __declspec(thread)
 #elif (__STDC_VERSION__ >= 201112L)
-#    define T_HREAD_LOCAL _Thread_local
+#    define THREAD_LOCAL _Thread_local
 #else
 #    error "Invalid compiler/version for thead variable; Use Clang, GCC, or MSVC, or use C11 or greater"
 #endif
