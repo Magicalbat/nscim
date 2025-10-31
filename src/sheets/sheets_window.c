@@ -35,7 +35,7 @@ void wb_win_split(workbook* wb, sheet_window_split split, b32 open_in_both) {
     win->internal = true;
     win->_sheet = wb->empty_buffer;
 
-    wb->active_win = win->child0;
+    wb->active_win = win->child1;
 }
 
 void wb_win_close(workbook* wb) {
@@ -51,21 +51,32 @@ void wb_win_close(workbook* wb) {
         return;
     }
 
-    sheet_window* parent = win;
-    sheet_window* other_child = parent->child0 == win ?
-        parent->child1 : parent->child0;
+    sheet_window* parent = win->parent;
+    sheet_window* other_child = win->parent->child0 == win ?
+        win->parent->child1 : win->parent->child0;
 
-    parent->child0 = NULL;
-    parent->child1 = NULL;
-    parent->internal = false;
-    parent->_sheet = other_child->_sheet;
-    parent->scroll_pos = other_child->scroll_pos;
-    parent->cursor_pos = other_child->cursor_pos;
+    sheet_window* grandparent = parent->parent;
 
-    wb->active_win = parent;
+    if (grandparent == NULL) {
+        wb->root_win = other_child;
+        other_child->parent = NULL;
+    } else {
+        other_child->parent = grandparent;
 
+        if (grandparent->child0 == parent) {
+            grandparent->child0 = other_child;
+        } else {
+            grandparent->child1 = other_child;
+        }
+    }
+
+    wb->active_win = other_child;
+    while (wb->active_win->internal && wb->active_win->child0 != NULL) {
+        wb->active_win = wb->active_win->child0;
+    }
+
+    _wb_free_win(wb, parent);
     _wb_free_win(wb, win);
-    _wb_free_win(wb, other_child);
 }
 
 void wb_win_compute_sizes(workbook* wb, u32 total_width, u32 total_height) {
@@ -185,8 +196,10 @@ void wb_win_inc_height(workbook* wb, i32 amount) {
 
 // Moves in the direction opposite the split
 // e.g. moves up/down when split.s == SHEET_WIN_SPLIT_HORZ
-void _wb_win_change_active(workbook* wb, i32 dir, sheet_window_split split) {
-    sheet_window* cur = wb->active_win;
+void _wb_win_change_active(workbook* wb, sheet_window* cur, i32 dir, sheet_window_split split) {
+    if (cur == NULL) {
+        return;
+    }
 
     while (
         cur->parent != NULL && 
@@ -203,6 +216,7 @@ void _wb_win_change_active(workbook* wb, i32 dir, sheet_window_split split) {
     i32 new_child = cur_child + dir;
 
     if (new_child < 0 || new_child > 1) {
+        _wb_win_change_active(wb, cur->parent, dir, split);
         return;
     }
 
@@ -220,13 +234,15 @@ void _wb_win_change_active(workbook* wb, i32 dir, sheet_window_split split) {
 
 void wb_win_change_active_horz(workbook* wb, i32 dir) {
     _wb_win_change_active(
-        wb, dir, (sheet_window_split){ SHEET_WIN_SPLIT_VERT }
+        wb, wb->active_win, dir,
+        (sheet_window_split){ SHEET_WIN_SPLIT_VERT }
     );
 }
 
 void wb_win_change_active_vert(workbook* wb, i32 dir) {
     _wb_win_change_active(
-        wb, dir, (sheet_window_split){ SHEET_WIN_SPLIT_HORZ }
+        wb, wb->active_win, dir,
+        (sheet_window_split){ SHEET_WIN_SPLIT_HORZ }
     );
 }
 

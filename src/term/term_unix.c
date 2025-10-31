@@ -1,5 +1,6 @@
 
 #include <termios.h>
+#include <sys/ioctl.h>
 
 typedef struct _term_backend {
     struct termios orig_termios;
@@ -35,6 +36,14 @@ b32 _term_init_backend(mem_arena* arena, term_context* context) {
 
 void term_quit(term_context* context) {
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &context->backend->orig_termios);
+}
+
+void term_get_size(term_context* context, u32* width, u32* height) {
+    struct winsize w = { 0 };
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+
+    *width = w.ws_col;
+    *height = w.ws_row;
 }
 
 u32 term_read(term_context* context, u8* chars, u32 capacity) {

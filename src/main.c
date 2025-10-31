@@ -95,7 +95,7 @@ void draw_win(workbook* wb, sheet_window* win, draw_buf* front_buf) {
 
     sheet_cell_pos start = win->scroll_pos;
     sheet_cell_pos end = win->scroll_pos;
-    u32 num_rows = win->height - WIN_INPUT_LINE_HEIGHT;
+    u32 num_rows = win->height - WIN_INPUT_LINE_HEIGHT - 1;
     end.row = start.row + num_rows - 1;
 
     u8 rc_chars[10] = { 0 };
@@ -107,56 +107,129 @@ void draw_win(workbook* wb, sheet_window* win, draw_buf* front_buf) {
     u32 num_cols = (win->width - 7 + 9) / 10;
     end.col = start.col + num_cols - 1;
 
-    draw_tile rc_blank = {
+    const draw_tile rc_blank = {
         .bg_col = 189,
         .fg_col = 89,
-        .flags = 0,
         .c = ' '
     };
 
-    draw_tile rc_tiles[10] = { 0 };
+    const draw_tile rc_current = {
+        .bg_col = 89,
+        .fg_col = 189,
+        .c = ' '
+    };
 
-    u32 draw_height = win->height - WIN_INPUT_LINE_HEIGHT - 1;
-    for (u32 y = 0; y < draw_height; y++ ) {
-        uint_to_chars(y + start.row, &num_rc_chars, rc_chars);
+    const draw_tile empty_cell_tile = {
+        .fg_col = 7,
+        .c = ' '
+    };
 
-        for (u32 i = 0; i < 7; i++) {
-            rc_tiles[i].bits = rc_blank.bits;
-        }
-        for (u32 i = 0; i < num_rc_chars; i++) {
-            rc_tiles[i + 7 - num_rc_chars].c = rc_chars[i];
-        }
+    const draw_tile cur_cell_tile = {
+        .bg_col = 189,
+        .fg_col = 89,
+        .c = ' '
+    };
 
-        for (u32 x = 0; x < 7; x++) {
-            front_buf->tiles[
-                x + (win->start_y + WIN_INPUT_LINE_HEIGHT + 1 + y) *
-                front_buf->width
-            ] = rc_tiles[x];
-        }
-    }
+    draw_tile scratch_tiles[10] = { 0 };
+
+    b32 active = win == wb->active_win;
 
     for (u32 col = 0; col < num_cols; col++) {
         _get_col_chars(col + start.col, &num_rc_chars, rc_chars);
 
+        draw_tile ref_tile = active && 
+            col + start.col == win->cursor_pos.col ?
+            rc_current : rc_blank;
+
         for (u32 i = 0; i < 10; i++) {
-            rc_tiles[i].bits = rc_blank.bits;
+            scratch_tiles[i].bits = ref_tile.bits;
         }
 
         for (u32 i = 0; i < num_rc_chars; i++) {
-            rc_tiles[i + 4-num_rc_chars/2].c = rc_chars[i];
+            scratch_tiles[i + 4-num_rc_chars/2].c = rc_chars[i];
         }
 
         for (u32 x = 0; x < 10; x++) {
-            u32 draw_x = x + col * 10 + 7;
+            u32 draw_x = x + win->start_x + col * 10 + 7;
 
-            if (draw_x >= front_buf->width) {
+            if (
+                draw_x >= front_buf->width ||
+                draw_x >= win->start_x + win->width
+            ) {
                 break;
             }
 
             front_buf->tiles[
                 draw_x + (win->start_y + WIN_INPUT_LINE_HEIGHT) *
                 front_buf->width
-            ] = rc_tiles[x];
+            ] = scratch_tiles[x];
+        }
+    }
+
+    sheet_buffer* sheet = wb_win_get_sheet(wb, win, false);
+
+    for (u32 row = 0; row < num_rows; row++ ) {
+        uint_to_chars(row + start.row, &num_rc_chars, rc_chars);
+
+        draw_tile ref_tile = active && 
+            row + start.row == win->cursor_pos.row ?
+            rc_current : rc_blank;
+
+        for (u32 i = 0; i < 7; i++) {
+            scratch_tiles[i].bits = ref_tile.bits;
+        }
+        for (u32 i = 0; i < num_rc_chars; i++) {
+            scratch_tiles[i + 7 - num_rc_chars].c = rc_chars[i];
+        }
+
+        u32 draw_y_off = (win->start_y + WIN_INPUT_LINE_HEIGHT + 1 + row) *
+            front_buf->width;
+
+        for (u32 x = 0; x < 7; x++) {
+            front_buf->tiles[x + win->start_x + draw_y_off] = scratch_tiles[x];
+        }
+
+        for (u32 col = 0; col < num_cols; col++) {
+            ref_tile = active && 
+                row + start.row == win->cursor_pos.row &&
+                col + start.col == win->cursor_pos.col ?
+                cur_cell_tile : empty_cell_tile;
+
+            for (u32 i = 0; i < 10; i++) {
+                scratch_tiles[i].bits = ref_tile.bits;
+            }
+
+            for (u32 x = 0; x < 10; x++) {
+                u32 draw_x = x + win->start_x + col * 10 + 7;
+
+                if (
+                    draw_x >= front_buf->width ||
+                    draw_x >= win->start_x + win->width
+                ) {
+                    break;
+                }
+
+                front_buf->tiles[draw_x + draw_y_off] = scratch_tiles[x];
+            }
+
+            /*sheet_cell_ref cell = sheet_get_cell(
+                wb, sheet, (sheet_cell_pos){
+                    row + start.row, col + start.col
+                }, false
+            );
+
+            switch (cell.type->t) {
+                case SHEET_CELL_TYPE_NONE: {
+                } break;
+
+                case SHEET_CELL_TYPE_NUM: {
+                    // TODO
+                } break;
+
+                case SHEET_CELL_TYPE_STRING: {
+                    // TODO
+                } break;
+            }*/
         }
     }
 }
@@ -173,6 +246,18 @@ void _set_term_col(term_context* term, u8 fg_col, u8 bg_col) {
     uint_to_chars(bg_col, &num_chars_size, num_chars);
     term_write(term, (string8){ num_chars, (u64)num_chars_size });
     term_write(term, STR8_LIT("m"));
+}
+
+void  _set_term_cursor(term_context* term, u32 x, u32 y) {
+    x++; y++;
+
+    term_write(term, STR8_LIT("\x1b["));
+    uint_to_chars(y, &num_chars_size, num_chars);
+    term_write(term, (string8){ num_chars, (u64)num_chars_size });
+    term_write(term, STR8_LIT(";"));
+    uint_to_chars(x, &num_chars_size, num_chars);
+    term_write(term, (string8){ num_chars, (u64)num_chars_size });
+    term_write(term, STR8_LIT("H"));
 }
 
 void draw(
@@ -216,21 +301,41 @@ void draw(
 
     arena_scratch_release(scratch);
 
-    term_write(term, STR8_LIT("\x1b[2J\x1b[H\x1b[0m"));
+    b32 redraw = back_buf->width != front_buf->width ||
+        back_buf->height != front_buf->height;
+
+    if (redraw) {
+        term_write(term, STR8_LIT("\x1b[2J"));
+    }
+
+    term_write(term, STR8_LIT("\x1b[H\x1b[0m"));
     _set_term_col(term, empty_tile.fg_col, empty_tile.bg_col);
+
+    u32 prev_x = 0;
+    u32 prev_y = 0;
 
     draw_tile prev_tile = empty_tile;
     for (u32 y = 0; y < front_buf->height; y++) {
         for (u32 x = 0; x < front_buf->width; x++) {
-            draw_tile tile = front_buf->tiles[x + y * front_buf->width];
+            u32 idx = x + y * front_buf->width;
 
-            if (tile.fg_col != prev_tile.fg_col || tile.bg_col != prev_tile.bg_col) {
-                _set_term_col(term, tile.fg_col, tile.bg_col);
+            draw_tile tile = front_buf->tiles[idx];
+
+            if (redraw || tile.bits != back_buf->tiles[idx].bits) {
+                if (tile.fg_col != prev_tile.fg_col || tile.bg_col != prev_tile.bg_col) {
+                    _set_term_col(term, tile.fg_col, tile.bg_col);
+                }
+
+                if (x != prev_x + 1 || y != prev_y) {
+                    _set_term_cursor(term, x, y);
+                }
+
+                term_write(term, (string8){ &tile.c, 1 });
+
+                prev_tile = tile;
+                prev_x = x;
+                prev_y = y;
             }
-
-            term_write(term, (string8){ &tile.c, 1 });
-
-            prev_tile = tile;
         }
         term_write(term, STR8_LIT("\x1b[1E"));
     }
@@ -241,6 +346,8 @@ void draw(
     memcpy(front_buf, back_buf, sizeof(draw_buf));
     memcpy(back_buf, &tmp, sizeof(draw_buf));
 }
+
+#define CTRL_KEY(k) ((k) & 0x1f)
 
 int main(void) {
     {
@@ -255,6 +362,8 @@ int main(void) {
     mem_arena* prev_frame_arena = arena_create(MiB(64), MiB(1), false);
 
     workbook* wb = wb_create();
+    wb_win_split(wb, (sheet_window_split){ .s = SHEET_WIN_SPLIT_VERT }, false);
+    //wb_win_split(wb, (sheet_window_split){ .s = SHEET_WIN_SPLIT_HORZ }, false);
 
     term_context* term = term_init(perm_arena, MiB(4));
     term_write(term, STR8_LIT("\x1b[?1049h"));
@@ -265,31 +374,83 @@ int main(void) {
     draw_buf front_buf = { 0 };
     draw_buf back_buf = { 0 };
 
+    draw(wb, term, &front_buf, &back_buf, frame_arena, prev_frame_arena);
+
+    b32 win_input = false;
+
     b32 running = true;
     while (running) {
         u32 num_read = term_read(term, input_buf, 64);
         for (u32 i = 0; i < num_read; i++) {
             u8 c = input_buf[i];
 
+            if (win_input) {
+                switch (c) {
+                    case 'v': {
+                        wb_win_split(
+                            wb, (sheet_window_split){
+                                .s = SHEET_WIN_SPLIT_VERT
+                            }, true
+                        );
+                    } break;
+
+                    case 'n': {
+                        wb_win_split(
+                            wb, (sheet_window_split){
+                                .s = SHEET_WIN_SPLIT_HORZ
+                            }, false
+                        );
+                    } break;
+
+                    case 'c': {
+                        wb_win_close(wb);
+                    } break;
+                }
+            }
+
             switch (c) {
                 case 'h': {
-                    if (wb->active_win->scroll_pos.col > 0) {
-                        wb->active_win->scroll_pos.col--;
+                    if (wb->active_win->cursor_pos.col > 0) {
+                        wb->active_win->cursor_pos.col--;
                     }
                 } break;
 
                 case 'j': {
-                    wb->active_win->scroll_pos.row += 10;
+                    if (wb->active_win->cursor_pos.row < SHEET_MAX_ROWS) {
+                        wb->active_win->cursor_pos.row++;
+                    }
                 } break;
 
                 case 'k': {
-                    if (wb->active_win->scroll_pos.row > 0) {
-                        wb->active_win->scroll_pos.row--;
+                    if (wb->active_win->cursor_pos.row > 0) {
+                        wb->active_win->cursor_pos.row--;
                     }
                 } break;
 
                 case 'l': {
-                    wb->active_win->scroll_pos.col += 10;
+                    if (wb->active_win->cursor_pos.col < SHEET_MAX_COLS) {
+                        wb->active_win->cursor_pos.col++;
+                    }
+                } break;
+
+                case CTRL_KEY('h'): {
+                    wb_win_change_active_horz(wb, -1);
+                } break;
+
+                case CTRL_KEY('j'): {
+                    wb_win_change_active_vert(wb, +1);
+                } break;
+
+                case CTRL_KEY('k'): {
+                    wb_win_change_active_vert(wb, -1);
+                } break;
+
+                case CTRL_KEY('l'): {
+                    wb_win_change_active_horz(wb, +1);
+                } break;
+
+                case CTRL_KEY('w'): {
+                    win_input = true;
                 } break;
             }
 

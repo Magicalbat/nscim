@@ -287,6 +287,11 @@ sheet_chunk* sheet_get_chunk(
     workbook* wb, sheet_buffer* sheet,
     sheet_chunk_pos chunk_pos, b32 create_if_empty
 ) {
+    // This is the empty sheet
+    if (sheet->map_capacity == 0) {
+        return NULL;
+    }
+
     u64 chunk_hash = _sb_chunk_hash(chunk_pos);
     u64 chunk_idx = chunk_hash % sheet->map_capacity;
 
