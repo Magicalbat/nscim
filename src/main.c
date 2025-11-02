@@ -199,20 +199,7 @@ void draw_win(workbook* wb, sheet_window* win, draw_buf* front_buf) {
                 scratch_tiles[i].bits = ref_tile.bits;
             }
 
-            for (u32 x = 0; x < 10; x++) {
-                u32 draw_x = x + win->start_x + col * 10 + 7;
-
-                if (
-                    draw_x >= front_buf->width ||
-                    draw_x >= win->start_x + win->width
-                ) {
-                    break;
-                }
-
-                front_buf->tiles[draw_x + draw_y_off] = scratch_tiles[x];
-            }
-
-            /*sheet_cell_ref cell = sheet_get_cell(
+            sheet_cell_ref cell = sheet_get_cell(
                 wb, sheet, (sheet_cell_pos){
                     row + start.row, col + start.col
                 }, false
@@ -227,9 +214,35 @@ void draw_win(workbook* wb, sheet_window* win, draw_buf* front_buf) {
                 } break;
 
                 case SHEET_CELL_TYPE_STRING: {
-                    // TODO
+                    sheet_string* str = *cell.str;
+
+                    if (str->size > 10) {
+                        for (u32 i = 0; i < 7; i++) {
+                            scratch_tiles[i].c = str->str[i];
+                        }
+                        scratch_tiles[7].c = '.';
+                        scratch_tiles[8].c = '.';
+                        scratch_tiles[9].c = '.';
+                    } else {
+                        for (u32 i = 0; i < str->size; i++) {
+                            scratch_tiles[i].c = str->str[i];
+                        }
+                    }
                 } break;
-            }*/
+            }
+
+            for (u32 x = 0; x < 10; x++) {
+                u32 draw_x = x + win->start_x + col * 10 + 7;
+
+                if (
+                    draw_x >= front_buf->width ||
+                    draw_x >= win->start_x + win->width
+                ) {
+                    break;
+                }
+
+                front_buf->tiles[draw_x + draw_y_off] = scratch_tiles[x];
+            }
         }
     }
 }
@@ -362,8 +375,22 @@ int main(void) {
     mem_arena* prev_frame_arena = arena_create(MiB(64), MiB(1), false);
 
     workbook* wb = wb_create();
-    wb_win_split(wb, (sheet_window_split){ .s = SHEET_WIN_SPLIT_VERT }, false);
-    //wb_win_split(wb, (sheet_window_split){ .s = SHEET_WIN_SPLIT_HORZ }, false);
+
+    sheet_buffer* sheet = wb_win_active_sheet(wb, true);
+
+    {
+        sheet_cell_ref cell0 = sheet_get_cell(wb, sheet, (sheet_cell_pos){ 2, 1 }, true);
+        cell0.type->t = SHEET_CELL_TYPE_STRING;
+        *cell0.str = wb_create_string(wb, SHEET_MIN_STRLEN);
+        memcpy((*cell0.str)->str, "Hello", 5);
+        (*cell0.str)->size = 5;
+        
+        sheet_cell_ref cell1 = sheet_get_cell(wb, sheet, (sheet_cell_pos){ 3, 4 }, true);
+        cell1.type->t = SHEET_CELL_TYPE_STRING;
+        *cell1.str = wb_create_string(wb, SHEET_MIN_STRLEN);
+        memcpy((*cell1.str)->str, "Hello World", 11);
+        (*cell1.str)->size = 11;
+    }
 
     term_context* term = term_init(perm_arena, MiB(4));
     term_write(term, STR8_LIT("\x1b[?1049h"));

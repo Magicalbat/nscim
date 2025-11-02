@@ -185,7 +185,7 @@ sheet_string* wb_create_string(workbook* wb, u32 capacity) {
     u32 list_idx = _wb_get_str_idx(&capacity);
     sheet_string_list* list = &wb->free_strings[list_idx];
 
-    if (list->first == NULL) {
+    if (list->first != NULL) {
         sheet_string* out = list->first;
         SLL_POP_FRONT(list->first, list->last);
         out->next = NULL;

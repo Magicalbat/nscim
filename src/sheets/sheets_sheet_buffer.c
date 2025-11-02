@@ -48,7 +48,7 @@ static struct {
     b32 initialized;
 } _sb_info = { 0 };
 
-static void _sb_init_mem_info(void) {
+static void _sb_init_info(void) {
     _sb_info.page_size = plat_page_size();
 
 #ifndef NDEBUG
@@ -109,7 +109,7 @@ void _sb_chunk_map_grow(sheet_buffer* sheet, u64 grow_size) {
 
 sheet_buffer* _sheet_buffer_create(void) {
     if (!_sb_info.initialized) {
-        _sb_init_mem_info();
+        _sb_init_info();
     }
 
     u8* mem = plat_mem_reserve(_sb_info.total_reserve);
@@ -287,6 +287,7 @@ sheet_chunk* sheet_get_chunk(
     workbook* wb, sheet_buffer* sheet,
     sheet_chunk_pos chunk_pos, b32 create_if_empty
 ) {
+
     // This is the empty sheet
     if (sheet->map_capacity == 0) {
         return NULL;
@@ -398,6 +399,10 @@ sheet_cell_ref sheet_get_cell(
     }
 
     if (chunk == NULL) {
+        if (!_sb_info.initialized) {
+            _sb_init_info();
+        }
+
         _sb_info.empty_cell.type.t = SHEET_CELL_TYPE_NONE;
         _sb_info.empty_cell.num = 0.0;
         _sb_info.empty_cell.str = NULL;
