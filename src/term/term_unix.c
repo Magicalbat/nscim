@@ -39,6 +39,8 @@ void term_quit(term_context* context) {
 }
 
 void term_get_size(term_context* context, u32* width, u32* height) {
+    UNUSED(context);
+
     struct winsize w = { 0 };
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 

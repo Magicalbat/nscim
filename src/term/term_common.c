@@ -38,3 +38,11 @@ void term_write(term_context* context, string8 str) {
     }
 }
 
+void term_write_c(term_context* context, u8 c) {
+    context->draw_buf[context->draw_buf_pos++] = c;
+
+    if (context->draw_buf_pos >= context->draw_buf_capacity) {
+        term_flush(context);
+    }
+}
+

@@ -26,5 +26,9 @@ u32 term_read(term_context* context, u8* chars, u32 capacity);
 // use term_flush if you need immediate writes
 void term_write(term_context* context, string8 str);
 
+// Will not always write the output immediately,
+// use term_flush if you need immediate writes
+void term_write_c(term_context* context, u8 c);
+
 void term_flush(term_context* context);
 

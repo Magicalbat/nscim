@@ -26,18 +26,28 @@ int main(void) {
 
     u8 input_buf[64] = { 0 };
 
+    u8 draw_buf[256] = { 0 };
+
     b32 running = true;
     while (running) {
         u32 num_read = term_read(term, input_buf, 64);
+
         for (u32 i = 0; i < num_read; i++) {
             u8 c = input_buf[i];
+
+            i32 size = snprintf((char*)draw_buf, sizeof(draw_buf)-1, "%3d: '%c'", c, c);
+            term_write(term, (string8){ draw_buf, size });
+            term_write(term, STR8_LIT("\x1b[1E"));
 
             if (c == 'q') {
                 running = false;
             }
         }
 
+
         if (num_read) {
+            term_flush(term);
+            term_write(term, STR8_LIT("\x1b[2J\x1b[H"));
         }
     }
 
