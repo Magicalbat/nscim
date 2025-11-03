@@ -3,11 +3,13 @@
 #include "platform/platform.h"
 #include "term/term.h"
 #include "sheets/sheets.h"
+#include "win/win.h"
 
 #include "base/base.c"
 #include "platform/platform.c"
 #include "term/term.c"
 #include "sheets/sheets.c"
+#include "win/win.c"
 
 int main(void) {
     {
@@ -19,6 +21,8 @@ int main(void) {
     mem_arena* perm_arena = arena_create(MiB(64), MiB(1), true);
 
     workbook* wb = wb_create();
+
+    #if 0
 
     term_context* term = term_init(perm_arena, MiB(4));
     term_write(term, STR8_LIT("\x1b[?1049h"));
@@ -55,6 +59,67 @@ int main(void) {
     term_flush(term);
 
     term_quit(term);
+
+    #else
+
+    mem_arena* frame_arena = arena_create(MiB(64), MiB(1), false);
+    mem_arena* prev_frame_arena = arena_create(MiB(64), MiB(1), false);
+
+    window* win = win_create(perm_arena);
+
+    win_col colors[] = {
+        { {   0,   0,   0 } },
+        { { 255,   0,   0 } },
+        { {   0, 255,   0 } },
+        { {   0,   0, 255 } },
+        { { 255,   0, 255 } },
+        { { 255, 255,   0 } },
+        { {   0, 255, 255 } },
+        { { 255, 255, 255 } }
+    };
+    u32 num_cols = sizeof(colors) / sizeof(win_col);
+
+    b32 running = true;
+
+    while (running) {
+        win_input input = win_next_input(win);
+
+        if (input == 'q') {
+            running = false;
+            break;
+        }
+
+        if (input) {
+            win_begin_frame(win, frame_arena);
+
+            for (u32 y = 0; y < win->back_buf.height; y++) {
+                for (u32 x = 0; x < win->back_buf.width; x++) {
+                    u32 index = x + y * win->back_buf.width;
+
+                    win->back_buf.tiles[index] = (win_tile){
+                        .fg = { { 255, 255, 255 } },
+                        .bg = colors[(input + x + y) % num_cols],
+                        .c = ' '
+                    };
+                }
+            }
+
+            win_update(win);
+
+            {
+                mem_arena* tmp = prev_frame_arena;
+                prev_frame_arena = frame_arena;
+                frame_arena = tmp;
+            }
+        }
+    }
+
+    win_destroy(win);
+
+    arena_destroy(frame_arena);
+    arena_destroy(prev_frame_arena);
+
+    #endif
 
     wb_destroy(wb);
 

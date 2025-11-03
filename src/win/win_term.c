@@ -22,7 +22,45 @@ void _win_get_size(window* win, u32* width, u32* height) {
     term_get_size(win->backend->term, width, height);
 }
 
-win_input win_next_input(window* win);
+win_input win_next_input(window* win) {
+    term_context* term = win->backend->term;
+
+    u8 c = 0;
+
+    if (term_read(term, &c, 1) == 0) {
+        return 0;
+    }
+
+    if (c != 27 || term_read(term, &c, 1) == 0) {
+        return c;
+    }
+
+    if (c == '[') {
+        if (term_read(term, &c, 1) == 0) {
+            return 0;
+        }
+
+        switch (c) {
+            case 'A': {
+                return WIN_INPUT_UP_ARROW;
+            } break;
+
+            case 'B': {
+                return WIN_INPUT_DOWN_ARROW;
+            } break;
+
+            case 'C': {
+                return WIN_INPUT_RIGHT_ARROW;
+            } break;
+
+            case 'D': {
+                return WIN_INPUT_LEFT_ARROW;
+            } break;
+        }
+    }
+
+    return 0;
+}
 
 // Moves down or right depending on bool
 void _win_term_move_cursor(term_context* term, u32 n, b32 down) {
@@ -59,22 +97,23 @@ void _win_term_set_col(term_context* term, win_col col, b32 fg) {
     }
 
     u64 size = 0;
-    u8 num_str[4] = { ';', 0, 0, 0 };
+    u8 num_str[3] = { 0, 0, 0 };
 
     for (u32 i = 0; i < 3; i++) {
-        size = 1;
+        size = 0;
 
         while (col.c[i]) {
             num_str[size++] = col.c[i] % 10 + '0';
             col.c[i] /= 10;
         }
 
-        for (u32 j = 0; j < size/2; j++) {
-            u8 tmp = num_str[size-j-1];
-            num_str[size-j-1] = num_str[j];
-            num_str[j] = tmp;
+        if (size > 1) {
+            u8 tmp = num_str[size-1];
+            num_str[size-1] = num_str[0];
+            num_str[0] = tmp;
         }
 
+        term_write_c(term, ';');
         term_write(term, (string8){ num_str, size });
     }
 
@@ -128,6 +167,8 @@ void _win_draw_front_buf(window* win) {
             cursor_x = 0;
         }
     }
+
+    term_flush(term);
 }
 
 

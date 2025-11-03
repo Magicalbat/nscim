@@ -48,20 +48,18 @@ typedef u16 win_input;
 #define WIN_INPUT_RIGHT_ARROW 260
 
 b32 win_col_eq(win_col a, win_col b);
-
 b32 win_tile_eq(win_tile a, win_tile b);
 
 window* win_create(mem_arena* arena);
-
 void win_destroy(window* win);
 
 // Any ascii inputs will get returned as their ascii values,
 // but certain multi-byte inputs like arrow keys will get
 // translated
+// Will return 0 if there is no new input
 win_input win_next_input(window* win);
 
 void win_begin_frame(window* win, mem_arena* frame_arena);
-
 void win_update(window* win);
 
 

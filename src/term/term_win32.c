@@ -73,6 +73,8 @@ u32 term_read(term_context* context, u8* chars, u32 capacity) {
 
     mem_arena_temp scratch = arena_scratch_get(NULL, 0);
 
+    num_events = MIN(num_events, capacity);
+
     INPUT_RECORD* records = PUSH_ARRAY(scratch.arena, INPUT_RECORD, num_events);
 
     u32 num_read = 0;
