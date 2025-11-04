@@ -2,14 +2,16 @@
 #include "base/base.h"
 #include "platform/platform.h"
 #include "term/term.h"
-#include "sheets/sheets.h"
 #include "win/win.h"
+#include "sheets/sheets.h"
+#include "editor/editor.h"
 
 #include "base/base.c"
 #include "platform/platform.c"
 #include "term/term.c"
-#include "sheets/sheets.c"
 #include "win/win.c"
+#include "sheets/sheets.c"
+#include "editor/editor.c"
 
 int main(void) {
     {

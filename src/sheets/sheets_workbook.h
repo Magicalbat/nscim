@@ -1,6 +1,4 @@
 
-
-
 #define WORKBOOK_RESERVE_SIZE GiB(1)
 #define WORKBOOK_COMMIT_SIZE MiB(16)
 
@@ -48,11 +46,6 @@ typedef struct workbook {
     sheet_chunk* last_free_chunk;
 
     sheet_string_list free_strings[SHEET_NUM_STRLENS];
-
-    u32 cmd_size;
-    u32 cmd_cursor;
-    u32 cmd_select_start;
-    u8 cmd_buf[SHEET_MAX_STRLEN];
 } workbook;
 
 workbook* wb_create(void);
@@ -70,5 +63,4 @@ void wb_free_chunk(workbook* wb, sheet_chunk* chunk);
 // Invalid sizes will get rounded up and capped at SHEET_MAX_STRLEN
 sheet_string* wb_create_string(workbook* wb, u32 capacity);
 void wb_free_string(workbook* wb, sheet_string* str);
-
 

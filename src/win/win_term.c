@@ -102,9 +102,13 @@ void _win_term_set_col(term_context* term, win_col col, b32 fg) {
     for (u32 i = 0; i < 3; i++) {
         size = 0;
 
-        while (col.c[i]) {
+        for (u32 j = 0; j < 3; j++) {
             num_str[size++] = col.c[i] % 10 + '0';
             col.c[i] /= 10;
+
+            if (col.c[i] == 0) {
+                break;
+            }
         }
 
         if (size > 1) {
@@ -160,6 +164,8 @@ void _win_draw_front_buf(window* win) {
             }
 
             term_write_c(term, tile.c);
+
+            prev_tile = tile;
         }
 
         if (y != win->front_buf.height - 1) {
