@@ -62,31 +62,33 @@ win_input win_next_input(window* win) {
     return 0;
 }
 
-// Moves down or right depending on bool
-void _win_term_move_cursor(term_context* term, u32 n, b32 down) {
-    if (n == 0) {
+void _win_term_move_cursor(term_context* term, i32 change, b32 vert) {
+    if (change == 0) {
         return;
     }
 
-    n = MIN(99, n);
+    u32 n = 0;
 
-    u64 size = 0;
-    u8 num_str[2] = { 0 };
-
-    while (n) {
-        num_str[size++] = n % 10 + '0';
-        n /= 10;
+    b32 is_neg = false;
+    if (change < 0) {
+        is_neg = true;
+        n = (u32)(-change);
+    } else {
+        n = (u32)change;
     }
 
-    if (size == 2) {
-        u8 tmp = num_str[1];
-        num_str[1] = num_str[0];
-        num_str[0] = tmp;
-    }
+    n = MIN(999, n);
+
+    u8 num_str[3] = { 0 };
+    u64 size = (u64)chars_from_u32(n, num_str, 3);
 
     term_write(term, STR8_LIT("\x1b["));
     term_write(term, (string8){ num_str, size });
-    term_write_c(term, down ? 'B' : 'C');
+    term_write_c(
+        term, vert ?
+            (is_neg ? 'A' : 'B') :
+            (is_neg ? 'D' : 'C')
+    );
 }
 
 void _win_term_set_col(term_context* term, win_col col, b32 fg) {
@@ -96,29 +98,12 @@ void _win_term_set_col(term_context* term, win_col col, b32 fg) {
         term_write(term, STR8_LIT("\x1b[48;2"));
     }
 
-    u64 size = 0;
-    u8 num_str[3] = { 0, 0, 0 };
+    u8 num_str[4] = { ';', 0, 0, 0 };
 
     for (u32 i = 0; i < 3; i++) {
-        size = 0;
+        u64 size = (u64)chars_from_u32(col.c[i], num_str + 1, 3);
 
-        for (u32 j = 0; j < 3; j++) {
-            num_str[size++] = col.c[i] % 10 + '0';
-            col.c[i] /= 10;
-
-            if (col.c[i] == 0) {
-                break;
-            }
-        }
-
-        if (size > 1) {
-            u8 tmp = num_str[size-1];
-            num_str[size-1] = num_str[0];
-            num_str[0] = tmp;
-        }
-
-        term_write_c(term, ';');
-        term_write(term, (string8){ num_str, size });
+        term_write(term, (string8){ num_str, size + 1 });
     }
 
     term_write_c(term, 'm');
@@ -127,8 +112,11 @@ void _win_term_set_col(term_context* term, win_col col, b32 fg) {
 void _win_draw_front_buf(window* win) {
     term_context* term = win->backend->term;
 
-    b32 redraw = win->back_buf.width != win->front_buf.width ||
-        win->back_buf.height != win->front_buf.height;
+    b32 redraw = win->first_draw || (
+        win->back_buf.width != win->front_buf.width ||
+        win->back_buf.height != win->front_buf.height
+    );
+    win->first_draw = false;
 
     if (redraw) {
         term_write(term, STR8_LIT("\x1b[2J"));
@@ -142,6 +130,7 @@ void _win_draw_front_buf(window* win) {
     _win_term_set_col(term, prev_tile.bg, false);
 
     u32 cursor_x = 0;
+    u32 cursor_y = 0;
 
     for (u32 y = 0; y < win->front_buf.height; y++) {
         for (u32 x = 0; x < win->front_buf.width; x++) {
@@ -152,8 +141,15 @@ void _win_draw_front_buf(window* win) {
 
             if (!draw) continue;
 
-            _win_term_move_cursor(term, x-cursor_x, false);
-            cursor_x++;
+            if (x != cursor_x) {
+                _win_term_move_cursor(term, (i32)x-(i32)cursor_x, false);
+                cursor_x = x;
+            }
+
+            if (y != cursor_y) {
+                _win_term_move_cursor(term, (i32)y-(i32)cursor_y, true);
+                cursor_y = y;
+            }
 
             if (!win_col_eq(prev_tile.fg, tile.fg)) {
                 _win_term_set_col(term, tile.fg, true);
@@ -164,13 +160,9 @@ void _win_draw_front_buf(window* win) {
             }
 
             term_write_c(term, tile.c);
+            cursor_x++;
 
             prev_tile = tile;
-        }
-
-        if (y != win->front_buf.height - 1) {
-            term_write(term, STR8_LIT("\x1b[1E"));
-            cursor_x = 0;
         }
     }
 

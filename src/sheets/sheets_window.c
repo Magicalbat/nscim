@@ -196,6 +196,7 @@ void wb_win_inc_height(workbook* wb, i32 amount) {
 
 // Moves in the direction opposite the split
 // e.g. moves up/down when split.s == SHEET_WIN_SPLIT_HORZ
+// TODO: make 4 quadrant windows work better (i.e. go from child1 -> child1)
 void _wb_win_change_active(workbook* wb, sheet_window* cur, i32 dir, sheet_window_split split) {
     if (cur == NULL) {
         return;

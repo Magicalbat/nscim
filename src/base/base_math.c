@@ -31,5 +31,24 @@ u32 round_up_pow2_u32(u32 n) {
     return n;
 }
 
+u32 chars_from_u32(u32 n, u8* chars, u32 max_chars) {
+    u32 size = 0;
 
+    for (u32 i = 0; i < max_chars; i++) {
+        chars[size++] = (n % 10) + '0';
+        n /= 10;
+
+        if (n == 0) {
+            break;
+        }
+    }
+
+    for (u32 i = 0; i < size/2; i++) {
+        u8 tmp = chars[size-i-1];
+        chars[size-i-1] = chars[i];
+        chars[i] = tmp;
+    }
+
+    return size;
+}
 

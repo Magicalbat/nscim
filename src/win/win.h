@@ -16,7 +16,9 @@ typedef struct {
 } win_tile;
 
 #define WIN_EMPTY_TILE (win_tile){ \
-    .fg.r = 0xff, .fg.g = 0xff, .fg.b = 0xff, .c = ' ' \
+    .fg.r = 0xff, .fg.g = 0xff, .fg.b = 0xff, \
+    .bg.r = 0x00, .bg.g = 0x00, .bg.b = 0x00, \
+    .c = ' ' \
 }
 
 typedef struct {
@@ -27,6 +29,8 @@ typedef struct {
 
 typedef struct {
     struct _win_backend* backend;
+
+    b32 first_draw;
 
     // These are allocated each frame on frame areans
     win_buffer front_buf;

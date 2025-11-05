@@ -60,12 +60,6 @@ typedef struct sheet_window {
     sheet_cell_pos cursor_pos;
     // Position where selection started
     sheet_cell_pos select_pos;
-
-    // Input line info (for entering cell data)
-    u32 input_size;
-    u32 input_cursor;
-    u32 input_select_start;
-    u8 input_buf[SHEET_MAX_STRLEN];
 } sheet_window;
 
 sheet_buffer* wb_win_get_sheet(workbook* wb, sheet_window* win, b32 create_if_empty);

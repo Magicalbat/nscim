@@ -13,6 +13,11 @@
 #include "sheets/sheets.c"
 #include "editor/editor.c"
 
+void draw(
+    window* win, workbook* wb,
+    editor_context* editor, mem_arena* frame_arena
+);
+
 int main(void) {
     {
         u64 seeds[2] = { 0 };
@@ -22,7 +27,6 @@ int main(void) {
 
     mem_arena* perm_arena = arena_create(MiB(64), MiB(1), true);
 
-    workbook* wb = wb_create();
 
     #if 0
 
@@ -64,27 +68,39 @@ int main(void) {
 
     #else
 
+    workbook* wb = wb_create();
+    editor_context* editor = editor_init(perm_arena);
+
     mem_arena* frame_arena = arena_create(MiB(64), MiB(1), false);
     mem_arena* prev_frame_arena = arena_create(MiB(64), MiB(1), false);
 
     window* win = win_create(perm_arena);
 
-    win_col colors[] = {
-        { {   0,   0,   0 } },
-        { { 255,   0,   0 } },
-        { {   0, 255,   0 } },
-        { {   0,   0, 255 } },
-        { { 255,   0, 255 } },
-        { { 255, 255,   0 } },
-        { {   0, 255, 255 } },
-        { { 255, 255, 255 } }
-    };
-    u32 num_cols = sizeof(colors) / sizeof(win_col);
-
+    draw(win, wb, editor, frame_arena);
+    
     b32 running = true;
 
     while (running) {
         win_input input = win_next_input(win);
+
+        sheet_cell_pos* cursor_pos = &wb->active_win->cursor_pos;
+
+        switch (input) {
+            case 'h': {
+                if (cursor_pos->col > 0)
+                    cursor_pos->col--;
+            } break;
+            case 'j': {
+                cursor_pos->row++;
+            } break;
+            case 'k': {
+                if (cursor_pos->row > 0)
+                    cursor_pos->row--;
+            } break;
+            case 'l': {
+                cursor_pos->col++;
+            } break;
+        }
 
         if (input == 'q') {
             running = false;
@@ -92,21 +108,7 @@ int main(void) {
         }
 
         if (input) {
-            win_begin_frame(win, frame_arena);
-
-            for (u32 y = 0; y < win->back_buf.height; y++) {
-                for (u32 x = 0; x < win->back_buf.width; x++) {
-                    u32 index = x + y * win->back_buf.width;
-
-                    win->back_buf.tiles[index] = (win_tile){
-                        .fg = { { 255, 255, 255 } },
-                        .bg = colors[(input + x + y) % num_cols],
-                        .c = ' '
-                    };
-                }
-            }
-
-            win_update(win);
+            draw(win, wb, editor, frame_arena);
 
             {
                 mem_arena* tmp = prev_frame_arena;
@@ -129,4 +131,16 @@ int main(void) {
 
     return 0;
 }
+
+void draw(
+    window* win, workbook* wb,
+    editor_context* editor, mem_arena* frame_arena
+) {
+    win_begin_frame(win, frame_arena);
+
+    editor_draw(win, editor, wb);
+
+    win_update(win);
+}
+
 
