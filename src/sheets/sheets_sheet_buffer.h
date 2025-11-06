@@ -6,6 +6,10 @@
 #define SHEET_MAX_COLS KiB(32)
 #define SHEET_MAX_ROWS MiB(2)
 
+// Maximum number of characters is takes to represent the max row/col
+#define SHEET_MAX_COL_CHARS 3
+#define SHEET_MAX_ROW_CHARS 7
+
 #define SHEET_CHUNKS_X (SHEET_MAX_COLS / SHEET_CHUNK_COLS)
 #define SHEET_CHUNKS_Y (SHEET_MAX_ROWS / SHEET_CHUNK_ROWS)
 #define SHEET_MAX_CHUNKS (SHEET_CHUNKS_X * SHEET_CHUNKS_Y)

@@ -19,13 +19,12 @@ editor_context* editor_init(mem_arena* arena) {
 #define EDITOR_STATUS_ROWS_BOTTOM 1
 #define EDITOR_STATUS_ROWS (EDITOR_STATUS_ROWS_TOP + EDITOR_STATUS_ROWS_BOTTOM)
 
-#define EDITOR_WIN_STATUS_ROWS 2
 #define EDITOR_SHEET_NAME_PAD 2
 
-u32 _editor_col_name(u32 col, u8 chars[3]) {
+u32 _editor_col_name(u32 col, u8 chars[SHEET_MAX_COL_CHARS]) {
     u32 size = 0;
 
-    for (u32 i = 0; i < 3; i++) {
+    for (u32 i = 0; i < SHEET_MAX_COL_CHARS; i++) {
         chars[size++] = (col % 26) + 'A';
         col /= 26;
 
@@ -36,10 +35,10 @@ u32 _editor_col_name(u32 col, u8 chars[3]) {
         }
     }
 
-    if (size > 1) {
-        u8 tmp = chars[size-1];
-        chars[size-1] = chars[0];
-        chars[0] = tmp;
+    for (u32 i = 0; i < size/2; i++) {
+        u8 tmp = chars[size-i-1];
+        chars[size-i-1] = chars[i];
+        chars[i] = tmp;
     }
 
     return size;
@@ -82,15 +81,17 @@ void _editor_draw_sheet_win(
             buf->tiles[x + y * buf->width].c = name.str[i];
         }
 
+        #define _CELL_POS_STR_SIZE (3 + SHEET_MAX_COL_CHARS + SHEET_MAX_ROW_CHARS)
+
         u32 cell_pos_size = 3;
-        u8 cell_pos_chars[13] = { ' ', '-', ' ' };
+        u8 cell_pos_chars[_CELL_POS_STR_SIZE] = { ' ', '-', ' ' };
 
         cell_pos_size += _editor_col_name(
             win->cursor_pos.col, cell_pos_chars + cell_pos_size
         );
         cell_pos_size += chars_from_u32(
             win->cursor_pos.row, cell_pos_chars + cell_pos_size,
-            14 - cell_pos_size
+            _CELL_POS_STR_SIZE - cell_pos_size
         );
 
         for (u32 i = 0; i < cell_pos_size; i++) {
@@ -117,6 +118,76 @@ void _editor_draw_sheet_win(
     }
 
     if (y > max_y) { return; }
+
+    u32 num_cols = 0;
+    u32 num_rows = 0;
+
+    u32 max_col_width = SHEET_DEF_COL_WIDTH;
+    u32 max_row_height = SHEET_DEF_ROW_HEIGHT;
+
+    {
+        u32 cur_col_width = SHEET_DEF_COL_WIDTH;
+        u32 cur_row_height = SHEET_DEF_ROW_HEIGHT;
+
+        for (
+            u32 x = SHEET_MAX_ROW_CHARS;
+            x < win->width;
+            x += cur_col_width, num_cols++
+        ) {
+            cur_col_width = sheet_get_col_width(
+                sheet, win->scroll_pos.col + num_cols
+            );
+
+            if (cur_col_width > max_col_width) {
+                max_col_width = cur_col_width;
+            }
+        }
+
+        for (
+            u32 yp = y + 1;
+            yp <= max_y;
+            yp += cur_row_height, num_rows++
+        ) {
+            cur_row_height = sheet_get_row_height(
+                sheet, win->scroll_pos.row + num_rows
+            );
+
+            if (cur_row_height > max_row_height) {
+                max_row_height = cur_row_height;
+            }
+        }
+    }
+
+    {
+        u32 x = SHEET_MAX_ROW_CHARS;
+
+        u32 num_col_chars = 0;
+        u8 col_chars[SHEET_MAX_COL_CHARS] = { 0 };
+
+        for (u32 col_off = 0; col_off < num_cols; col_off++) {
+            u32 col = col_off + win->scroll_pos.col;
+
+            u32 width = sheet_get_col_width(sheet, col);
+
+            num_col_chars = _editor_col_name(col, col_chars);
+
+            u32 draw_start = num_col_chars < width ?
+                width / 2 - num_col_chars / 2 : 0;
+
+            for (u32 i = 0; i < width && x + i < buf->width; i++) {
+                u32 index = x + i + y * buf->width;
+
+                buf->tiles[index] = (win_tile){
+                    .fg = editor->colors.rc_fg,
+                    .bg = editor->colors.rc_bg,
+                    .c = i >= draw_start && i < draw_start + num_col_chars ?
+                        col_chars[i - draw_start] : ' '
+                };
+            }
+
+            x += width;
+        }
+    }
 }
 
 void editor_draw(window* win, editor_context* editor, workbook* wb) {

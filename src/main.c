@@ -83,7 +83,7 @@ int main(void) {
     while (running) {
         win_input input = win_next_input(win);
 
-        sheet_cell_pos* cursor_pos = &wb->active_win->cursor_pos;
+        sheet_cell_pos* cursor_pos = &wb->active_win->scroll_pos;
 
         switch (input) {
             case 'h': {
