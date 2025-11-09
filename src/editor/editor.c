@@ -168,7 +168,6 @@ void _editor_draw_sheet_win(
 
         for (u32 col_off = 0; col_off < num_cols; col_off++) {
             u32 col = col_off + win->scroll_pos.col;
-
             u32 width = sheet_get_col_width(sheet, col);
 
             num_col_chars = _editor_col_name(col, col_chars);
@@ -176,16 +175,22 @@ void _editor_draw_sheet_win(
             u32 draw_start = num_col_chars < width ?
                 width / 2 - num_col_chars / 2 : 0;
 
-            for (u32 i = 0; i < width && x + i < buf->width; i++) {
-                buf->tiles[x + i + y * buf->width] = (win_tile){
-                    .fg = editor->colors.rc_fg,
-                    .bg = editor->colors.rc_bg,
+            win_col fg, bg;
+            if (col != win->cursor_pos.col) {
+                fg = editor->colors.rc_fg;
+                bg = editor->colors.rc_bg;
+            } else {
+                fg = editor->colors.rc_bg;
+                bg = editor->colors.rc_fg;
+            }
+
+            for (u32 i = 0; i < width && x + i < buf->width; i++, x++) {
+                buf->tiles[x + y * buf->width] = (win_tile){
+                    .fg = fg, .bg = bg,
                     .c = i >= draw_start && i < draw_start + num_col_chars ?
                         col_chars[i - draw_start] : ' '
                 };
             }
-
-            x += width;
         }
 
         y++;
@@ -210,17 +215,59 @@ void _editor_draw_sheet_win(
 
             u32 draw_start = num_row_chars < max_row_chars ? max_row_chars - num_row_chars : 0;
 
+            win_col fg, bg;
+            if (row != win->cursor_pos.row) {
+                fg = editor->colors.rc_fg;
+                bg = editor->colors.rc_bg;
+            } else {
+                fg = editor->colors.rc_bg;
+                bg = editor->colors.rc_fg;
+            }
+
             for (u32 i = 0; i < height && y_tmp <= max_y; i++, y_tmp++) {
                 for (u32 j = 0; j < max_row_chars; j++) {
                     buf->tiles[j + y_tmp * buf->width] = (win_tile){
-                        .fg = editor->colors.rc_fg,
-                        .bg = editor->colors.rc_bg,
+                        .fg = fg, .bg = bg,
                         .c = i == 0 && j >= draw_start ?
                             row_chars[j - draw_start] : ' '
                     };
                 }
             }
         }
+    }
+
+    for (u32 row_off = 0; row_off < num_rows && y <= max_y; row_off++) {
+        u32 row = row_off + win->scroll_pos.row;
+        u32 height = sheet_get_row_height(sheet, row);
+
+        u32 x = SHEET_MAX_ROW_CHARS;
+
+        for (u32 col_off = 0; col_off < num_cols; col_off++) {
+            u32 col = col_off + win->scroll_pos.col;
+            u32 width = sheet_get_col_width(sheet, col);
+
+            win_col fg, bg;
+            if (col != win->cursor_pos.col || row != win->cursor_pos.row) {
+                fg = editor->colors.cell_fg;
+                bg = editor->colors.cell_bg;
+            } else {
+                fg = editor->colors.cell_bg;
+                bg = editor->colors.cell_fg;
+            }
+
+            for (u32 i = 0; i < height && i + y <= max_y; i++) {
+                for (u32 j = 0; j < width && x + j < buf->width; j++) {
+                    buf->tiles[x + j + (y + i) * buf->width] = (win_tile) {
+                        .fg = fg, .bg = bg,
+                        .c = ' '
+                    };
+                }
+            }
+
+            x += width;
+        }
+
+        y += height;
     }
 }
 

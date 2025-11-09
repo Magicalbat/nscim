@@ -8,12 +8,12 @@ void _win_backend_create(mem_arena* arena, window* win) {
 
     win->backend->term = term_init(arena, MiB(4));
 
-    term_write(win->backend->term, STR8_LIT("\x1b[?1049h"));
+    term_write(win->backend->term, STR8_LIT("\x1b[?1049h\x1b[?25l"));
     term_flush(win->backend->term);
 }
 
 void _win_backend_destroy(window* win) {
-    term_write(win->backend->term, STR8_LIT("\x1b[?1049l"));
+    term_write(win->backend->term, STR8_LIT("\x1b[?1049l\x1b[?25h"));
     term_flush(win->backend->term);
     term_quit(win->backend->term);
 }
