@@ -51,6 +51,8 @@ typedef struct workbook {
 workbook* wb_create(void);
 void wb_destroy(workbook* wb);
 
+sheet_buffer* wb_get_active_sheet(workbook* wb, b32 create_if_empty);
+
 sheet_buffer* wb_create_sheet_buffer(workbook* wb);
 sheet_buffer* wb_get_sheet_buffer(workbook* wb, string8 name);
 void wb_free_sheet_buffer(workbook* wb, sheet_buffer* sheet);

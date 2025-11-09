@@ -55,6 +55,10 @@ void wb_destroy(workbook* wb) {
     arena_destroy(wb->arena);
 }
 
+sheet_buffer* wb_get_active_sheet(workbook* wb, b32 create_if_empty) {
+    return wb_win_get_sheet(wb, wb->active_win, create_if_empty);
+}
+
 sheet_buffer* wb_create_sheet_buffer(workbook* wb) {
     sheet_buffer* sheet = NULL;
 

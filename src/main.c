@@ -69,13 +69,21 @@ int main(void) {
     #else
 
     workbook* wb = wb_create();
+    sheet_buffer* sheet = wb_get_active_sheet(wb, true);
+    sheet_set_row_height(sheet, 1, 2);
+    sheet_set_row_height(sheet, 4, 3);
+
+    for (u32 i = 0; i < 10; i++) {
+        sheet_set_col_width(sheet, i, (u16)(i + 1));
+    }
+
     editor_context* editor = editor_init(perm_arena);
 
     mem_arena* frame_arena = arena_create(MiB(64), MiB(1), false);
     mem_arena* prev_frame_arena = arena_create(MiB(64), MiB(1), false);
 
     window* win = win_create(perm_arena);
-
+    
     draw(win, wb, editor, frame_arena);
     
     b32 running = true;

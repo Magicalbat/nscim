@@ -125,6 +125,7 @@ void _editor_draw_sheet_win(
     u32 max_col_width = SHEET_DEF_COL_WIDTH;
     u32 max_row_height = SHEET_DEF_ROW_HEIGHT;
 
+    // Getting row/column bounds
     {
         u32 cur_col_width = SHEET_DEF_COL_WIDTH;
         u32 cur_row_height = SHEET_DEF_ROW_HEIGHT;
@@ -158,6 +159,7 @@ void _editor_draw_sheet_win(
         }
     }
 
+    // Drawing column titles
     {
         u32 x = SHEET_MAX_ROW_CHARS;
 
@@ -175,9 +177,7 @@ void _editor_draw_sheet_win(
                 width / 2 - num_col_chars / 2 : 0;
 
             for (u32 i = 0; i < width && x + i < buf->width; i++) {
-                u32 index = x + i + y * buf->width;
-
-                buf->tiles[index] = (win_tile){
+                buf->tiles[x + i + y * buf->width] = (win_tile){
                     .fg = editor->colors.rc_fg,
                     .bg = editor->colors.rc_bg,
                     .c = i >= draw_start && i < draw_start + num_col_chars ?
@@ -186,6 +186,40 @@ void _editor_draw_sheet_win(
             }
 
             x += width;
+        }
+
+        y++;
+    }
+
+    if (y > max_y) { return; }
+
+    // Drawing row numbers
+    {
+        u32 y_tmp = y;
+
+        u32 num_row_chars = 0;
+        u8 row_chars[SHEET_MAX_ROW_CHARS] = { 0 };
+
+        u32 max_row_chars = MIN(SHEET_MAX_ROW_CHARS, win->width);
+
+        for (u32 row_off = 0; row_off < num_rows && y_tmp <= max_y; row_off++) {
+            u32 row = row_off + win->scroll_pos.row;
+            u32 height = sheet_get_row_height(sheet, row);
+
+            num_row_chars = chars_from_u32(row, row_chars, SHEET_MAX_ROW_CHARS);
+
+            u32 draw_start = num_row_chars < max_row_chars ? max_row_chars - num_row_chars : 0;
+
+            for (u32 i = 0; i < height && y_tmp <= max_y; i++, y_tmp++) {
+                for (u32 j = 0; j < max_row_chars; j++) {
+                    buf->tiles[j + y_tmp * buf->width] = (win_tile){
+                        .fg = editor->colors.rc_fg,
+                        .bg = editor->colors.rc_bg,
+                        .c = i == 0 && j >= draw_start ?
+                            row_chars[j - draw_start] : ' '
+                    };
+                }
+            }
         }
     }
 }
