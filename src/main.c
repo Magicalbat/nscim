@@ -69,6 +69,10 @@ int main(void) {
     #else
 
     workbook* wb = wb_create();
+
+    wb_win_split(wb, (sheet_window_split){ .s = SHEET_WIN_SPLIT_VERT }, false);
+    wb_win_split(wb, (sheet_window_split){ .s = SHEET_WIN_SPLIT_HORZ }, false);
+
     sheet_buffer* sheet = wb_get_active_sheet(wb, true);
     sheet_set_row_height(sheet, 1, 2);
     sheet_set_row_height(sheet, 4, 3);
@@ -107,6 +111,19 @@ int main(void) {
             } break;
             case 'l': {
                 cursor_pos->col++;
+            } break;
+
+            case WIN_INPUT_CTRL('h'): {
+                wb_win_change_active_horz(wb, -1);
+            } break;
+            case WIN_INPUT_CTRL('j'): {
+                wb_win_change_active_vert(wb, +1);
+            } break;
+            case WIN_INPUT_CTRL('k'): {
+                wb_win_change_active_vert(wb, -1);
+            } break;
+            case WIN_INPUT_CTRL('l'): {
+                wb_win_change_active_horz(wb, +1);
             } break;
         }
 

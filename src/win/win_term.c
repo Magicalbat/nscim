@@ -160,7 +160,10 @@ void _win_draw_front_buf(window* win) {
             }
 
             term_write_c(term, tile.c);
-            cursor_x++;
+
+            if (x != win->front_buf.width - 1) {
+                cursor_x++;
+            }
 
             prev_tile = tile;
         }

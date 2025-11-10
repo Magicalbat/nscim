@@ -50,8 +50,10 @@ void _editor_draw_sheet_win(
 ) {
     u32 y = EDITOR_STATUS_ROWS_TOP + win->start_y;
     u32 max_y = y + win->height - 1;
+    u32 max_x = win->start_x + win->width - 1;
 
     sheet_buffer* sheet = wb_win_get_sheet(wb, win, false);
+    b32 active = win == wb->active_win;
 
     if (win->height == 0) {
         return;
@@ -161,7 +163,7 @@ void _editor_draw_sheet_win(
 
     // Drawing column titles
     {
-        u32 x = SHEET_MAX_ROW_CHARS;
+        u32 x = SHEET_MAX_ROW_CHARS + win->start_x;
 
         u32 num_col_chars = 0;
         u8 col_chars[SHEET_MAX_COL_CHARS] = { 0 };
@@ -184,13 +186,15 @@ void _editor_draw_sheet_win(
                 bg = editor->colors.rc_fg;
             }
 
-            for (u32 i = 0; i < width && x + i < buf->width; i++, x++) {
-                buf->tiles[x + y * buf->width] = (win_tile){
+            for (u32 i = 0; i < width && x + i <= max_x; i++) {
+                buf->tiles[x + i + y * buf->width] = (win_tile){
                     .fg = fg, .bg = bg,
                     .c = i >= draw_start && i < draw_start + num_col_chars ?
                         col_chars[i - draw_start] : ' '
                 };
             }
+
+            x += width;
         }
 
         y++;
@@ -226,7 +230,8 @@ void _editor_draw_sheet_win(
 
             for (u32 i = 0; i < height && y_tmp <= max_y; i++, y_tmp++) {
                 for (u32 j = 0; j < max_row_chars; j++) {
-                    buf->tiles[j + y_tmp * buf->width] = (win_tile){
+                    buf->tiles[j + win->start_x + y_tmp * buf->width] =
+                    (win_tile){
                         .fg = fg, .bg = bg,
                         .c = i == 0 && j >= draw_start ?
                             row_chars[j - draw_start] : ' '
@@ -240,14 +245,17 @@ void _editor_draw_sheet_win(
         u32 row = row_off + win->scroll_pos.row;
         u32 height = sheet_get_row_height(sheet, row);
 
-        u32 x = SHEET_MAX_ROW_CHARS;
+        u32 x = SHEET_MAX_ROW_CHARS + win->start_x;
 
         for (u32 col_off = 0; col_off < num_cols; col_off++) {
             u32 col = col_off + win->scroll_pos.col;
             u32 width = sheet_get_col_width(sheet, col);
 
             win_col fg, bg;
-            if (col != win->cursor_pos.col || row != win->cursor_pos.row) {
+            if (
+                !active ||
+                (col != win->cursor_pos.col || row != win->cursor_pos.row)
+            ) {
                 fg = editor->colors.cell_fg;
                 bg = editor->colors.cell_bg;
             } else {
@@ -256,7 +264,7 @@ void _editor_draw_sheet_win(
             }
 
             for (u32 i = 0; i < height && i + y <= max_y; i++) {
-                for (u32 j = 0; j < width && x + j < buf->width; j++) {
+                for (u32 j = 0; j < width && x + j <= max_x; j++) {
                     buf->tiles[x + j + (y + i) * buf->width] = (win_tile) {
                         .fg = fg, .bg = bg,
                         .c = ' '
