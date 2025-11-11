@@ -1,7 +1,7 @@
 
 typedef enum {
-    SHEET_WIN_SPLIT_VERT = 0b0,
-    SHEET_WIN_SPLIT_HORZ = 0b1,
+    SHEETS_WIN_SPLIT_VERT = 0b0,
+    SHEETS_WIN_SPLIT_HORZ = 0b1,
 } sheet_window_split_enum;
 
 // Used to ensure the enum size
@@ -89,7 +89,4 @@ void wb_win_change_active_horz(workbook* wb, i32 dir);
 
 // Moves cursor to the window above (-1) or below (+1)
 void wb_win_change_active_vert(workbook* wb, i32 dir);
-
-
-
 

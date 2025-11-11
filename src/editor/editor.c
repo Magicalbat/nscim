@@ -4,12 +4,14 @@ editor_context* editor_init(mem_arena* arena) {
 
     editor->mode = EDITOR_MODE_NORMAL;
     editor->colors = (editor_colors) {
-        .win_status_fg = { { 255, 255, 255 } },
-        .win_status_bg = { {  25,  30,  40 } },
-        .cell_fg       = { { 255, 255, 255 } },
-        .cell_bg       = { {  15,  18,  20 } },
-        .rc_fg         = { { 131,  27,  88 } },
-        .rc_bg         = { { 214, 212, 243 } },
+        .win_status_fg      = { { 255, 255, 255 } },
+        .win_status_bg      = { {  25,  30,  40 } },
+        .cell_fg            = { { 255, 255, 255 } },
+        .cell_bg            = { {  15,  18,  20 } },
+        .inactive_cursor_fg = { {  15,  18,  20 } },
+        .inactive_cursor_bg = { { 150, 150, 150 } },
+        .rc_fg              = { { 131,  27,  88 } },
+        .rc_bg              = { { 214, 212, 243 } },
     };
 
     return editor;
@@ -20,6 +22,26 @@ editor_context* editor_init(mem_arena* arena) {
 #define EDITOR_STATUS_ROWS (EDITOR_STATUS_ROWS_TOP + EDITOR_STATUS_ROWS_BOTTOM)
 
 #define EDITOR_SHEET_NAME_PAD 2
+
+u32 _editor_get_cell_str(workbook* wb, sheet_buffer* sheet, sheet_cell_pos cell_pos, u8 chars[SHEET_MAX_STRLEN]) {
+    sheet_cell_ref cell = sheet_get_cell(wb, sheet, cell_pos, false);
+
+    switch (cell.type->t) {
+        case SHEET_CELL_TYPE_NUM: {
+        } break;
+        case SHEET_CELL_TYPE_STRING: {
+            sheet_string* str = *cell.str;
+            memcpy(chars, str->str, str->size);
+            return str->size;
+        } break;
+
+        default: {
+            return 0;
+        } break;
+    }
+
+    return 0;
+}
 
 u32 _editor_col_name(u32 col, u8 chars[SHEET_MAX_COL_CHARS]) {
     u32 size = 0;
@@ -110,10 +132,25 @@ void _editor_draw_sheet_win(
 
     if (y > max_y) { return; }
 
+    u32 cell_chars_size = 0;
+    u8 cell_chars[SHEET_MAX_STRLEN] = { 0 };
+
     // Second status row
     {
+        cell_chars_size = _editor_get_cell_str(
+            wb, sheet, win->cursor_pos, cell_chars
+        );
+
         for (u32 i = 0; i < win->width; i++) {
-            buf->tiles[i + win->start_x + y * buf->width] = status_tile;
+            u32 index = i + win->start_x + y * buf->width;
+            buf->tiles[index] = status_tile;
+
+            if (
+                i >= EDITOR_SHEET_NAME_PAD &&
+                i < cell_chars_size + EDITOR_SHEET_NAME_PAD
+            ) {
+                buf->tiles[index].c = cell_chars[i-EDITOR_SHEET_NAME_PAD];
+            }
         }
 
         y++;
@@ -251,23 +288,39 @@ void _editor_draw_sheet_win(
             u32 col = col_off + win->scroll_pos.col;
             u32 width = sheet_get_col_width(sheet, col);
 
+
+            b32 in_cursor = col == win->cursor_pos.col &&
+                row == win->cursor_pos.row;
+
             win_col fg, bg;
-            if (
-                !active ||
-                (col != win->cursor_pos.col || row != win->cursor_pos.row)
-            ) {
-                fg = editor->colors.cell_fg;
-                bg = editor->colors.cell_bg;
-            } else {
-                fg = editor->colors.cell_bg;
-                bg = editor->colors.cell_fg;
+
+            switch ((active << 1) | in_cursor) {
+                case 0b00: 
+                case 0b10: {
+                    fg = editor->colors.cell_fg;
+                    bg = editor->colors.cell_bg;
+                } break;
+
+                case 0b11: {
+                    fg = editor->colors.cell_bg;
+                    bg = editor->colors.cell_fg;
+                } break;
+
+                case 0b01: {
+                    fg = editor->colors.inactive_cursor_fg;
+                    bg = editor->colors.inactive_cursor_bg;
+                } break;
             }
+
+            cell_chars_size = _editor_get_cell_str(
+                wb, sheet, (sheet_cell_pos){ row, col }, cell_chars
+            );
 
             for (u32 i = 0; i < height && i + y <= max_y; i++) {
                 for (u32 j = 0; j < width && x + j <= max_x; j++) {
                     buf->tiles[x + j + (y + i) * buf->width] = (win_tile) {
                         .fg = fg, .bg = bg,
-                        .c = ' '
+                        .c = i == 0 && j < cell_chars_size ? cell_chars[j] : ' '
                     };
                 }
             }

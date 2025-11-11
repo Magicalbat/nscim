@@ -161,7 +161,7 @@ void _wb_win_expand(workbook* wb, i32 amount, sheet_window_split split) {
     u32 parent_dim = 1;
     u32 child_dim = 1;
 
-    if (split.s == SHEET_WIN_SPLIT_VERT) {
+    if (split.s == SHEETS_WIN_SPLIT_VERT) {
         parent_dim = cur->parent->width;
         child_dim = cur->width;
     } else {
@@ -183,11 +183,11 @@ void _wb_win_expand(workbook* wb, i32 amount, sheet_window_split split) {
 }
 
 void wb_win_inc_width(workbook* wb, i32 amount) {
-    _wb_win_expand(wb, amount, (sheet_window_split){ SHEET_WIN_SPLIT_VERT });
+    _wb_win_expand(wb, amount, (sheet_window_split){ SHEETS_WIN_SPLIT_VERT });
 }
 
 void wb_win_inc_height(workbook* wb, i32 amount) {
-    _wb_win_expand(wb, amount, (sheet_window_split){ SHEET_WIN_SPLIT_HORZ });
+    _wb_win_expand(wb, amount, (sheet_window_split){ SHEETS_WIN_SPLIT_HORZ });
 }
 
 // Moves in the direction opposite the split
@@ -232,14 +232,14 @@ void _wb_win_change_active(workbook* wb, sheet_window* cur, i32 dir, sheet_windo
 void wb_win_change_active_horz(workbook* wb, i32 dir) {
     _wb_win_change_active(
         wb, wb->active_win, dir,
-        (sheet_window_split){ SHEET_WIN_SPLIT_VERT }
+        (sheet_window_split){ SHEETS_WIN_SPLIT_VERT }
     );
 }
 
 void wb_win_change_active_vert(workbook* wb, i32 dir) {
     _wb_win_change_active(
         wb, wb->active_win, dir,
-        (sheet_window_split){ SHEET_WIN_SPLIT_HORZ }
+        (sheet_window_split){ SHEETS_WIN_SPLIT_HORZ }
     );
 }
 

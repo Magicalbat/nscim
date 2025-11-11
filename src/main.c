@@ -70,12 +70,26 @@ int main(void) {
 
     workbook* wb = wb_create();
 
-    wb_win_split(wb, (sheet_window_split){ .s = SHEET_WIN_SPLIT_VERT }, false);
-    wb_win_split(wb, (sheet_window_split){ .s = SHEET_WIN_SPLIT_HORZ }, false);
-
     sheet_buffer* sheet = wb_get_active_sheet(wb, true);
+    sheet->name = STR8_LIT("Test Sheet");
     sheet_set_row_height(sheet, 1, 2);
     sheet_set_row_height(sheet, 4, 3);
+
+    for (u32 i = 0; i < 10; i++) {
+        sheet_cell_ref cell = sheet_get_cell(
+            wb, sheet, (sheet_cell_pos){ i, i }, true
+        );
+        cell.type->t = SHEET_CELL_TYPE_STRING;
+        sheet_string* str = wb_create_string(wb, 16);
+        memcpy(str->str, "Test  ", 6);
+        str->size = 6;
+        str->str[5] = (u8)i + '0';
+        *cell.str = str;
+    }
+
+    wb_win_split(wb, (sheet_window_split){ .s = SHEETS_WIN_SPLIT_VERT }, true);
+    wb_win_split(wb, (sheet_window_split){ .s = SHEETS_WIN_SPLIT_HORZ }, false);
+
 
     for (u32 i = 0; i < 10; i++) {
         sheet_set_col_width(sheet, i, (u16)(i + 1));

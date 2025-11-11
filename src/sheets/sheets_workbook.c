@@ -1,7 +1,8 @@
 
 workbook* wb_create(void) {
     mem_arena* arena = arena_create(
-        WORKBOOK_RESERVE_SIZE, WORKBOOK_COMMIT_SIZE, true
+        SHEETS_WORKBOOK_RESERVE_SIZE,
+        SHEETS_WORKBOOK_COMMIT_SIZE, true
     );
 
     workbook* wb = PUSH_STRUCT(arena, workbook);
