@@ -39,17 +39,42 @@ typedef enum {
     EDITOR_ACTION_MOVE_LEFT,
     EDITOR_ACTION_MOVE_RIGHT,
 
-    _EDITOR_ACTION_MOTION_SEPARATOR, 
+    _EDITOR_ACTION_MOTION_END,
+
+    _EDITOR_ACTION_MODIFY_END,
+
+    EDITOR_ACTION_SCROLL_UP,
+    EDITOR_ACTION_SCROLL_DOWN,
+    EDITOR_ACTION_SCROLL_LEFT,
+    EDITOR_ACTION_SCROLL_RIGHT,
+
+    EDITOR_ACTION_WIN_SPLIT_VERT,
+    EDITOR_ACTION_WIN_SPLIT_HORZ,
+
+    EDITOR_ACTION_WIN_CLOSE,
+
+    EDITOR_ACTION_WIN_SELECT_UP,
+    EDITOR_ACTION_WIN_SELECT_DOWN,
+    EDITOR_ACTION_WIN_SELECT_LEFT,
+    EDITOR_ACTION_WIN_SELECT_RIGHT,
 
     _EDITOR_ACTION_COUNT
 } editor_action_enum;
 
 typedef u16 editor_action;
 
-STATIC_ASSERT(_EDITOR_ACTION_COUNT < sizeof(editor_action) * 8, editor_action_count);
+STATIC_ASSERT(
+    _EDITOR_ACTION_COUNT < (1 << (sizeof(editor_action) * 8)),
+    editor_action_count
+);
 
-typedef struct {
-} editor_keymap_node;
+#define EDITOR_ACTION_IS_MOTION(action) \
+    ((action) < _EDITOR_ACTION_MOTION_END && (action) != EDITOR_ACTION_NONE)
+
+#define EDITOR_ACTION_IS_MODIFY(action) ( \
+    (action) > _EDITOR_ACTION_MOTION_END && \
+    (action) < _EDITOR_ACTION_MODIFY_END \
+)
 
 typedef struct {
     editor_mode mode;
@@ -59,6 +84,9 @@ typedef struct {
     u32 cmd_size;
     u32 cmd_cursor;
     u32 cmd_select_start;
+
+    // Set by motion actions and used by modify actions
+    sheet_cell_range motion_range;
 
     u32 cell_input_size;
     u32 cell_input_cursor;
@@ -74,6 +102,11 @@ typedef struct {
 } editor_context;
 
 editor_context* editor_init(mem_arena* arena);
+
+void editor_execute_action(
+    editor_context* editor, workbook* wb,
+    editor_action action, u32 repeat
+);
 
 void editor_update(window* win, editor_context* editor, workbook* wb);
 

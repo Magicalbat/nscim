@@ -42,19 +42,19 @@ win_input win_next_input(window* win) {
 
         switch (c) {
             case 'A': {
-                return WIN_INPUT_UP_ARROW;
+                return WIN_INPUT_ARROW_UP;
             } break;
 
             case 'B': {
-                return WIN_INPUT_DOWN_ARROW;
+                return WIN_INPUT_ARROW_DOWN;
             } break;
 
             case 'C': {
-                return WIN_INPUT_RIGHT_ARROW;
+                return WIN_INPUT_ARROW_RIGHT;
             } break;
 
             case 'D': {
-                return WIN_INPUT_LEFT_ARROW;
+                return WIN_INPUT_ARROW_LEFT;
             } break;
         }
     }

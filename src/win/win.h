@@ -46,10 +46,10 @@ typedef u8 win_input;
 
 #define WIN_INPUT_BACKSPACE 127
 
-#define WIN_INPUT_UP_ARROW 128
-#define WIN_INPUT_DOWN_ARROW 129
-#define WIN_INPUT_LEFT_ARROW 130
-#define WIN_INPUT_RIGHT_ARROW 131
+#define WIN_INPUT_ARROW_UP 128
+#define WIN_INPUT_ARROW_DOWN 129
+#define WIN_INPUT_ARROW_LEFT 130
+#define WIN_INPUT_ARROW_RIGHT 131
 
 // Maximum number of win_inputs you can represent
 #define WIN_INPUT_MAX (1 << (sizeof(win_input) * 8))
