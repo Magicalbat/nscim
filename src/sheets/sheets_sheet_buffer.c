@@ -75,7 +75,7 @@ static void _sb_init_info(void) {
     _sb_info.siphash_k0 = ((u64)prng_rand() << 32) | (u64)prng_rand();
     _sb_info.siphash_k1 = ((u64)prng_rand() << 32) | (u64)prng_rand();
 
-    _sb_info.empty_cell.type.t = SHEET_CELL_TYPE_NONE;
+    _sb_info.empty_cell.type = SHEET_CELL_TYPE_NONE;
     _sb_info.empty_cell.num = 0.0;
     _sb_info.empty_cell.str = NULL;
 
@@ -403,7 +403,7 @@ sheet_cell_ref sheet_get_cell(
             _sb_init_info();
         }
 
-        _sb_info.empty_cell.type.t = SHEET_CELL_TYPE_NONE;
+        _sb_info.empty_cell.type = SHEET_CELL_TYPE_NONE;
         _sb_info.empty_cell.num = 0.0;
         _sb_info.empty_cell.str = NULL;
 

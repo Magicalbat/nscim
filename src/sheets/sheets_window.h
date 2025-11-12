@@ -4,10 +4,7 @@ typedef enum {
     SHEETS_WIN_SPLIT_HORZ = 0b1,
 } sheet_window_split_enum;
 
-// Used to ensure the enum size
-typedef struct {
-    u32 s;
-} sheet_window_split;
+typedef u32 sheet_window_split;
 
 // Stores information about how the user is editing a sheet
 // Akin to vim windows

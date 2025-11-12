@@ -1,8 +1,6 @@
 
 // Maximum command langth (bytes)
 #define EDITOR_CMD_MAX 1024
-// Maximum keyboard input combination (`win_input`s)
-#define EDITOR_INPUT_MAX 16
 
 typedef enum {
     EDITOR_MODE_NONE = 0,
@@ -33,6 +31,26 @@ typedef struct {
     win_col rc_bg;
 } editor_colors;
 
+typedef enum {
+    EDITOR_ACTION_NONE = 0,
+
+    EDITOR_ACTION_MOVE_UP,
+    EDITOR_ACTION_MOVE_DOWN,
+    EDITOR_ACTION_MOVE_LEFT,
+    EDITOR_ACTION_MOVE_RIGHT,
+
+    _EDITOR_ACTION_MOTION_SEPARATOR, 
+
+    _EDITOR_ACTION_COUNT
+} editor_action_enum;
+
+typedef u16 editor_action;
+
+STATIC_ASSERT(_EDITOR_ACTION_COUNT < sizeof(editor_action) * 8, editor_action_count);
+
+typedef struct {
+} editor_keymap_node;
+
 typedef struct {
     editor_mode mode;
 
@@ -48,12 +66,16 @@ typedef struct {
 
     u32 key_input_size;
 
+    b32 should_quit;
+    b32 should_draw;
+
     u8 cmd_buf[EDITOR_CMD_MAX];
     u8 cell_input_buf[SHEET_MAX_STRLEN];
-    win_input key_input_buf[EDITOR_INPUT_MAX];
 } editor_context;
 
 editor_context* editor_init(mem_arena* arena);
+
+void editor_update(window* win, editor_context* editor, workbook* wb);
 
 void editor_draw(window* win, editor_context* editor, workbook* wb);
 

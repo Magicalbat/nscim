@@ -96,7 +96,7 @@ void wb_win_compute_sizes(workbook* wb, u32 total_width, u32 total_height) {
         sheet_window* parent = cur->parent;
         b32 is_child1 = parent->child1 == cur;
 
-        u32 child_case = (parent->split_dir.s << 1) | (u32)is_child1;
+        u32 child_case = (parent->split_dir << 1) | (u32)is_child1;
 
         switch (child_case) {
             // Vertical, child0
@@ -141,13 +141,13 @@ void wb_win_compute_sizes(workbook* wb, u32 total_width, u32 total_height) {
 }
 
 // Expands in the direction opposite the split
-// e.g. Expands width when split.s == SHEET_WIN_SPLIT_VERT
+// e.g. Expands width when split == SHEET_WIN_SPLIT_VERT
 void _wb_win_expand(workbook* wb, i32 amount, sheet_window_split split) {
     sheet_window* cur = wb->active_win;
 
     while (
         cur->parent != NULL &&
-        cur->parent->split_dir.s != split.s
+        cur->parent->split_dir != split
     ) {
         cur = cur->parent;
     }
@@ -161,7 +161,7 @@ void _wb_win_expand(workbook* wb, i32 amount, sheet_window_split split) {
     u32 parent_dim = 1;
     u32 child_dim = 1;
 
-    if (split.s == SHEETS_WIN_SPLIT_VERT) {
+    if (split == SHEETS_WIN_SPLIT_VERT) {
         parent_dim = cur->parent->width;
         child_dim = cur->width;
     } else {
@@ -191,7 +191,7 @@ void wb_win_inc_height(workbook* wb, i32 amount) {
 }
 
 // Moves in the direction opposite the split
-// e.g. moves up/down when split.s == SHEET_WIN_SPLIT_HORZ
+// e.g. moves up/down when split == SHEET_WIN_SPLIT_HORZ
 // TODO: make 4 quadrant windows work better (i.e. go from child1 -> child1)
 void _wb_win_change_active(workbook* wb, sheet_window* cur, i32 dir, sheet_window_split split) {
     if (cur == NULL) {
@@ -200,7 +200,7 @@ void _wb_win_change_active(workbook* wb, sheet_window* cur, i32 dir, sheet_windo
 
     while (
         cur->parent != NULL && 
-        cur->parent->split_dir.s != split.s
+        cur->parent->split_dir != split
     ) {
         cur = cur->parent;
     }

@@ -52,12 +52,9 @@ typedef enum {
     SHEET_CELL_TYPE_COUNT
 } sheet_cell_type_enum;
 
-// Used to ensure the size of the enum
-typedef struct {
-    u8 t;
-} sheet_cell_type;
+typedef u8 sheet_cell_type;
 
-STATIC_ASSERT(SHEET_CELL_TYPE_COUNT < 255, cell_type_count);
+STATIC_ASSERT(SHEET_CELL_TYPE_COUNT < sizeof(sheet_cell_type) * 8, cell_type_count);
 
 typedef struct sheet_string {
     u32 size;

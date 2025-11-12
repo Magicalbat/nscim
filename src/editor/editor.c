@@ -17,6 +17,22 @@ editor_context* editor_init(mem_arena* arena) {
     return editor;
 }
 
+void editor_update(window* win, editor_context* editor, workbook* wb) {
+    win_input input = win_next_input(win);
+
+    if (input == 0) {
+        editor->should_draw = false;
+        return;
+    } else {
+        editor->should_draw = true;
+    }
+
+    if (input == 'q') {
+        editor->should_quit = true;
+        return;
+    }
+}
+
 #define EDITOR_STATUS_ROWS_TOP 0
 #define EDITOR_STATUS_ROWS_BOTTOM 1
 #define EDITOR_STATUS_ROWS (EDITOR_STATUS_ROWS_TOP + EDITOR_STATUS_ROWS_BOTTOM)
@@ -26,7 +42,7 @@ editor_context* editor_init(mem_arena* arena) {
 u32 _editor_get_cell_str(workbook* wb, sheet_buffer* sheet, sheet_cell_pos cell_pos, u8 chars[SHEET_MAX_STRLEN]) {
     sheet_cell_ref cell = sheet_get_cell(wb, sheet, cell_pos, false);
 
-    switch (cell.type->t) {
+    switch (*cell.type) {
         case SHEET_CELL_TYPE_NUM: {
         } break;
         case SHEET_CELL_TYPE_STRING: {

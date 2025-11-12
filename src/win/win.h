@@ -39,17 +39,20 @@ typedef struct {
     win_buffer back_buf;
 } window;
 
-typedef u16 win_input;
+typedef u8 win_input;
 
 // Only works for letter keys
 #define WIN_INPUT_CTRL(k) ((k) & 0x1f)
 
 #define WIN_INPUT_BACKSPACE 127
 
-#define WIN_INPUT_UP_ARROW 257
-#define WIN_INPUT_DOWN_ARROW 258
-#define WIN_INPUT_LEFT_ARROW 259
-#define WIN_INPUT_RIGHT_ARROW 260
+#define WIN_INPUT_UP_ARROW 128
+#define WIN_INPUT_DOWN_ARROW 129
+#define WIN_INPUT_LEFT_ARROW 130
+#define WIN_INPUT_RIGHT_ARROW 131
+
+// Maximum number of win_inputs you can represent
+#define WIN_INPUT_MAX (1 << (sizeof(win_input) * 8))
 
 b32 win_col_eq(win_col a, win_col b);
 b32 win_tile_eq(win_tile a, win_tile b);
@@ -65,5 +68,4 @@ win_input win_next_input(window* win);
 
 void win_begin_frame(window* win, mem_arena* frame_arena);
 void win_update(window* win);
-
 

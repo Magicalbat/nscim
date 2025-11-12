@@ -79,7 +79,7 @@ int main(void) {
         sheet_cell_ref cell = sheet_get_cell(
             wb, sheet, (sheet_cell_pos){ i, i }, true
         );
-        cell.type->t = SHEET_CELL_TYPE_STRING;
+        *cell.type = SHEET_CELL_TYPE_STRING;
         sheet_string* str = wb_create_string(wb, 16);
         memcpy(str->str, "Test  ", 6);
         str->size = 6;
@@ -87,8 +87,8 @@ int main(void) {
         *cell.str = str;
     }
 
-    wb_win_split(wb, (sheet_window_split){ .s = SHEETS_WIN_SPLIT_VERT }, true);
-    wb_win_split(wb, (sheet_window_split){ .s = SHEETS_WIN_SPLIT_HORZ }, false);
+    wb_win_split(wb, SHEETS_WIN_SPLIT_VERT, true);
+    wb_win_split(wb, SHEETS_WIN_SPLIT_HORZ, false);
 
 
     for (u32 i = 0; i < 10; i++) {
@@ -104,49 +104,10 @@ int main(void) {
     
     draw(win, wb, editor, frame_arena);
     
-    b32 running = true;
+    while (!editor->should_quit) {
+        editor_update(win, editor, wb);
 
-    while (running) {
-        win_input input = win_next_input(win);
-
-        sheet_cell_pos* cursor_pos = &wb->active_win->cursor_pos;
-
-        switch (input) {
-            case 'h': {
-                if (cursor_pos->col > 0)
-                    cursor_pos->col--;
-            } break;
-            case 'j': {
-                cursor_pos->row++;
-            } break;
-            case 'k': {
-                if (cursor_pos->row > 0)
-                    cursor_pos->row--;
-            } break;
-            case 'l': {
-                cursor_pos->col++;
-            } break;
-
-            case WIN_INPUT_CTRL('h'): {
-                wb_win_change_active_horz(wb, -1);
-            } break;
-            case WIN_INPUT_CTRL('j'): {
-                wb_win_change_active_vert(wb, +1);
-            } break;
-            case WIN_INPUT_CTRL('k'): {
-                wb_win_change_active_vert(wb, -1);
-            } break;
-            case WIN_INPUT_CTRL('l'): {
-                wb_win_change_active_horz(wb, +1);
-            } break;
-        }
-
-        if (input == 'q') {
-            running = false;
-            break;
-        }
-
-        if (input) {
+        if (editor->should_draw) {
             draw(win, wb, editor, frame_arena);
 
             {
