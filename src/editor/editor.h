@@ -85,9 +85,6 @@ typedef struct {
     u32 cmd_cursor;
     u32 cmd_select_start;
 
-    // Set by motion actions and used by modify actions
-    sheet_cell_range motion_range;
-
     u32 cell_input_size;
     u32 cell_input_cursor;
     u32 cell_input_select_start;
@@ -102,11 +99,6 @@ typedef struct {
 } editor_context;
 
 editor_context* editor_init(mem_arena* arena);
-
-void editor_execute_action(
-    editor_context* editor, workbook* wb,
-    editor_action action, u32 repeat
-);
 
 void editor_update(window* win, editor_context* editor, workbook* wb);
 
