@@ -14,6 +14,8 @@ void editor_execute_action(
     }
 
     switch (action_e) {
+        case EDITOR_ACTION_NONE: break;
+
         case EDITOR_ACTION_MOVE_UP: {
             u32 move_size = MIN(win->cursor_pos.row, repeat);
             win->cursor_pos.row -= move_size;
@@ -38,16 +40,39 @@ void editor_execute_action(
             }
         } break;
 
+        case _EDITOR_ACTION_MOTION_END: break;
+
+        case _EDITOR_ACTION_MODIFY_END: break;
+
+        case EDITOR_ACTION_SCROLL_UP: {
+            u32 move_size = MIN(win->scroll_pos.row, repeat);
+            win->scroll_pos.row -= move_size;
+        } break;
+
+        case EDITOR_ACTION_SCROLL_DOWN: {
+            win->scroll_pos.row += repeat;
+            if (win->scroll_pos.row >= SHEET_MAX_ROWS) {
+                win->scroll_pos.row = SHEET_MAX_ROWS-1;
+            }
+        } break;
+
+        case EDITOR_ACTION_SCROLL_LEFT: {
+            u32 move_size = MIN(win->scroll_pos.col, repeat);
+            win->scroll_pos.col -= move_size;
+        } break;
+
+        case EDITOR_ACTION_SCROLL_RIGHT: {
+            win->scroll_pos.col += repeat;
+            if (win->scroll_pos.col >= SHEET_MAX_COLS) {
+                win->scroll_pos.col = SHEET_MAX_COLS-1;
+            }
+        } break;
 
         case EDITOR_ACTION_WIN_CLOSE: {
             wb_win_close(wb);
         } break;
 
-        case EDITOR_ACTION_NONE:
-        case _EDITOR_ACTION_MOTION_END:
-        case _EDITOR_ACTION_MODIFY_END:
-        case _EDITOR_ACTION_COUNT:
-            break;
+        case _EDITOR_ACTION_COUNT: break;
     }
 
     if (EDITOR_ACTION_IS_MOTION(action)) {

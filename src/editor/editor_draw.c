@@ -146,17 +146,20 @@ void _editor_draw_sheet_win(
     u32 max_row_height = SHEET_DEF_ROW_HEIGHT;
 
     // Getting row/column bounds
+    // TODO: Deal with maximum row and columns
     {
         u32 cur_col_width = SHEET_DEF_COL_WIDTH;
         u32 cur_row_height = SHEET_DEF_ROW_HEIGHT;
 
+        sheet_cell_pos scroll = win->scroll_pos;
+
         for (
             u32 x = SHEET_MAX_ROW_CHARS;
-            x < win->width;
+            x < win->width && scroll.col + num_cols < SHEET_MAX_COLS;
             x += cur_col_width, num_cols++
         ) {
             cur_col_width = sheet_get_col_width(
-                sheet, win->scroll_pos.col + num_cols
+                sheet, scroll.col + num_cols
             );
 
             if (cur_col_width > max_col_width) {
@@ -166,11 +169,11 @@ void _editor_draw_sheet_win(
 
         for (
             u32 yp = y + 1;
-            yp <= max_y;
+            yp <= max_y && scroll.row + num_rows < SHEET_MAX_ROWS;
             yp += cur_row_height, num_rows++
         ) {
             cur_row_height = sheet_get_row_height(
-                sheet, win->scroll_pos.row + num_rows
+                sheet, scroll.row + num_rows
             );
 
             if (cur_row_height > max_row_height) {
@@ -215,6 +218,10 @@ void _editor_draw_sheet_win(
             x += width;
         }
 
+        for (; x <= max_x; x++) {
+            buf->tiles[x + y * buf->width] = status_tile;
+        }
+
         y++;
     }
 
@@ -255,6 +262,13 @@ void _editor_draw_sheet_win(
                             row_chars[j - draw_start] : ' '
                     };
                 }
+            }
+        }
+
+        for (; y_tmp <= max_y; y_tmp++) {
+            for (u32 x = 0; x < max_row_chars; x++) {
+                u32 idx = x + win->start_x + y_tmp * buf->width;
+                buf->tiles[idx] = status_tile;
             }
         }
     }
