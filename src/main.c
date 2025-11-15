@@ -89,7 +89,6 @@ int main(void) {
     wb_win_split(wb, SHEETS_WIN_SPLIT_VERT, true);
     wb_win_split(wb, SHEETS_WIN_SPLIT_HORZ, false);
 
-
     for (u32 i = 0; i < 10; i++) {
         sheet_set_col_width(sheet, i, (u16)(i + 1));
     }
@@ -113,6 +112,7 @@ int main(void) {
                 mem_arena* tmp = prev_frame_arena;
                 prev_frame_arena = frame_arena;
                 frame_arena = tmp;
+                arena_clear(frame_arena);
             }
         }
     }

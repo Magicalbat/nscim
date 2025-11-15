@@ -1,6 +1,7 @@
 
-// Maximum command langth (bytes)
-#define EDITOR_CMD_MAX 1024
+// Maximum langth of command string (bytes)
+#define EDITOR_MAX_CMD_STRLEN 1024
+#define EDITOR_MAX_CMD_ARGS 16
 
 typedef enum {
     EDITOR_MODE_NONE = 0,
@@ -31,51 +32,6 @@ typedef struct {
     win_col rc_bg;
 } editor_colors;
 
-typedef enum {
-    EDITOR_ACTION_NONE = 0,
-
-    EDITOR_ACTION_MOVE_UP,
-    EDITOR_ACTION_MOVE_DOWN,
-    EDITOR_ACTION_MOVE_LEFT,
-    EDITOR_ACTION_MOVE_RIGHT,
-
-    _EDITOR_ACTION_MOTION_END,
-
-    _EDITOR_ACTION_MODIFY_END,
-
-    EDITOR_ACTION_SCROLL_UP,
-    EDITOR_ACTION_SCROLL_DOWN,
-    EDITOR_ACTION_SCROLL_LEFT,
-    EDITOR_ACTION_SCROLL_RIGHT,
-
-    EDITOR_ACTION_WIN_SPLIT_VERT,
-    EDITOR_ACTION_WIN_SPLIT_HORZ,
-
-    EDITOR_ACTION_WIN_CLOSE,
-
-    EDITOR_ACTION_WIN_SELECT_UP,
-    EDITOR_ACTION_WIN_SELECT_DOWN,
-    EDITOR_ACTION_WIN_SELECT_LEFT,
-    EDITOR_ACTION_WIN_SELECT_RIGHT,
-
-    _EDITOR_ACTION_COUNT
-} editor_action_enum;
-
-typedef u16 editor_action;
-
-STATIC_ASSERT(
-    _EDITOR_ACTION_COUNT < (1 << (sizeof(editor_action) * 8)),
-    editor_action_count
-);
-
-#define EDITOR_ACTION_IS_MOTION(action) \
-    ((action) < _EDITOR_ACTION_MOTION_END && (action) != EDITOR_ACTION_NONE)
-
-#define EDITOR_ACTION_IS_MODIFY(action) ( \
-    (action) > _EDITOR_ACTION_MOTION_END && \
-    (action) < _EDITOR_ACTION_MODIFY_END \
-)
-
 typedef struct {
     editor_mode mode;
 
@@ -94,7 +50,7 @@ typedef struct {
     b32 should_quit;
     b32 should_draw;
 
-    u8 cmd_buf[EDITOR_CMD_MAX];
+    u8 cmd_buf[EDITOR_MAX_CMD_STRLEN];
     u8 cell_input_buf[SHEET_MAX_STRLEN];
 } editor_context;
 

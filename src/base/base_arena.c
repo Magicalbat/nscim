@@ -136,6 +136,10 @@ void arena_pop_to(mem_arena* arena, u64 pos) {
     arena_pop(arena, cur_pos - pos);
 }
 
+void arena_clear(mem_arena* arena) {
+    arena_pop_to(arena, ARENA_HEADER_SIZE);
+}
+
 mem_arena_temp arena_temp_begin(mem_arena* arena) {
     return (mem_arena_temp) {
         .arena = arena,

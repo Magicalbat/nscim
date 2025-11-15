@@ -1,5 +1,4 @@
 
-#include "editor_action.c"
 #include "editor_update.c"
 #include "editor_draw.c"
 

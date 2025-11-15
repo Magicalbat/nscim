@@ -35,6 +35,7 @@ u64 arena_get_pos(mem_arena* arena);
 void* arena_push(mem_arena* arena, u64 size, b32 non_zero);
 void arena_pop(mem_arena* arena, u64 size);
 void arena_pop_to(mem_arena* arena, u64 pos);
+void arena_clear(mem_arena* arena);
 
 mem_arena_temp arena_temp_begin(mem_arena* arena);
 void arena_temp_end(mem_arena_temp temp);
