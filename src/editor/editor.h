@@ -1,7 +1,6 @@
 
 // Maximum langth of command string (bytes)
 #define EDITOR_MAX_CMD_STRLEN 1024
-#define EDITOR_MAX_CMD_ARGS 16
 
 typedef enum {
     EDITOR_MODE_NONE = 0,

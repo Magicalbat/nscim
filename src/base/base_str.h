@@ -38,6 +38,14 @@ b32 str8_equals(string8 a, string8 b);
 string8 str8_substr(string8 base, u64 start, u64 end);
 string8 str8_substr_size(string8 base, u64 start, u64 size);
 
+// Will fill as much of out as it can
+void str8_to_upper_ip(string8 in, string8* out);
+// Will fill as much of out as it can
+void str8_to_lower_ip(string8 in, string8* out);
+
+string8 str8_to_upper(mem_arena* arena, string8 str);
+string8 str8_to_lower(mem_arena* arena, string8 str);
+
 string8 str8_concat(
     mem_arena* arena,
     const string8_list* list,

@@ -64,6 +64,61 @@ string8 str8_substr_size(string8 base, u64 start, u64 size) {
     };
 }
 
+void str8_to_upper_ip(string8 in, string8* out) {
+    u64 size = MIN(in.size, out->size);
+    out->size = size;
+
+    for (u64 i = 0; i < size; i++) {
+        u8 c = in.str[i];
+
+        if (c >= 'a' && c <= 'z') {
+            c -= 'a' - 'A';
+        }
+
+        out->str[i] = c;
+    }
+}
+
+void str8_to_lower_ip(string8 in, string8* out) {
+    u64 size = MIN(in.size, out->size);
+    out->size = size;
+
+    for (u64 i = 0; i < size; i++) {
+        u8 c = in.str[i];
+
+        if (c >= 'A' && c <= 'Z') {
+            c += 'a' - 'A';
+        }
+
+        out->str[i] = c;
+    }
+}
+
+string8 str8_to_upper(mem_arena* arena, string8 str) {
+    string8 out = str8_copy(arena, str);
+
+    for (u64 i = 0; i < out.size; i++) {
+        if (out.str[i] >= 'a' && out.str[i] <= 'z') {
+            out.str[i] -= 'a' - 'A';
+        }
+    }
+
+    return out;
+}
+
+string8 str8_to_lower(mem_arena* arena, string8 str) {
+    string8 out = str8_copy(arena, str);
+
+    for (u64 i = 0; i < out.size; i++) {
+        if (out.str[i] >= 'A' && out.str[i] <= 'Z') {
+            out.str[i] += 'a' - 'A';
+        }
+    }
+
+    return out;
+
+}
+
 string8 str8_concat(
     mem_arena* arena,
     const string8_list* list,
