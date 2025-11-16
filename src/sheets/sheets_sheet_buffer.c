@@ -204,68 +204,13 @@ void _sheet_buffer_destroy(workbook* wb, sheet_buffer* sheet) {
     plat_mem_release(sheet, _sb_info.total_reserve);
 }
 
-#define _SB_SIPHASH_CROUNDS 2
-#define _SB_SIPHASH_DROUNDS 2
-
-#define _SB_SIPHASH_ROTL(x, b) (u64)(((x) << (b)) | ((x) >> (64 - (b))))
-
-#define _SB_SIPHASH_SIPROUND             \
-    do {                                 \
-        v0 += v1;                        \
-        v1 = _SB_SIPHASH_ROTL(v1, 13);   \
-        v1 ^= v0;                        \
-        v0 = _SB_SIPHASH_ROTL(v0, 32);   \
-        v2 += v3;                        \
-        v3 = _SB_SIPHASH_ROTL(v3, 16);   \
-        v3 ^= v2;                        \
-        v0 += v3;                        \
-        v3 = _SB_SIPHASH_ROTL(v3, 21);   \
-        v3 ^= v0;                        \
-        v2 += v1;                        \
-        v1 = _SB_SIPHASH_ROTL(v1, 17);   \
-        v1 ^= v2;                        \
-        v2 = _SB_SIPHASH_ROTL(v2, 32);   \
-    } while (0);
-
-// This is based on siphash
-// https://github.com/veorq/SipHash/blob/master/siphash.c
 u64 _sb_chunk_hash(sheet_chunk_pos pos) {
-    uint64_t v0 = UINT64_C(0x736f6d6570736575);
-    uint64_t v1 = UINT64_C(0x646f72616e646f6d);
-    uint64_t v2 = UINT64_C(0x6c7967656e657261);
-    uint64_t v3 = UINT64_C(0x7465646279746573);
-    uint64_t k0 = _sb_info.siphash_k0;
-    uint64_t k1 = _sb_info.siphash_k1;
+    u32 nums[2] = { pos.row, pos.col };
 
-    u64 b = (u64)sizeof(u64) << 56;
-
-    v3 ^= k1;
-    v2 ^= k0;
-    v1 ^= k1;
-    v0 ^= k0;
-
-    u64 m = ((u64)pos.row << 32) | (u64)pos.col;
-
-    v3 ^= m;
-    for (u32 i = 0; i < _SB_SIPHASH_CROUNDS; i++) {
-        _SB_SIPHASH_SIPROUND;
-    }
-    v0 ^= m;
-
-    v3 ^= b;
-    for (u32 i = 0; i < _SB_SIPHASH_CROUNDS; i++) {
-        _SB_SIPHASH_SIPROUND;
-    }
-    v0 ^= b;
-
-    v2 ^= 0xff;
-
-    for (u32 i = 0; i < _SB_SIPHASH_DROUNDS; i++) {
-        _SB_SIPHASH_SIPROUND;
-    }
-
-    u64 out = v0 ^ v1 ^ v2 ^ v3;
-    return out;
+    return siphash(
+        (u8*)nums, sizeof(nums),
+        _sb_info.siphash_k0, _sb_info.siphash_k1
+    );
 }
 
 // TODO: profile this function
@@ -356,12 +301,12 @@ sheet_chunk* sheet_get_chunk(
 
 sheet_chunk_arr sheet_get_range(
     mem_arena* arena, workbook* wb, sheet_buffer* sheet,
-    sheet_cell_range cell_range, b32 create_if_empty
+    sheet_range range, b32 create_if_empty
 ) {
-    u32 min_cell_row = MIN(cell_range.start.row, cell_range.end.row);
-    u32 min_cell_col = MIN(cell_range.start.col, cell_range.end.col);
-    u32 max_cell_row = MAX(cell_range.start.row, cell_range.end.row);
-    u32 max_cell_col = MAX(cell_range.start.col, cell_range.end.col);
+    u32 min_cell_row = MIN(range.start.row, range.end.row);
+    u32 min_cell_col = MIN(range.start.col, range.end.col);
+    u32 max_cell_row = MAX(range.start.row, range.end.row);
+    u32 max_cell_col = MAX(range.start.col, range.end.col);
 
     sheet_chunk_pos min_chunk_pos = {
         min_cell_row / SHEET_CHUNK_ROWS,
@@ -379,13 +324,16 @@ sheet_chunk_arr sheet_get_range(
     mem_arena_temp scratch = arena_scratch_get(&arena, 1);
 
     u32 num_chunks = 0;
-    sheet_chunk** temp_chunks = PUSH_ARRAY(scratch.arena, sheet_chunk*, max_chunks);
+    sheet_chunk** temp_chunks = PUSH_ARRAY(
+        scratch.arena, sheet_chunk*, max_chunks
+    );
 
     for (u32 c_col = min_chunk_pos.col; c_col <= max_chunk_pos.col; c_col++) {
         for (u32 c_row = min_chunk_pos.row; c_row <= max_chunk_pos.row; c_row++) {
             sheet_chunk_pos pos = { c_row, c_col };
 
-            sheet_chunk* cur_chunk = sheet_get_chunk(wb, sheet, pos, create_if_empty);
+            sheet_chunk* cur_chunk =
+                sheet_get_chunk(wb, sheet, pos, create_if_empty);
 
             if (cur_chunk != NULL) {
                 temp_chunks[num_chunks++] = cur_chunk;

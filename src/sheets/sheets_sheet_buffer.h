@@ -41,7 +41,7 @@ typedef struct {
 typedef struct {
     sheet_cell_pos start;
     sheet_cell_pos end;
-} sheet_cell_range;
+} sheet_range;
 
 typedef enum {
     SHEET_CELL_TYPE_NONE = 0,
@@ -143,7 +143,7 @@ sheet_chunk* sheet_get_chunk(
 // but there may be less than expected if `create_if_empty` is false
 sheet_chunk_arr sheet_get_range(
     mem_arena* arena, workbook* wb, sheet_buffer* sheet,
-    sheet_cell_range cell_range, b32 create_if_empty
+    sheet_range cell_range, b32 create_if_empty
 );
 
 sheet_cell_ref sheet_get_cell(
