@@ -2,6 +2,9 @@
 // Maximum langth of command string (bytes)
 #define EDITOR_MAX_CMD_STRLEN 1024
 
+#include "editor_cmd.h"
+#include "editor_cmds_generated.h"
+
 typedef enum {
     EDITOR_MODE_NONE = 0,
 
