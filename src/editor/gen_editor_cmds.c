@@ -5,16 +5,24 @@
 
 #include "base/base.h"
 #include "platform/platform.h"
+#include "sheets/sheets.h"
+#include "win/win.h"
+#include "editor/editor.h"
 
 #include "base/base.c"
 #include "platform/platform.c"
 
-#define EDITOR_CMD_MAX_ARGS 8
+#undef EDITOR_CMD_MOTION_BIT
+#undef EDITOR_CMD_RANGE_BIT
+#undef EDITOR_CMD_MODIFY_BIT
+#undef EDITOR_CMD_JUST_COUNT_BIT
+#undef EDITOR_CMD_NUM_FLAG_BITS
 
-#define EDITOR_CMD_MOTION_BIT (1 << 31)
-#define EDITOR_CMD_RANGE_BIT (1 << 30)
-#define EDITOR_CMD_MODIFY_BIT (1 << 29)
-#define EDITOR_CMD_JUST_COUNT_BIT (1 << 28)
+// Only using 31 bits (as to fit in a signed 32 bit int)
+#define EDITOR_CMD_MOTION_BIT (1 << 30)
+#define EDITOR_CMD_RANGE_BIT (1 << 29)
+#define EDITOR_CMD_MODIFY_BIT (1 << 28)
+#define EDITOR_CMD_JUST_COUNT_BIT (1 << 27)
 
 #define EDITOR_CMD_NUM_FLAG_BITS 4
 
@@ -125,12 +133,10 @@ int main(void) {
         flag_mask |= 1;
         flag_mask <<= 1;
     }
-    flag_mask <<= (31 - EDITOR_CMD_NUM_FLAG_BITS);
+    flag_mask <<= (30 - EDITOR_CMD_NUM_FLAG_BITS);
 
     fprintf(
         h_file,
-        "\n"
-        "#define EDITOR_CMD_MAX_ARGS %d\n"
         "\n"
         "#define EDITOR_CMD_MOTION_BIT     0x%x\n"
         "#define EDITOR_CMD_RANGE_BIT      0x%x\n"
@@ -141,7 +147,6 @@ int main(void) {
         "#define EDITOR_CMD_FLAG_MASK 0x%x\n"
         "\n"
         "#define EDITOR_NUM_CMDS %d\n\n",
-        EDITOR_CMD_MAX_ARGS,
         EDITOR_CMD_MOTION_BIT,
         EDITOR_CMD_RANGE_BIT,
         EDITOR_CMD_MODIFY_BIT,
@@ -232,10 +237,74 @@ int main(void) {
     }
 
     fprintf(h_file, "\n");
-
     fclose(h_file);
 
     FILE* c_file = fopen("src/editor/editor_cmds_generated.c", "w");
+
+    fprintf(
+        c_file,
+        "\nconst editor_cmd_info editor_cmd_infos[EDITOR_NUM_CMDS] = {\n"
+    );
+
+    for (u32 i = 0; i < num_cmds; i++) {
+        u32 arg_required_bitmap = 0;
+
+        u32 num_args = 0;
+        for (
+            u32 j = 0;
+            j < EDITOR_CMD_MAX_ARGS && cmds[i].args[j].t != TYPE_NONE;
+            j++, num_args++
+        ) {
+            arg_required_bitmap <<= 1;
+            arg_required_bitmap |= (u32)cmds[i].args[j].required;
+        }
+
+        fprintf(c_file, "    // %.*s\n", STR8_FMT(cmds[i].name));
+        
+        fprintf(
+            c_file,
+            "    {\n"
+            "        { (u8*)\"%.*s\", %" PRIu64 " },\n"
+            "        { (u8*)\"%.*s\", %" PRIu64 "},\n"
+            "        0x%x, %d, ",
+            STR8_FMT(cmds[i].name), cmds[i].name.size,
+            STR8_FMT(cmds[i].desc), cmds[i].desc.size,
+            arg_required_bitmap, num_args
+        );
+
+        if (num_args == 0) {
+            fprintf(c_file, "{ 0 }, { 0 },\n");
+        } else {
+            fprintf(c_file, "{\n");
+            for (u32 j = 0; j < num_args; j++) {
+                fprintf(
+                    c_file,
+                    "            { (u8*)\"%.*s\", %" PRIu64 " },\n",
+                    STR8_FMT(cmds[i].args[j].name),
+                    cmds[i].args[j].name.size
+                );
+            }
+
+            fprintf(c_file, "        }, {\n");
+
+            for (u32 j = 0; j < num_args; j++) {
+                fprintf(
+                    c_file,
+                    "            { (u8*)\"%.*s\", %" PRIu64 " },\n",
+                    STR8_FMT(cmds[i].args[j].desc),
+                    cmds[i].args[j].desc.size
+                );
+            }
+
+            fprintf(c_file, "        }\n");
+        }
+
+        fprintf(c_file, "    },\n\n");
+    }
+
+    fprintf(c_file, "};\n");
+
+    fprintf(c_file, "\n");
     fclose(c_file);
 
     arena_destroy(perm_arena);
