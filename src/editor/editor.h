@@ -1,11 +1,6 @@
 
 // Maximum langth of command string (bytes)
 #define EDITOR_MAX_CMD_STRLEN 1024
-// Maximum number of arguments a command can have
-#define EDITOR_CMD_MAX_ARGS 8
-
-#include "editor_cmds.h"
-#include "editor_cmds_generated.h"
 
 typedef enum {
     EDITOR_MODE_NONE = 0,
