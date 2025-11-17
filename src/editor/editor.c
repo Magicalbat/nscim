@@ -1,6 +1,13 @@
 
+b32 _editor_cmd_parse_i64(string8 str, i64* out);
+b32 _editor_cmd_parse_f64(string8 str, f64* out);
+b32 _editor_cmd_parse_cell(string8 str, sheet_cell_pos* out);
+b32 _editor_cmd_parse_range(string8 str, sheet_range* out);
+
 #include "editor_update.c"
 #include "editor_draw.c"
+#include "editor_cmds.c"
+#include "editor_cmds_generated.c"
 
 editor_context* editor_init(mem_arena* arena) {
     editor_context* editor = PUSH_STRUCT(arena, editor_context);

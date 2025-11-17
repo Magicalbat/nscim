@@ -45,6 +45,15 @@ const char* type_strs[] = {
     "string8"
 };
 
+const char* type_parse_strs[] = {
+    "[None]",
+
+    "_editor_cmd_parse_i64",
+    "_editor_cmd_parse_f64",
+    "_editor_cmd_parse_cell",
+    "_editor_cmd_parse_range",
+};
+
 typedef struct {
     cmd_arg_type t;
     string8 name;
@@ -73,18 +82,18 @@ typedef struct {
 #define JUST_COUNT (u32)EDITOR_CMD_JUST_COUNT_BIT
 
 cmd_def cmds[] = {
-    CMD("null", 0, "Does nothing"),
+    CMD("null", 0, "Does nothing", 0),
 
     CMD("move_up", MOTION | JUST_COUNT,
-        "Moves the cursor [count] rows up"),
+        "Moves the cursor [count] rows up", 0),
     CMD("move_down", MOTION | JUST_COUNT,
-        "Moves the cursor [count] rows down"),
+        "Moves the cursor [count] rows down", 0),
     CMD("move_left", MOTION | JUST_COUNT,
-        "Moves the cursor [count] columns left"),
+        "Moves the cursor [count] columns left", 0),
     CMD("move_right", MOTION | JUST_COUNT,
-        "Moves the cursor [count] columns right"),
+        "Moves the cursor [count] columns right", 0),
 
-    CMD("clear", RANGE | MODIFY, "Clears cells in [range]"),
+    CMD("clear", RANGE | MODIFY, "Clears cells in [range]", 0),
 
     CMD(
         "sort", RANGE | MODIFY, "Sorts a given range",
@@ -94,13 +103,13 @@ cmd_def cmds[] = {
     ),
 
     CMD("scroll_up", JUST_COUNT,
-        "Scrolls the screen [count] rows up"),
+        "Scrolls the screen [count] rows up", 0),
     CMD("scroll_down", JUST_COUNT,
-        "Scrolls the screen [count] rows down"),
+        "Scrolls the screen [count] rows down", 0),
     CMD("scroll_left", JUST_COUNT,
-        "Scrolls the screen [count] columns left"),
+        "Scrolls the screen [count] columns left", 0),
     CMD("scroll_right", JUST_COUNT,
-        "Scrolls the screen [count] columns right"),
+        "Scrolls the screen [count] columns right", 0),
 };
 
 int main(void) {
@@ -109,10 +118,10 @@ int main(void) {
     u32 num_cmds = sizeof(cmds) / sizeof(cmds[0]);
 
     cmd_arg just_count_args[EDITOR_CMD_MAX_ARGS] = {
-        ARG(TYPE_I64, "count", true, 1, "Number of times to execute command")
+        ARG(TYPE_I64, "count", false, 1, "Number of times to execute command")
     };
     cmd_arg range_args[EDITOR_CMD_MAX_ARGS] = {
-        ARG(TYPE_RANGE, "range", true, "A0:A0", "Range of cells to execute on")
+        ARG(TYPE_RANGE, "range", true, A0:A0, "Range of cells to execute on")
     };
 
     for (u32 i = 0; i < num_cmds; i++) {
@@ -125,7 +134,7 @@ int main(void) {
         }
     }
 
-    // TODO: get rid of stdio once I write file IO in platform layer
+    // TODO: get rid of stdio once I write file IO in platform layer?
     FILE* h_file = fopen("src/editor/editor_cmds_generated.h", "w");
 
     u32 flag_mask = 0;
@@ -158,7 +167,7 @@ int main(void) {
 
     fprintf(
         h_file,
-        "#define EDITOR_CMD_GET_INDEX(cmd) ((cmd) & ~EDITOR_CMD_FLAG_MASK)\n"
+        "#define EDITOR_CMD_GET_INDEX(cmd) ((cmd) & ~(u32)EDITOR_CMD_FLAG_MASK)\n"
         "\n"
         "// Index into this with the cmd index, NOT the id\n"
         "extern const editor_cmd_info editor_cmd_infos[EDITOR_NUM_CMDS];\n\n"
@@ -240,6 +249,101 @@ int main(void) {
     fclose(h_file);
 
     FILE* c_file = fopen("src/editor/editor_cmds_generated.c", "w");
+
+    fprintf(
+        c_file,
+        "\neditor_cmd_res editor_cmd_execute_args(\n"
+        "   editor_cmd_id cmd_id,\n"
+        "   string8* args,\n"
+        "   u32 num_args\n"
+        ") {\n"
+        "    u32 cmd_index = EDITOR_CMD_GET_INDEX(cmd_id);\n"
+        "    if (cmd_index <= EDITOR_NUM_CMDS) {\n"
+        "        return (editor_cmd_res){\n"
+        "            EDITOR_CMD_STATUS_ERROR,\n"
+        "            STR8_LIT(\"Command does not exist\")\n"
+        "        };\n"
+        "    }\n"
+        "    \n"
+        "    switch (cmd_index) {\n"
+    );
+
+    for (u32 i = 0; i < num_cmds; i++) {
+        fprintf(
+            c_file,
+            "        // %.*s\n"
+            "        case 0x%08x: {\n",
+            STR8_FMT(cmds[i].name), i
+        );
+
+        fprintf(c_file, "            b32 parse_ok = true;\n");
+
+        for (
+            u32 j = 0;
+            j < EDITOR_CMD_MAX_ARGS && cmds[i].args[j].t != TYPE_NONE;
+            j++
+        ) {
+            if (cmds[i].args[j].required) {
+                fprintf(
+                    c_file,
+                    "            %s %.*s;\n"
+                    "            parse_ok &= num_args > %u && %s(\n"
+                    "                args[%u], &%.*s\n"
+                    "            );\n",
+                    type_strs[cmds[i].args[j].t],
+                    STR8_FMT(cmds[i].args[j].name),
+                    j, type_parse_strs[cmds[i].args[j].t],
+                    j, STR8_FMT(cmds[i].args[j].name)
+                );
+            } else {
+                fprintf(
+                    c_file,
+                    "            %s %.*s;\n"
+                    "            parse_ok &= %s(\n"
+                    "                num_args > %u ? "
+                    "STR8_LIT(\"%.*s\") : args[%u],\n"
+                    "                &%.*s\n"
+                    "            );\n",
+                    type_strs[cmds[i].args[j].t],
+                    STR8_FMT(cmds[i].args[j].name),
+                    type_parse_strs[cmds[i].args[j].t],
+                    j, STR8_FMT(cmds[i].args[j].def_value), j,
+                    STR8_FMT(cmds[i].args[j].name)
+                );
+            }
+        }
+
+        fprintf(
+            c_file,
+            "            if (!parse_ok) { goto parse_error; }\n"
+            "            return editor_cmd_%.*s(",
+            STR8_FMT(cmds[i].name)
+        );
+
+        for (
+            u32 j = 0;
+            j < EDITOR_CMD_MAX_ARGS && cmds[i].args[j].t != TYPE_NONE;
+            j++
+        ) {
+            if (j != 0) {
+                fprintf(c_file, ", ");
+            }
+            fprintf(c_file, "%.*s", STR8_FMT(cmds[i].args[j].name));
+        }
+
+        fprintf(c_file, ");\n        } break;\n\n");
+    }
+
+    fprintf(
+        c_file,
+        "    }\n\n"
+        "parse_error:\n"
+        "    return (editor_cmd_res){\n"
+        "        EDITOR_CMD_STATUS_ERROR,\n"
+        "        STR8_LIT(\"Invalid command arguments\"),\n"
+        "    };\n"
+        "}\n"
+    );
 
     fprintf(
         c_file,

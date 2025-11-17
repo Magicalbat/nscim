@@ -9,7 +9,7 @@
 
 #define EDITOR_NUM_CMDS 11
 
-#define EDITOR_CMD_GET_INDEX(cmd) ((cmd) & ~EDITOR_CMD_FLAG_MASK)
+#define EDITOR_CMD_GET_INDEX(cmd) ((cmd) & ~(u32)EDITOR_CMD_FLAG_MASK)
 
 // Index into this with the cmd index, NOT the id
 extern const editor_cmd_info editor_cmd_infos[EDITOR_NUM_CMDS];
