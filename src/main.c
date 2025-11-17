@@ -102,10 +102,13 @@ int main(void) {
     
     draw(win, wb, editor, frame_arena);
     
-    while (!editor->should_quit) {
+    while (
+        (editor->flags & EDITOR_FLAG_SHOULD_QUIT) !=
+        EDITOR_FLAG_SHOULD_QUIT
+    ) {
         editor_update(win, editor, wb);
 
-        if (editor->should_draw) {
+        if ((editor->flags & EDITOR_FLAG_SHOULD_DRAW)) {
             draw(win, wb, editor, frame_arena);
 
             {

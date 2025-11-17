@@ -1,20 +1,23 @@
 
 void editor_update(window* win, editor_context* editor, workbook* wb) {
-    win_input input = win_next_input(win);
+    win_input input = 0;
 
-    if (input == 0) {
-        editor->should_draw = false;
-        return;
-    } else {
-        editor->should_draw = true;
+    editor->flags &= ~(u32)EDITOR_FLAG_SHOULD_DRAW;
+
+    while ((input = win_next_input(win)) != 0) {
+        editor->flags |= EDITOR_FLAG_SHOULD_DRAW;
+
+        if (input == 'q') {
+            editor->flags |= EDITOR_FLAG_SHOULD_QUIT;
+            return;
+        }
+
+        _editor_push_input_raw(editor, wb, input);
     }
 
-    if (input == 'q') {
-        editor->should_quit = true;
-        return;
-    }
+    _editor_process_inputs_raw(editor, wb);
 
-
+    /*
     // TODO: remove (just temporary input handling)
     sheet_buffer* sheet = wb_get_active_sheet(wb, true);
     sheet_cell_pos* cursor_pos = &wb->active_win->cursor_pos;
@@ -97,6 +100,6 @@ void editor_update(window* win, editor_context* editor, workbook* wb) {
             cursor_pos->col += 2048;
         } break;
 
-    }
+    }*/
 }
 

@@ -1,4 +1,16 @@
 
+static u64 _w32_perf_freq = 0;
+
+void plat_init(void) {
+    LARGE_INTEGER perf_freq = { 0 };
+
+    if (!QueryPerformanceFrequency(&perf_freq)) {
+        fprintf(stderr, "Failed to query performance frequency\n");
+    } else {
+        _w32_perf_freq = (u64)perf_freq.QuadPart;
+    }
+}
+
 void plat_exit(i32 code) {
     ExitProcess((u32)code);
 }
@@ -10,6 +22,16 @@ void plat_fatal_error(const char* msg, i32 code) {
 
 void plat_sleep_ms(u32 ms) {
     Sleep(ms);
+}
+
+u64 plat_now_usec(void) {
+    LARGE_INTEGER ticks = { 0 };
+
+    if (!QueryPerformanceFrequency(&ticks)) {
+        return 0;
+    }
+
+    return (u64)ticks.QuadPart * 1000000 / _w32_perf_freq;
 }
 
 u32 plat_page_size(void) {

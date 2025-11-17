@@ -16,10 +16,14 @@
 
 #endif
 
+void plat_init(void);
+
 void plat_exit(i32 code);
 void plat_fatal_error(const char* msg, i32 code);
 
 void plat_sleep_ms(u32 ms);
+
+u64 plat_now_usec(void);
 
 u32 plat_page_size(void);
 

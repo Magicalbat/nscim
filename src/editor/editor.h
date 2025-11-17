@@ -1,21 +1,32 @@
 
 // Maximum langth of command string (bytes)
-#define EDITOR_MAX_CMD_STRLEN 1024
+#define EDITOR_MAX_CMD_STRLEN 4096
+
+#define EDITOR_INPUT_QUEUE_MAX 1024
+#define EDITOR_INPUT_MAX_RAW_SEQ 8
 
 typedef enum {
-    EDITOR_MODE_NONE = 0,
+    EDITOR_MODE_NULL = 0,
 
     EDITOR_MODE_NORMAL,
     EDITOR_MODE_VISUAL,
 
     EDITOR_MODE_CELL_EDIT,
-    EDITOR_MODE_CELL_INSERT,
     EDITOR_MODE_CELL_VISUAL,
+    EDITOR_MODE_CELL_INSERT,
 
     EDITOR_MODE_CMD,
 
     EDITOR_MODE_COUNT
 } editor_mode;
+
+typedef enum {
+    EDITOR_FLAG_NONE = 0,
+
+    EDITOR_FLAG_SHOULD_QUIT = (1 << 0),
+    EDITOR_FLAG_SHOULD_DRAW = (1 << 1),
+    EDITOR_FLAG_READING_NUM = (1 << 2)
+} editor_flags;
 
 typedef struct {
     win_col win_status_fg;
@@ -36,6 +47,8 @@ typedef struct {
 
     editor_colors colors;
 
+    u32 count;
+
     u32 cmd_size;
     u32 cmd_cursor;
     u32 cmd_select_start;
@@ -44,16 +57,28 @@ typedef struct {
     u32 cell_input_cursor;
     u32 cell_input_select_start;
 
-    u32 key_input_size;
+    u32 input_queue_start;
+    u32 input_queue_end;
+    u32 input_queue_size;
 
-    b32 should_quit;
-    b32 should_draw;
+    u32 raw_input_seq_size;
+
+    u32 flags;
+
+    win_input raw_input_seq[EDITOR_INPUT_MAX_RAW_SEQ];
 
     u8 cmd_buf[EDITOR_MAX_CMD_STRLEN];
     u8 cell_input_buf[SHEET_MAX_STRLEN];
+
+    win_input input_queue[EDITOR_INPUT_QUEUE_MAX];
 } editor_context;
 
 editor_context* editor_init(mem_arena* arena);
+
+void editor_push_inputs(
+    editor_context* editor, workbook* wb,
+    win_input* inputs, u32 num_inputs
+);
 
 void editor_update(window* win, editor_context* editor, workbook* wb);
 
