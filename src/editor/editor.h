@@ -5,6 +5,8 @@
 #define EDITOR_INPUT_QUEUE_MAX 1024
 #define EDITOR_INPUT_MAX_RAW_SEQ 8
 
+#define EDITOR_WIN_STATUS_ROWS_TOP 2
+
 typedef enum {
     EDITOR_MODE_NULL = 0,
 

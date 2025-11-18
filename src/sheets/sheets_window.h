@@ -39,6 +39,10 @@ typedef struct sheet_window {
     u32 width;
     u32 height;
 
+    // Total rows and columns the window currently displays
+    u32 num_rows;
+    u32 num_cols;
+
     sheet_window_split split_dir;
 
     // If the window is internal, it only exists to hold its 

@@ -17,6 +17,10 @@ void editor_update(window* win, editor_context* editor, workbook* wb) {
 
     _editor_process_inputs_raw(editor, wb);
 
+    if (win_needs_resize(win)) {
+        editor->flags |= EDITOR_FLAG_SHOULD_DRAW;
+    }
+
     /*
     // TODO: remove (just temporary input handling)
     sheet_buffer* sheet = wb_get_active_sheet(wb, true);

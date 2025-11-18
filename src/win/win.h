@@ -66,6 +66,8 @@ void win_destroy(window* win);
 // Will return 0 if there is no new input
 win_input win_next_input(window* win);
 
+b32 win_needs_resize(window* win);
+
 void win_begin_frame(window* win, mem_arena* frame_arena);
 void win_update(window* win);
 

@@ -62,6 +62,13 @@ win_input win_next_input(window* win) {
     return 0;
 }
 
+b32 win_needs_resize(window* win) {
+    u32 width, height;
+    term_get_size(win->backend->term, &width, &height);
+
+    return width != win->front_buf.width || height != win->front_buf.height;
+}
+
 void _win_term_move_cursor(term_context* term, i32 change, b32 vert) {
     if (change == 0) {
         return;

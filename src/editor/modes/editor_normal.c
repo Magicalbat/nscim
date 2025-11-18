@@ -7,48 +7,22 @@ b32 _editor_do_normal(
         switch (input) {
             case WIN_INPUT_ARROW_LEFT:
             case 'h': {
-                sheet_window* win = wb->active_win;
-
-                u32 move_size = MIN(win->cursor_pos.col, count);
-                win->cursor_pos.col -= move_size;
-
-                return true;
+                _editor_cursor_left(wb, count);
             } break;
 
             case WIN_INPUT_ARROW_DOWN:
             case 'j': {
-                sheet_window* win = wb->active_win;
-
-                u32 move_size = MIN(
-                    (SHEET_MAX_ROWS - 1) - win->cursor_pos.row,
-                    count
-                );
-                win->cursor_pos.row += move_size;
-
-                return true;
+                _editor_cursor_down(wb, count);
             } break;
 
             case WIN_INPUT_ARROW_UP:
             case 'k': {
-                sheet_window* win = wb->active_win;
-
-                u32 move_size = MIN(win->cursor_pos.row, count);
-                win->cursor_pos.row -= move_size;
-
-                return true;
+                _editor_cursor_up(wb, count);
             } break;
 
             case WIN_INPUT_ARROW_RIGHT:
             case 'l': {
-                sheet_window* win = wb->active_win;
-
-                u32 move_size = MIN(
-                    (SHEET_MAX_COLS - 1) - win->cursor_pos.col,
-                    count
-                );
-                win->cursor_pos.col += move_size;
-
-                return true;
+                _editor_cursor_right(wb, count);
             } break;
 
             case WIN_INPUT_CTRL('w'): {

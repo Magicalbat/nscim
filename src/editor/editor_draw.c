@@ -139,46 +139,22 @@ void _editor_draw_sheet_win(
 
     if (y > max_y) { return; }
 
-    u32 num_cols = 0;
-    u32 num_rows = 0;
-
     u32 max_col_width = SHEET_DEF_COL_WIDTH;
     u32 max_row_height = SHEET_DEF_ROW_HEIGHT;
 
-    // Getting row/column bounds
-    // TODO: Deal with maximum row and columns
-    {
-        u32 cur_col_width = SHEET_DEF_COL_WIDTH;
-        u32 cur_row_height = SHEET_DEF_ROW_HEIGHT;
+    for (u32 col = 0; col < win->num_cols; col++) {
+        u32 cur_width = sheet_get_col_width(sheet, win->scroll_pos.col + col);
 
-        sheet_cell_pos scroll = win->scroll_pos;
-
-        for (
-            u32 x = SHEET_MAX_ROW_CHARS;
-            x < win->width && scroll.col + num_cols < SHEET_MAX_COLS;
-            x += cur_col_width, num_cols++
-        ) {
-            cur_col_width = sheet_get_col_width(
-                sheet, scroll.col + num_cols
-            );
-
-            if (cur_col_width > max_col_width) {
-                max_col_width = cur_col_width;
-            }
+        if (cur_width > max_col_width) {
+            max_col_width = cur_width;
         }
+    }
 
-        for (
-            u32 yp = y + 1;
-            yp <= max_y && scroll.row + num_rows < SHEET_MAX_ROWS;
-            yp += cur_row_height, num_rows++
-        ) {
-            cur_row_height = sheet_get_row_height(
-                sheet, scroll.row + num_rows
-            );
+    for (u32 row = 0; row < win->num_rows; row++) {
+        u32 cur_height = sheet_get_row_height(sheet, win->scroll_pos.row + row);
 
-            if (cur_row_height > max_row_height) {
-                max_row_height = cur_row_height;
-            }
+        if (cur_height > max_row_height) {
+            max_row_height = cur_height;
         }
     }
 
@@ -189,7 +165,7 @@ void _editor_draw_sheet_win(
         u32 num_col_chars = 0;
         u8 col_chars[SHEET_MAX_COL_CHARS] = { 0 };
 
-        for (u32 col_off = 0; col_off < num_cols; col_off++) {
+        for (u32 col_off = 0; col_off < win->num_cols; col_off++) {
             u32 col = col_off + win->scroll_pos.col;
             u32 width = sheet_get_col_width(sheet, col);
 
@@ -236,7 +212,11 @@ void _editor_draw_sheet_win(
 
         u32 max_row_chars = MIN(SHEET_MAX_ROW_CHARS, win->width);
 
-        for (u32 row_off = 0; row_off < num_rows && y_tmp <= max_y; row_off++) {
+        for (
+            u32 row_off = 0;
+            row_off < win->num_rows && y_tmp <= max_y;
+            row_off++
+        ) {
             u32 row = row_off + win->scroll_pos.row;
             u32 height = sheet_get_row_height(sheet, row);
 
@@ -273,13 +253,13 @@ void _editor_draw_sheet_win(
         }
     }
 
-    for (u32 row_off = 0; row_off < num_rows && y <= max_y; row_off++) {
+    for (u32 row_off = 0; row_off < win->num_rows && y <= max_y; row_off++) {
         u32 row = row_off + win->scroll_pos.row;
         u32 height = sheet_get_row_height(sheet, row);
 
         u32 x = SHEET_MAX_ROW_CHARS + win->start_x;
 
-        for (u32 col_off = 0; col_off < num_cols; col_off++) {
+        for (u32 col_off = 0; col_off < win->num_cols; col_off++) {
             u32 col = col_off + win->scroll_pos.col;
             u32 width = sheet_get_col_width(sheet, col);
 

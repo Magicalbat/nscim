@@ -32,27 +32,18 @@ b32 _editor_do_cmd(editor_context*, workbook*, win_input, u32) {
     return false;
 }
 
+// These functions perform bounds checking and make sure that
+// the cursor remains within the window's scroll range
+void _editor_cursor_up(workbook* wb, u32 n);
+void _editor_cursor_down(workbook* wb, u32 n);
+void _editor_cursor_left(workbook* wb, u32 n);
+void _editor_cursor_right(workbook* wb, u32 n);
+
+#include "editor_init.c"
 #include "editor_update.c"
 #include "editor_draw.c"
 #include "editor_input.c"
 
+#include "modes/editor_modes_common.c"
 #include "modes/editor_normal.c"
-
-editor_context* editor_init(mem_arena* arena) {
-    editor_context* editor = PUSH_STRUCT(arena, editor_context);
-
-    editor->mode = EDITOR_MODE_NORMAL;
-    editor->colors = (editor_colors) {
-        .win_status_fg      = { { 255, 255, 255 } },
-        .win_status_bg      = { {  25,  30,  40 } },
-        .cell_fg            = { { 255, 255, 255 } },
-        .cell_bg            = { {  15,  18,  20 } },
-        .inactive_cursor_fg = { {  15,  18,  20 } },
-        .inactive_cursor_bg = { { 150, 150, 150 } },
-        .rc_fg              = { { 131,  27,  88 } },
-        .rc_bg              = { { 214, 212, 243 } },
-    };
-
-    return editor;
-}
 

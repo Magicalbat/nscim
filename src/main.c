@@ -73,6 +73,7 @@ int main(void) {
     sheet->name = STR8_LIT("Test Sheet");
     sheet_set_row_height(sheet, 1, 2);
     sheet_set_row_height(sheet, 4, 3);
+    sheet_set_row_height(sheet, SHEET_MAX_ROWS-1, 10);
 
     for (u32 i = 0; i < 10; i++) {
         sheet_cell_ref cell = sheet_get_cell(
@@ -90,7 +91,7 @@ int main(void) {
     wb_win_split(wb, SHEETS_WIN_SPLIT_HORZ, false);
 
     for (u32 i = 0; i < 10; i++) {
-        sheet_set_col_width(sheet, i, (u16)(i + 1));
+        sheet_set_col_width(sheet, i, (u16)(i + 5));
     }
 
     editor_context* editor = editor_init(perm_arena);
