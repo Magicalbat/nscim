@@ -18,9 +18,9 @@ void _editor_cursor_down(workbook* wb, u32 n) {
     win->cursor_pos.row += move_size;
 
     u32 ref_row = win->cursor_pos.row >= SHEET_MAX_ROWS - 2 ?
-        SHEET_MAX_ROWS : win->cursor_pos.row + 2;
+        SHEET_MAX_ROWS - 1 : win->cursor_pos.row + 2;
 
-    if (ref_row >= win->scroll_pos.row + win->num_rows) {
+    if (ref_row >= win->scroll_pos.row + win->num_rows || win->cutoff_height) {
         sheet_buffer* sheet = wb_win_get_sheet(wb, win, false);
 
         i64 height_diff = 0;
@@ -29,6 +29,10 @@ void _editor_cursor_down(workbook* wb, u32 n) {
             row <= ref_row; row++
         ) {
             height_diff += (i64)sheet_get_row_height(sheet, row);
+        }
+
+        if (win->cursor_pos.row == SHEET_MAX_ROWS - 1) {
+            height_diff += win->cutoff_height;
         }
 
         while (height_diff > 0) {
@@ -57,9 +61,9 @@ void _editor_cursor_right(workbook* wb, u32 n) {
     win->cursor_pos.col += move_size;
 
     u32 ref_col = win->cursor_pos.col >= SHEET_MAX_COLS - 1 ?
-        SHEET_MAX_COLS : win->cursor_pos.col + 1;
+        SHEET_MAX_COLS - 1 : win->cursor_pos.col + 1;
 
-    if (ref_col >= win->scroll_pos.col + win->num_cols) {
+    if (ref_col >= win->scroll_pos.col + win->num_cols || win->cutoff_width) {
         sheet_buffer* sheet = wb_win_get_sheet(wb, win, false);
 
         i64 width_diff = 0;
@@ -68,6 +72,10 @@ void _editor_cursor_right(workbook* wb, u32 n) {
             col <= ref_col; col++
         ) {
             width_diff += (i64)sheet_get_col_width(sheet, col);
+        }
+
+        if (win->cursor_pos.col >= SHEET_MAX_COLS - 1) {
+            width_diff += win->cutoff_width;
         }
 
         while (width_diff > 0) {

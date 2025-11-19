@@ -84,17 +84,19 @@ void _wb_win_update_rc_bounds(sheet_window* win) {
     sheet_cell_pos scroll = win->scroll_pos;
 
     u32 cur_col_width = SHEET_DEF_COL_WIDTH;
-    for (
-        u32 x = SHEET_MAX_ROW_CHARS;
+    u32 x = SHEET_MAX_ROW_CHARS;
+    for (;
         x < win->width && scroll.col + win->num_cols < SHEET_MAX_COLS;
         x += cur_col_width, win->num_cols++
     ) {
         cur_col_width = sheet_get_col_width(sheet, scroll.col + win->num_cols);
     }
 
+    win->cutoff_width = win->width > x ? 0 : x - win->width;
+
     u32 cur_row_height = SHEET_DEF_ROW_HEIGHT;
-    for (
-        u32 y = EDITOR_WIN_STATUS_ROWS_TOP + 1;
+    u32 y = EDITOR_WIN_STATUS_ROWS_TOP + 1;
+    for (;
         y < win->height && scroll.row + win->num_rows < SHEET_MAX_ROWS;
         y += cur_row_height, win->num_rows++
     ) {
@@ -102,6 +104,8 @@ void _wb_win_update_rc_bounds(sheet_window* win) {
             sheet, scroll.row + win->num_rows
         );
     }
+
+    win->cutoff_height = win->height > y ? 0 : y - win->height;
 }
 
 void wb_win_compute_sizes(workbook* wb, u32 total_width, u32 total_height) {

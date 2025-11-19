@@ -87,9 +87,6 @@ int main(void) {
         *cell.str = str;
     }
 
-    wb_win_split(wb, SHEETS_WIN_SPLIT_VERT, true);
-    wb_win_split(wb, SHEETS_WIN_SPLIT_HORZ, false);
-
     for (u32 i = 0; i < 10; i++) {
         sheet_set_col_width(sheet, i, (u16)(i + 5));
     }

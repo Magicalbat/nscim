@@ -43,6 +43,11 @@ typedef struct sheet_window {
     u32 num_rows;
     u32 num_cols;
 
+    // Amount of width cutoff of the last column on screen
+    u32 cutoff_width;
+    // Amount of height cutoff of the last row on screen
+    u32 cutoff_height;
+
     sheet_window_split split_dir;
 
     // If the window is internal, it only exists to hold its 
