@@ -56,11 +56,10 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb) {
 
             if (_mode_funcs[editor->mode](editor, wb, cur_input, editor->count)) {
                 editor->raw_input_seq_size = 0;
+                editor->count = 1;
             } else if (editor->raw_input_seq_size < EDITOR_INPUT_MAX_RAW_SEQ) {
                 editor->raw_input_seq[editor->raw_input_seq_size++] = cur_input;
             }
-
-            editor->count = 1;
         }
     }
 }

@@ -1,24 +1,27 @@
 
-void _editor_cursor_up(workbook* wb, u32 n) {
+void _editor_cursor_up(editor_context* editor, workbook* wb, u32 n) {
     sheet_window* win = wb->active_win;
 
     u32 move_size = MIN(win->cursor_pos.row, n);
     win->cursor_pos.row -= move_size;
 
-    u32 ref_row = win->cursor_pos.row < 2 ? 0 : win->cursor_pos.row - 2;
+    u32 pad = editor->settings.cursor_row_pad;
+    u32 ref_row = win->cursor_pos.row < pad ? 0 : win->cursor_pos.row - pad;
+
     if (ref_row < win->scroll_pos.row) {
         win->scroll_pos.row = ref_row;
     }
 }
 
-void _editor_cursor_down(workbook* wb, u32 n) {
+void _editor_cursor_down(editor_context* editor, workbook* wb, u32 n) {
     sheet_window* win = wb->active_win;
 
     u32 move_size = MIN((SHEET_MAX_ROWS - 1) - win->cursor_pos.row, n);
     win->cursor_pos.row += move_size;
 
-    u32 ref_row = win->cursor_pos.row >= SHEET_MAX_ROWS - 2 ?
-        SHEET_MAX_ROWS - 1 : win->cursor_pos.row + 2;
+    u32 pad = editor->settings.cursor_row_pad;
+    u32 ref_row = win->cursor_pos.row >= SHEET_MAX_ROWS - pad ?
+        SHEET_MAX_ROWS - 1 : win->cursor_pos.row + pad;
 
     if (ref_row >= win->scroll_pos.row + win->num_rows || win->cutoff_height) {
         sheet_buffer* sheet = wb_win_get_sheet(wb, win, false);
@@ -42,26 +45,29 @@ void _editor_cursor_down(workbook* wb, u32 n) {
     }
 }
 
-void _editor_cursor_left(workbook* wb, u32 n) {
+void _editor_cursor_left(editor_context* editor, workbook* wb, u32 n) {
     sheet_window* win = wb->active_win;
 
     u32 move_size = MIN(win->cursor_pos.col, n);
     win->cursor_pos.col -= move_size;
 
-    u32 ref_col = win->cursor_pos.col < 1 ? 0 : win->cursor_pos.col - 1;
+    u32 pad = editor->settings.cursor_col_pad;
+    u32 ref_col = win->cursor_pos.col < pad ? 0 : win->cursor_pos.col - pad;
+
     if (ref_col < win->scroll_pos.col) {
         win->scroll_pos.col = ref_col;
     }
 }
 
-void _editor_cursor_right(workbook* wb, u32 n) {
+void _editor_cursor_right(editor_context* editor, workbook* wb, u32 n) {
     sheet_window* win = wb->active_win;
 
     u32 move_size = MIN((SHEET_MAX_COLS - 1) - win->cursor_pos.col, n);
     win->cursor_pos.col += move_size;
 
-    u32 ref_col = win->cursor_pos.col >= SHEET_MAX_COLS - 1 ?
-        SHEET_MAX_COLS - 1 : win->cursor_pos.col + 1;
+    u32 pad = editor->settings.cursor_col_pad;
+    u32 ref_col = win->cursor_pos.col >= SHEET_MAX_COLS - pad ?
+        SHEET_MAX_COLS - 1 : win->cursor_pos.col + pad;
 
     if (ref_col >= win->scroll_pos.col + win->num_cols || win->cutoff_width) {
         sheet_buffer* sheet = wb_win_get_sheet(wb, win, false);
@@ -82,6 +88,81 @@ void _editor_cursor_right(workbook* wb, u32 n) {
             width_diff -= (i64)sheet_get_col_width(sheet, win->scroll_pos.col);
             win->scroll_pos.col++;
         }
+    }
+}
+
+void _editor_scroll_up(editor_context* editor, workbook* wb, u32 n) {
+    sheet_window* win = wb->active_win;
+
+    u32 move_size = MIN(win->scroll_pos.row, n);
+    win->scroll_pos.row -= move_size;
+
+    wb_win_update_num_rows(win);
+
+    u32 pad = editor->settings.cursor_row_pad;
+    u32 bottom_row = win->scroll_pos.row + win->num_rows - 1;
+    u32 max_cursor_row = bottom_row >= pad ? bottom_row - pad : bottom_row;
+
+    if (
+        // This prevents unintended behavior when scrolling
+        // past the bottom of the sheet bounds
+        (win->cutoff_height || max_cursor_row < SHEET_MAX_ROWS - pad - 1) &&
+        win->cursor_pos.row > max_cursor_row
+    ) {
+        win->cursor_pos.row = max_cursor_row;
+    }
+}
+
+void _editor_scroll_down(editor_context* editor, workbook* wb, u32 n) {
+    sheet_window* win = wb->active_win;
+
+    u32 move_size = MIN(SHEET_MAX_ROWS - 1 - win->scroll_pos.row, n);
+    win->scroll_pos.row += move_size;
+
+    u32 pad = editor->settings.cursor_row_pad;
+    u32 min_cursor_row = win->scroll_pos.row < SHEET_MAX_ROWS - pad ?
+        win->scroll_pos.row + pad : win->scroll_pos.row;
+
+    if (win->cursor_pos.row < min_cursor_row) {
+        win->cursor_pos.row = min_cursor_row;
+    }
+}
+
+void _editor_scroll_left(editor_context* editor, workbook* wb, u32 n) {
+    sheet_window* win = wb->active_win;
+
+    u32 move_size = MIN(win->scroll_pos.col, n);
+    win->scroll_pos.col -= move_size;
+
+    wb_win_update_num_cols(win);
+
+    u32 pad = editor->settings.cursor_col_pad;
+    u32 rightmost_col = win->scroll_pos.col + win->num_cols - 1;
+    u32 max_cursor_col = rightmost_col >= pad ?
+        rightmost_col - pad : rightmost_col;
+
+    if (
+        // This prevents unintended behavior when scrolling
+        // past the right of the sheet bounds
+        (win->cutoff_width || max_cursor_col < SHEET_MAX_COLS - pad - 1) &&
+        win->cursor_pos.col > max_cursor_col
+    ) {
+        win->cursor_pos.col = max_cursor_col;
+    }
+}
+
+void _editor_scroll_right(editor_context* editor, workbook* wb, u32 n) {
+    sheet_window* win = wb->active_win;
+
+    u32 move_size = MIN(SHEET_MAX_COLS - 1 - win->scroll_pos.col, n);
+    win->scroll_pos.col += move_size;
+
+    u32 pad = editor->settings.cursor_col_pad;
+    u32 min_cursor_col = win->scroll_pos.col < SHEET_MAX_COLS - pad ? 
+        win->scroll_pos.col + pad : win->scroll_pos.col;
+
+    if (win->cursor_pos.col < min_cursor_col) {
+        win->cursor_pos.col = min_cursor_col;
     }
 }
 

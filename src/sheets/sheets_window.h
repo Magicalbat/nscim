@@ -80,6 +80,16 @@ void wb_win_close(workbook* wb);
 
 void wb_win_compute_sizes(workbook* wb, u32 total_width, u32 total_height);
 
+// Given the current height of the window,
+// this function updates the number of visible rows
+// Called automatically by wb_win_compute_sizes
+void wb_win_update_num_rows(sheet_window* win);
+
+// Given the current width of the window,
+// this function updates the number of visible columns
+// Called automatically by wb_win_compute_sizes
+void wb_win_update_num_cols(sheet_window* win);
+
 // Operates on the active win
 // Will attempt to increment the current win's width
 // Must call after calling `wb_win_compute_sizes`

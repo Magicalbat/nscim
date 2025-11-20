@@ -3,7 +3,7 @@
 #define EDITOR_MAX_CMD_STRLEN 4096
 
 #define EDITOR_INPUT_QUEUE_MAX 1024
-#define EDITOR_INPUT_MAX_RAW_SEQ 8
+#define EDITOR_INPUT_MAX_RAW_SEQ 16
 
 #define EDITOR_WIN_STATUS_ROWS_TOP 2
 
@@ -45,9 +45,15 @@ typedef struct {
 } editor_colors;
 
 typedef struct {
+    u32 cursor_row_pad;
+    u32 cursor_col_pad;
+} editor_settings;
+
+typedef struct {
     editor_mode mode;
 
     editor_colors colors;
+    editor_settings settings;
 
     u32 count;
 

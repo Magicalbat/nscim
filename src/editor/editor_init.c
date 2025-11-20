@@ -17,5 +17,10 @@ editor_context* editor_init(mem_arena* arena) {
         .rc_bg              = { { 214, 212, 243 } },
     };
 
+    editor->settings = (editor_settings) {
+        .cursor_row_pad = 2,
+        .cursor_col_pad = 1
+    };
+
     return editor;
 }

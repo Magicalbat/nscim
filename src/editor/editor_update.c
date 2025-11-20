@@ -30,7 +30,6 @@ void editor_update(window* win, editor_context* editor, workbook* wb) {
                 _editor_push_input_raw(editor, wb, 'l');
             } break;
 
-
             default: {
                 _editor_push_input_raw(editor, wb, input);
             } break;

@@ -75,39 +75,6 @@ void wb_win_close(workbook* wb) {
     _wb_free_win(wb, win);
 }
 
-// Updates win->num_rows and win->num_cols
-void _wb_win_update_rc_bounds(sheet_window* win) {
-    win->num_cols = 0;
-    win->num_rows = 0;
-
-    sheet_buffer* sheet = win->_sheet;
-    sheet_cell_pos scroll = win->scroll_pos;
-
-    u32 cur_col_width = SHEET_DEF_COL_WIDTH;
-    u32 x = SHEET_MAX_ROW_CHARS;
-    for (;
-        x < win->width && scroll.col + win->num_cols < SHEET_MAX_COLS;
-        x += cur_col_width, win->num_cols++
-    ) {
-        cur_col_width = sheet_get_col_width(sheet, scroll.col + win->num_cols);
-    }
-
-    win->cutoff_width = win->width > x ? 0 : x - win->width;
-
-    u32 cur_row_height = SHEET_DEF_ROW_HEIGHT;
-    u32 y = EDITOR_WIN_STATUS_ROWS_TOP + 1;
-    for (;
-        y < win->height && scroll.row + win->num_rows < SHEET_MAX_ROWS;
-        y += cur_row_height, win->num_rows++
-    ) {
-        cur_row_height = sheet_get_row_height(
-            sheet, scroll.row + win->num_rows
-        );
-    }
-
-    win->cutoff_height = win->height > y ? 0 : y - win->height;
-}
-
 void wb_win_compute_sizes(workbook* wb, u32 total_width, u32 total_height) {
     sheet_window* root = wb->root_win;
 
@@ -117,7 +84,8 @@ void wb_win_compute_sizes(workbook* wb, u32 total_width, u32 total_height) {
     root->start_y = 0;
 
     if (!root->internal) {
-        _wb_win_update_rc_bounds(root);
+        wb_win_update_num_rows(root);
+        wb_win_update_num_cols(root);
     }
 
     mem_arena_temp scratch = arena_scratch_get(NULL, 0);
@@ -170,7 +138,8 @@ void wb_win_compute_sizes(workbook* wb, u32 total_width, u32 total_height) {
         }
 
         if (!cur->internal) {
-            _wb_win_update_rc_bounds(cur);
+            wb_win_update_num_rows(cur);
+            wb_win_update_num_cols(cur);
         }
 
         // Ensure that child0 is processed first
@@ -179,6 +148,44 @@ void wb_win_compute_sizes(workbook* wb, u32 total_width, u32 total_height) {
     }
 
     arena_scratch_release(scratch);
+}
+
+void wb_win_update_num_rows(sheet_window* win) {
+    win->num_rows = 0;
+
+    sheet_buffer* sheet = win->_sheet;
+    sheet_cell_pos scroll = win->scroll_pos;
+
+    u32 cur_row_height = SHEET_DEF_ROW_HEIGHT;
+    u32 y = EDITOR_WIN_STATUS_ROWS_TOP + 1;
+    for (;
+        y < win->height && scroll.row + win->num_rows < SHEET_MAX_ROWS;
+        y += cur_row_height, win->num_rows++
+    ) {
+        cur_row_height = sheet_get_row_height(
+            sheet, scroll.row + win->num_rows
+        );
+    }
+
+    win->cutoff_height = win->height > y ? 0 : y - win->height;
+}
+
+void wb_win_update_num_cols(sheet_window* win) {
+    win->num_cols = 0;
+
+    sheet_buffer* sheet = win->_sheet;
+    sheet_cell_pos scroll = win->scroll_pos;
+
+    u32 cur_col_width = SHEET_DEF_COL_WIDTH;
+    u32 x = SHEET_MAX_ROW_CHARS;
+    for (;
+        x < win->width && scroll.col + win->num_cols < SHEET_MAX_COLS;
+        x += cur_col_width, win->num_cols++
+    ) {
+        cur_col_width = sheet_get_col_width(sheet, scroll.col + win->num_cols);
+    }
+
+    win->cutoff_width = win->width > x ? 0 : x - win->width;
 }
 
 // Expands in the direction opposite the split
