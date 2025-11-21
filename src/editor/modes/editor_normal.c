@@ -14,6 +14,13 @@ b32 _editor_do_normal(
             case WIN_INPUT_ARROW_RIGHT:
             case 'l': { _editor_cursor_right(editor, wb, count); } break;
 
+            case WIN_INPUT_CTRL('e'): {
+                _editor_scroll_down(editor, wb, count); 
+            } break;
+            case WIN_INPUT_CTRL('y'): {
+                _editor_scroll_up(editor, wb, count); 
+            } break;
+
             // All of these begin multi-input actions
             case 'z':
             case WIN_INPUT_CTRL('w'): {
@@ -32,6 +39,10 @@ b32 _editor_do_normal(
                     case 'k': { _editor_scroll_up(editor, wb, count); } break;
                     case WIN_INPUT_ARROW_RIGHT:
                     case 'l': { _editor_scroll_right(editor, wb, count); } break;
+
+                    case 'z': {
+                        _editor_scroll_center(wb);
+                    } break;
                 }
             } break;
 

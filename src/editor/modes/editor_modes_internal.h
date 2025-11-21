@@ -24,4 +24,7 @@ void _editor_scroll_down(editor_context* editor, workbook* wb, u32 n);
 void _editor_scroll_left(editor_context* editor, workbook* wb, u32 n);
 void _editor_scroll_right(editor_context* editor, workbook* wb, u32 n);
 
+// Centers the scroll at the cursor
+void _editor_scroll_center(workbook* wb);
+
 

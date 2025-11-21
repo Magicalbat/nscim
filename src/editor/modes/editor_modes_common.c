@@ -166,4 +166,23 @@ void _editor_scroll_right(editor_context* editor, workbook* wb, u32 n) {
     }
 }
 
+void _editor_scroll_center(workbook* wb) {
+    sheet_window* win = wb->active_win;
+    sheet_buffer* sheet = wb_win_get_sheet(wb, win, false);
+
+    win->scroll_pos = win->cursor_pos;
+
+    u32 cur_half_width = sheet_get_col_width(sheet, win->scroll_pos.col) / 2;
+    u32 cur_half_height = sheet_get_row_height(sheet, win->scroll_pos.row) / 2;
+
+    while (win->scroll_pos.col > 0 && cur_half_width < win->width / 2) {
+        win->scroll_pos.col--;
+        cur_half_width += sheet_get_col_width(sheet, win->scroll_pos.col);
+    }
+
+    while (win->scroll_pos.row > 0 && cur_half_height < win->height / 2) {
+        win->scroll_pos.row--;
+        cur_half_height += sheet_get_row_height(sheet, win->scroll_pos.row);
+    }
+}
 
