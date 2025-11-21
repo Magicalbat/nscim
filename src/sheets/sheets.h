@@ -6,5 +6,6 @@ typedef struct workbook workbook;
 #include "sheets_sheet_buffer.h"
 #include "sheets_window.h"
 #include "sheets_workbook.h"
+#include "sheets_helpers.h"
 
 

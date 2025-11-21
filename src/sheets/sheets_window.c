@@ -154,7 +154,7 @@ void wb_win_update_num_rows(sheet_window* win) {
     win->num_rows = 0;
 
     sheet_buffer* sheet = win->_sheet;
-    sheet_cell_pos scroll = win->scroll_pos;
+    sheet_pos scroll = win->scroll_pos;
 
     u32 cur_row_height = SHEET_DEF_ROW_HEIGHT;
     u32 y = EDITOR_WIN_STATUS_ROWS_TOP + 1;
@@ -174,7 +174,7 @@ void wb_win_update_num_cols(sheet_window* win) {
     win->num_cols = 0;
 
     sheet_buffer* sheet = win->_sheet;
-    sheet_cell_pos scroll = win->scroll_pos;
+    sheet_pos scroll = win->scroll_pos;
 
     u32 cur_col_width = SHEET_DEF_COL_WIDTH;
     u32 x = SHEET_MAX_ROW_CHARS;

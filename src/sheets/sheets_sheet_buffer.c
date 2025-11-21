@@ -355,7 +355,7 @@ sheet_chunk_arr sheet_get_range(
 
 sheet_cell_ref sheet_get_cell(
     workbook* wb, sheet_buffer* sheet,
-    sheet_cell_pos cell_pos, b32 create_if_empty
+    sheet_pos cell_pos, b32 create_if_empty
 ) {
     sheet_chunk_pos chunk_pos = {
         cell_pos.row / SHEET_CHUNK_ROWS,

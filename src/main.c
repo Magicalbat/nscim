@@ -77,7 +77,7 @@ int main(void) {
 
     for (u32 i = 0; i < 10; i++) {
         sheet_cell_ref cell = sheet_get_cell(
-            wb, sheet, (sheet_cell_pos){ i, i }, true
+            wb, sheet, (sheet_pos){ i, i }, true
         );
         *cell.type = SHEET_CELL_TYPE_STRING;
         sheet_string* str = wb_create_string(wb, 16);
@@ -123,9 +123,9 @@ int main(void) {
     arena_destroy(frame_arena);
     arena_destroy(prev_frame_arena);
 
-    #endif
-
     wb_destroy(wb);
+
+    #endif
 
     arena_destroy(perm_arena);
 

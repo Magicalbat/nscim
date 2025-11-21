@@ -34,18 +34,18 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb) {
 
         if (cur_input >= '0' && cur_input <= '9') {
             if (
-                (editor->flags & EDITOR_FLAG_READING_NUM) !=
-                EDITOR_FLAG_READING_NUM
+                (editor->flags & _EDITOR_FLAG_READING_NUM) !=
+                _EDITOR_FLAG_READING_NUM
             ) {
                 editor->count = 0;
             }
 
-            editor->flags |= EDITOR_FLAG_READING_NUM;
+            editor->flags |= _EDITOR_FLAG_READING_NUM;
 
             editor->count *= 10;
             editor->count += cur_input - '0';
         } else {
-            editor->flags &= ~(u32)EDITOR_FLAG_READING_NUM;
+            editor->flags &= ~(u32)_EDITOR_FLAG_READING_NUM;
 
             if (
                 editor->mode == EDITOR_MODE_NULL ||
@@ -54,7 +54,11 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb) {
                 editor->mode = EDITOR_MODE_NORMAL;
             }
 
-            if (_mode_funcs[editor->mode](editor, wb, cur_input, editor->count)) {
+            b32 consumed_input = _mode_funcs[editor->mode](
+                editor, wb, cur_input, editor->count
+            );
+
+            if (consumed_input) {
                 editor->raw_input_seq_size = 0;
                 editor->count = 1;
             } else if (editor->raw_input_seq_size < EDITOR_INPUT_MAX_RAW_SEQ) {

@@ -7,7 +7,7 @@
 #define SHEET_MAX_ROWS MiB(2)
 
 // Maximum number of characters is takes to represent the max row/col
-#define SHEET_MAX_COL_CHARS 3
+#define SHEET_MAX_COL_CHARS 4
 #define SHEET_MAX_ROW_CHARS 7
 
 #define SHEET_CHUNKS_X (SHEET_MAX_COLS / SHEET_CHUNK_COLS)
@@ -31,7 +31,7 @@
 typedef struct {
     // Zero-based
     u32 row, col;
-} sheet_cell_pos;
+} sheet_pos;
 
 typedef struct {
     // Zero-based
@@ -39,8 +39,8 @@ typedef struct {
 } sheet_chunk_pos;
 
 typedef struct {
-    sheet_cell_pos start;
-    sheet_cell_pos end;
+    sheet_pos start;
+    sheet_pos end;
 } sheet_range;
 
 typedef enum {
@@ -148,7 +148,7 @@ sheet_chunk_arr sheet_get_range(
 
 sheet_cell_ref sheet_get_cell(
     workbook* wb, sheet_buffer* sheet,
-    sheet_cell_pos cell_pos, b32 create_if_empty
+    sheet_pos cell_pos, b32 create_if_empty
 );
 
 u16 sheet_get_col_width(sheet_buffer* sheet, u32 col);

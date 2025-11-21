@@ -4,7 +4,7 @@
 
 #define EDITOR_SHEET_NAME_PAD 2
 
-u32 _editor_get_cell_str(workbook* wb, sheet_buffer* sheet, sheet_cell_pos cell_pos, u8 chars[SHEET_MAX_STRLEN]) {
+u32 _editor_get_cell_str(workbook* wb, sheet_buffer* sheet, sheet_pos cell_pos, u8 chars[SHEET_MAX_STRLEN]) {
     sheet_cell_ref cell = sheet_get_cell(wb, sheet, cell_pos, false);
 
     switch (*cell.type) {
@@ -22,29 +22,6 @@ u32 _editor_get_cell_str(workbook* wb, sheet_buffer* sheet, sheet_cell_pos cell_
     }
 
     return 0;
-}
-
-u32 _editor_col_name(u32 col, u8 chars[SHEET_MAX_COL_CHARS]) {
-    u32 size = 0;
-
-    for (u32 i = 0; i < SHEET_MAX_COL_CHARS; i++) {
-        chars[size++] = (col % 26) + 'A';
-        col /= 26;
-
-        if (col == 0) {
-            break;
-        } else {
-            col--;
-        }
-    }
-
-    for (u32 i = 0; i < size/2; i++) {
-        u8 tmp = chars[size-i-1];
-        chars[size-i-1] = chars[i];
-        chars[i] = tmp;
-    }
-
-    return size;
 }
 
 void _editor_draw_sheet_win(
@@ -86,17 +63,13 @@ void _editor_draw_sheet_win(
             buf->tiles[x + y * buf->width].c = name.str[i];
         }
 
-        #define _CELL_POS_STR_SIZE (3 + SHEET_MAX_COL_CHARS + SHEET_MAX_ROW_CHARS)
-
         u32 cell_pos_size = 3;
-        u8 cell_pos_chars[_CELL_POS_STR_SIZE] = { ' ', '-', ' ' };
+        u8 cell_pos_chars[3 + SHEET_MAX_COL_CHARS + SHEET_MAX_ROW_CHARS] =
+            { ' ', '-', ' ' };
 
-        cell_pos_size += _editor_col_name(
-            win->cursor_pos.col, cell_pos_chars + cell_pos_size
-        );
-        cell_pos_size += chars_from_u32(
-            win->cursor_pos.row, cell_pos_chars + cell_pos_size,
-            _CELL_POS_STR_SIZE - cell_pos_size
+        cell_pos_size += sheets_pos_to_chars(
+            win->cursor_pos, cell_pos_chars + cell_pos_size,
+            sizeof(cell_pos_chars) - cell_pos_size
         );
 
         for (u32 i = 0; i < cell_pos_size; i++) {
@@ -169,7 +142,7 @@ void _editor_draw_sheet_win(
             u32 col = col_off + win->scroll_pos.col;
             u32 width = sheet_get_col_width(sheet, col);
 
-            num_col_chars = _editor_col_name(col, col_chars);
+            num_col_chars = sheets_col_to_chars(col, col_chars, sizeof(col_chars));
 
             u32 draw_start = num_col_chars < width ?
                 width / 2 - num_col_chars / 2 : 0;
@@ -288,7 +261,7 @@ void _editor_draw_sheet_win(
             }
 
             cell_chars_size = _editor_get_cell_str(
-                wb, sheet, (sheet_cell_pos){ row, col }, cell_chars
+                wb, sheet, (sheet_pos){ row, col }, cell_chars
             );
 
             for (u32 i = 0; i < height && i + y <= max_y; i++) {

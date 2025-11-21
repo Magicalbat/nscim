@@ -25,9 +25,9 @@ typedef enum {
 typedef enum {
     EDITOR_FLAG_NONE = 0,
 
-    EDITOR_FLAG_SHOULD_QUIT = (1 << 0),
-    EDITOR_FLAG_SHOULD_DRAW = (1 << 1),
-    EDITOR_FLAG_READING_NUM = (1 << 2)
+     EDITOR_FLAG_SHOULD_QUIT = (1 << 0),
+     EDITOR_FLAG_SHOULD_DRAW = (1 << 1),
+    _EDITOR_FLAG_READING_NUM = (1 << 2)
 } editor_flags;
 
 typedef struct {

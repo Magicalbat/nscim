@@ -18,4 +18,5 @@ sheet_chunk** _wb_get_scratch_chunks(workbook* wb, u64 ensure_size);
 #include "sheets_workbook.c"
 #include "sheets_window.c"
 #include "sheets_sheet_buffer.c"
+#include "sheets_helpers.c"
 
