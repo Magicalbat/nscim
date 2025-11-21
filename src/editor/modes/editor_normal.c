@@ -23,6 +23,7 @@ b32 _editor_do_normal(
 
             // All of these begin multi-input actions
             case 'z':
+            case 'r':
             case WIN_INPUT_CTRL('w'): {
                 return false;
             } break;
@@ -45,6 +46,25 @@ b32 _editor_do_normal(
                     } break;
                 }
             } break;
+
+            case 'r': {
+                switch (input) {
+                    case 'h': {
+                        _editor_resize_width(wb, (i32)(-count));
+                    } break;
+                    case 'j': {
+                        _editor_resize_height(wb, (i32)count);
+                    } break;
+                    case 'k': {
+                        _editor_resize_height(wb, (i32)(-count));
+                    } break;
+                    case 'l': {
+                        _editor_resize_width(wb, (i32)count);
+                    } break;
+                }
+            } break;
+
+
 
             // Window Commands 
             case WIN_INPUT_CTRL('w'): {

@@ -17,6 +17,9 @@
 #define SHEET_DEF_COL_WIDTH 10
 #define SHEET_DEF_ROW_HEIGHT 1
 
+#define SHEET_MAX_COL_WIDTH 255
+#define SHEET_MAX_ROW_HEIGHT 255
+
 // Minimum allocation for strings
 // This applies to strings and formulas
 #define SHEET_MIN_STRLEN_EXP 4
@@ -124,7 +127,7 @@ typedef struct sheet_buffer {
 
     // These two should not be accessed directly
     // Currently stored as numbers of characcters
-    u16* _column_widths;
+    u8* _column_widths;
     // Currently stored as numbers of characcters
     u8* _row_heights;
 
@@ -151,9 +154,9 @@ sheet_cell_ref sheet_get_cell(
     sheet_pos cell_pos, b32 create_if_empty
 );
 
-u16 sheet_get_col_width(sheet_buffer* sheet, u32 col);
+u8 sheet_get_col_width(sheet_buffer* sheet, u32 col);
 
-void sheet_set_col_width(sheet_buffer* sheet, u32 col, u16 width);
+void sheet_set_col_width(sheet_buffer* sheet, u32 col, u8 width);
 
 u8 sheet_get_row_height(sheet_buffer* sheet, u32 row);
 

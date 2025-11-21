@@ -82,7 +82,7 @@ static void _sb_init_info(void) {
         _sb_info.page_size
     );
     _sb_info.row_heights_off = ALIGN_UP_POW2(
-        _sb_info.column_widths_off + sizeof(u16) * SHEET_MAX_COLS,
+        _sb_info.column_widths_off + sizeof(u8) * SHEET_MAX_COLS,
         _sb_info.page_size
     );
 
@@ -141,7 +141,7 @@ sheet_buffer* _sheet_buffer_create(void) {
     sheet_buffer* sheet = (sheet_buffer*)mem;
 
     sheet->chunk_map = (sheet_chunk**)(mem + _sb_info.chunk_map_off);
-    sheet->_column_widths = (u16*)(mem + _sb_info.column_widths_off);
+    sheet->_column_widths = (u8*)(mem + _sb_info.column_widths_off);
     sheet->_row_heights = (u8*)(mem + _sb_info.row_heights_off);
 
     sheet->_col_width_bitfield = (u64*)(mem + sizeof(sheet_buffer));
@@ -410,12 +410,12 @@ sheet_cell_ref sheet_get_cell(
     field[(byte_idx) / (_sb_info.page_size * sizeof(u64) * 8)] |= \
     ((u64)1 << (((byte_idx) / _sb_info.page_size) % (sizeof(u64) * 8)))
 
-u16 sheet_get_col_width(sheet_buffer* sheet, u32 col) {
+u8 sheet_get_col_width(sheet_buffer* sheet, u32 col) {
     if (col >= SHEET_MAX_COLS){ return 0; }
 
     if (
         sheet->_col_width_bitfield == NULL ||
-        _SB_GET_PAGE_BIT(sheet->_col_width_bitfield, col * sizeof(u16)) == 0
+        _SB_GET_PAGE_BIT(sheet->_col_width_bitfield, col) == 0
     ) {
         return SHEET_DEF_COL_WIDTH;
     }
@@ -423,23 +423,23 @@ u16 sheet_get_col_width(sheet_buffer* sheet, u32 col) {
     return sheet->_column_widths[col];
 }
 
-void sheet_set_col_width(sheet_buffer* sheet, u32 col, u16 width) {
+void sheet_set_col_width(sheet_buffer* sheet, u32 col, u8 width) {
     if (col >= SHEET_MAX_COLS) {
         return;
     }
 
-    if (_SB_GET_PAGE_BIT(sheet->_col_width_bitfield, col * sizeof(u16)) == 0) {
+    if (_SB_GET_PAGE_BIT(sheet->_col_width_bitfield, col) == 0) {
         u8* mem = (u8*)sheet->_column_widths;
-        mem += (col * sizeof(u16)) - ((col * sizeof(u16)) % _sb_info.page_size);
+        mem += col - (col % _sb_info.page_size);
 
         if (!plat_mem_commit(mem, _sb_info.page_size)) {
             plat_fatal_error("Failed to commit memory for sheet buffer", 1);
         }
 
-        _SB_SET_PAGE_BIT(sheet->_col_width_bitfield, col * sizeof(u16));
+        _SB_SET_PAGE_BIT(sheet->_col_width_bitfield, col);
 
-        u16* widths = (u16*)mem;
-        for (u32 i = 0; i < (_sb_info.page_size / sizeof(u16)); i++) {
+        u8* widths = mem;
+        for (u32 i = 0; i < (_sb_info.page_size); i++) {
             widths[i] = SHEET_DEF_COL_WIDTH;
         }
     }

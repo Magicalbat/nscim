@@ -88,7 +88,7 @@ int main(void) {
     }
 
     for (u32 i = 0; i < 10; i++) {
-        sheet_set_col_width(sheet, i, (u16)(i + 5));
+        sheet_set_col_width(sheet, i, (u8)(i + 5));
     }
 
     editor_context* editor = editor_init(perm_arena);
