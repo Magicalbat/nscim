@@ -12,10 +12,14 @@ Sheet Buffer Memory Allocation Scheme
 - Each of these three arrays will dynamically commit virtual
     address space as needed so as not to use too much memory
     on small sheets
-- The maximum size of each array is a power of two, such that they
-    should fit nicely on page boundaries
-- The first page of the buffer only contains the sheet_buffer struct
-    itself followed by page_size - sizeof(sheet_buffer) padding bytes
+- The `chunk_map` array commits memory linearly as needed for the hash map
+- The `column_widths` and `row_heights` work by committing individual
+    pages of virtual memory as needed when resizing columns or rows
+- The first page of the reserved section stores both the `sheet_buffer`
+    struct itself as well as two bitfields: `_col_width_bitfield` and
+    `_row_height_bitfield`
+- The two bitfields store a 1 for pages in the corresponding arrays that are 
+    commited and a 0 for pages that are not committed yet
 - All of the offsets are only computed once and stored in a static struct
 
 Is this kind of insane, overkill, and dangerous?
@@ -401,6 +405,53 @@ sheet_cell_ref sheet_get_cell(
 
     return cell_ref;
 }
+
+void sheet_set_cell_num(
+    workbook* wb, sheet_buffer* sheet,
+    sheet_pos pos, f64 num
+) {
+    sheet_cell_ref cell = sheet_get_cell(wb, sheet, pos, true);
+
+    if (*cell.type == SHEET_CELL_TYPE_STRING) {
+        wb_free_string(wb, *cell.str);
+        *cell.str = NULL;
+    }
+
+    *cell.type = SHEET_CELL_TYPE_NUM;
+    *cell.num = num;
+}
+
+void sheet_set_cell_str(
+    workbook* wb, sheet_buffer* sheet,
+    sheet_pos pos, string8 str
+) {
+    sheet_cell_ref cell = sheet_get_cell(wb, sheet, pos, true);
+
+    u32 capped_size = (u32)MIN(str.size, SHEET_MAX_STRLEN);
+
+    b32 create_str = true;
+    if (*cell.type == SHEET_CELL_TYPE_STRING) {
+        sheet_string* cell_str = *cell.str;
+
+        if (cell_str->capacity >= capped_size) {
+            create_str = false;
+        } else {
+            wb_free_string(wb, cell_str);
+            *cell.str = NULL;
+        }
+    }
+
+    if (create_str) {
+        *cell.str = wb_create_string(wb, capped_size);
+    }
+
+    *cell.type = SHEET_CELL_TYPE_STRING;
+    sheet_string* cell_str = *cell.str;
+
+    cell_str->size = capped_size;
+    memcpy(cell_str->str, str.str, capped_size);
+}
+
 
 #define _SB_GET_PAGE_BIT(field, byte_idx) \
     ((field[(byte_idx) / (_sb_info.page_size * sizeof(u64) * 8)] >> \

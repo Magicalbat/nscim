@@ -164,5 +164,34 @@ b32 sheets_range_from_str(string8 str, sheet_range* out_range) {
     return true;
 }
 
-u32 sheets_cell_to_str(sheet_cell_ref cell, u8* chars, u32 max_chars);
+u32 sheets_cell_to_chars(sheet_cell_ref cell, u8* chars, u32 max_chars) {
+    switch ((sheet_cell_type_enum)*cell.type) {
+        case _SHEET_CELL_TYPE_COUNT:
+        case SHEET_CELL_TYPE_NONE: {
+            return 0;
+        } break;
+
+        case SHEET_CELL_TYPE_NUM: {
+            i32 written = snprintf(
+                (char*)chars, max_chars > 0 ? max_chars - 1 : 0, 
+                "%g", *cell.num
+            );
+
+            if (written < 0) {
+                return 0;
+            }
+
+            return (u32)written;
+        } break;
+
+        case SHEET_CELL_TYPE_STRING: {
+            sheet_string* str = *cell.str;
+
+            u32 size = MIN(str->size, max_chars);
+            memcpy(chars, str->str, size);
+
+            return size;
+        } break;
+    }
+}
 

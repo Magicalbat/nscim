@@ -52,12 +52,12 @@ typedef enum {
     SHEET_CELL_TYPE_NUM,
     SHEET_CELL_TYPE_STRING,
 
-    SHEET_CELL_TYPE_COUNT
+    _SHEET_CELL_TYPE_COUNT
 } sheet_cell_type_enum;
 
 typedef u8 sheet_cell_type;
 
-STATIC_ASSERT(SHEET_CELL_TYPE_COUNT < sizeof(sheet_cell_type) * 8, cell_type_count);
+STATIC_ASSERT(_SHEET_CELL_TYPE_COUNT < sizeof(sheet_cell_type) * 8, cell_type_count);
 
 typedef struct sheet_string {
     u32 size;
@@ -152,6 +152,16 @@ sheet_chunk_arr sheet_get_range(
 sheet_cell_ref sheet_get_cell(
     workbook* wb, sheet_buffer* sheet,
     sheet_pos cell_pos, b32 create_if_empty
+);
+
+void sheet_set_cell_num(
+    workbook* wb, sheet_buffer* sheet,
+    sheet_pos pos, f64 num
+);
+
+void sheet_set_cell_str(
+    workbook* wb, sheet_buffer* sheet,
+    sheet_pos pos, string8 str
 );
 
 u8 sheet_get_col_width(sheet_buffer* sheet, u32 col);

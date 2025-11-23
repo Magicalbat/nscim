@@ -75,16 +75,22 @@ int main(void) {
     sheet_set_row_height(sheet, 4, 3);
     sheet_set_row_height(sheet, SHEET_MAX_ROWS-1, 10);
 
+    u8 test_str_data[6] = { 'T', 'e', 's', 't', ' ', '0' };
+    string8 test_str = { test_str_data, 6 };
     for (u32 i = 0; i < 10; i++) {
-        sheet_cell_ref cell = sheet_get_cell(
-            wb, sheet, (sheet_pos){ i, i }, true
+        test_str_data[5] = (u8)i + '0';
+        sheet_set_cell_str(wb, sheet, (sheet_pos){ i, 5 + i }, test_str);
+    }
+
+    sheet_set_cell_str(wb, sheet, (sheet_pos){ 1, 1 }, STR8_LIT("Time"));
+    sheet_set_cell_str(wb, sheet, (sheet_pos){ 1, 2 }, STR8_LIT("Sanity"));
+    for (u32 i = 0; i < 50; i++) {
+        sheet_set_cell_num(
+            wb, sheet, (sheet_pos){ 2 + i, 1 }, (f64)i * 0.1
         );
-        *cell.type = SHEET_CELL_TYPE_STRING;
-        sheet_string* str = wb_create_string(wb, 16);
-        memcpy(str->str, "Test  ", 6);
-        str->size = 6;
-        str->str[5] = (u8)i + '0';
-        *cell.str = str;
+        sheet_set_cell_num(
+            wb, sheet, (sheet_pos){ 2 + i, 2 }, (f64)(prng_rand() % 100)
+        );
     }
 
     for (u32 i = 0; i < 10; i++) {
@@ -124,17 +130,7 @@ int main(void) {
     arena_destroy(prev_frame_arena);
 
     wb_destroy(wb);
-
-    sheet_range range = { 0 };
-    if (!sheets_range_from_str(STR8_LIT("0:b12"), &range)) {
-        printf("oops\n");
-    }
-
-    u8 chars[1 + 2 * (SHEET_MAX_COL_CHARS + SHEET_MAX_ROW_CHARS)] = { 0 };
-    u32 size = sheets_range_to_chars(range, chars, sizeof(chars));
-
-    printf("%.*s\n", (int)size, (char*)chars);
-
+    
     #endif
 
     arena_destroy(perm_arena);

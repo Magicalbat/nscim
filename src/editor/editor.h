@@ -19,7 +19,7 @@ typedef enum {
 
     EDITOR_MODE_CMD,
 
-    EDITOR_MODE_COUNT
+    _EDITOR_MODE_COUNT
 } editor_mode;
 
 typedef enum {

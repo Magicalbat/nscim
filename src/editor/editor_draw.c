@@ -91,8 +91,9 @@ void _editor_draw_sheet_win(
 
     // Second status row
     {
-        cell_chars_size = _editor_get_cell_str(
-            wb, sheet, win->cursor_pos, cell_chars
+        sheet_cell_ref cell = sheet_get_cell(wb, sheet, win->cursor_pos, false);
+        cell_chars_size = sheets_cell_to_chars(
+            cell, cell_chars, sizeof(cell_chars)
         );
 
         for (u32 i = 0; i < win->width; i++) {
@@ -236,7 +237,6 @@ void _editor_draw_sheet_win(
             u32 col = col_off + win->scroll_pos.col;
             u32 width = sheet_get_col_width(sheet, col);
 
-
             b32 in_cursor = col == win->cursor_pos.col &&
                 row == win->cursor_pos.row;
 
@@ -260,8 +260,11 @@ void _editor_draw_sheet_win(
                 } break;
             }
 
-            cell_chars_size = _editor_get_cell_str(
-                wb, sheet, (sheet_pos){ row, col }, cell_chars
+            sheet_cell_ref cell = sheet_get_cell(
+                wb, sheet, (sheet_pos){ row, col }, false
+            );
+            cell_chars_size = sheets_cell_to_chars(
+                cell, cell_chars, sizeof(cell_chars)
             );
 
             for (u32 i = 0; i < height && i + y <= max_y; i++) {

@@ -12,7 +12,7 @@ void _editor_push_input_raw(
     editor->input_queue_size++;
 }
 
-static _editor_do_mode_func* _mode_funcs[EDITOR_MODE_COUNT] = {
+static _editor_do_mode_func* _mode_funcs[_EDITOR_MODE_COUNT] = {
     [EDITOR_MODE_NULL] = NULL,
 
     [EDITOR_MODE_NORMAL] = _editor_do_normal,
@@ -49,7 +49,7 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb) {
 
             if (
                 editor->mode == EDITOR_MODE_NULL ||
-                editor->mode >= EDITOR_MODE_COUNT
+                editor->mode >= _EDITOR_MODE_COUNT
             ) {
                 editor->mode = EDITOR_MODE_NORMAL;
             }

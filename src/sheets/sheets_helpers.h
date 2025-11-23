@@ -20,5 +20,5 @@ u32 sheets_range_to_chars(sheet_range range, u8* chars, u32 max_chars);
 b32 sheets_range_from_str(string8 str, sheet_range* range);
 
 // Use an array that is at least SHEET_MAX_STRLEN
-u32 sheets_cell_to_str(sheet_cell_ref cell, u8* chars, u32 max_chars);
+u32 sheets_cell_to_chars(sheet_cell_ref cell, u8* chars, u32 max_chars);
 
