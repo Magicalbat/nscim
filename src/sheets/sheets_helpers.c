@@ -62,6 +62,10 @@ b32 sheets_pos_from_str(string8 str, sheet_pos* out_pos) {
     u64 i = 0;
 
     for (; i < str.size; i++) {
+        if (i >= str.size || !isalpha(str.str[i])) {
+            return false;
+        }
+
         u8 c = str.str[i];
 
         if (c >= 'a' && c <= 'z') {
@@ -94,9 +98,71 @@ b32 sheets_pos_from_str(string8 str, sheet_pos* out_pos) {
     return true;
 }
 
-u32 sheets_range_to_chars(sheet_range range, u8* chars, u32 max_chars);
+u32 sheets_range_to_chars(sheet_range range, u8* chars, u32 max_chars) {
+    u32 size = 0;
 
-b32 sheets_range_from_str(string8 str, sheet_range* out_range);
+    size += sheets_pos_to_chars(range.start, chars, max_chars);
+    if (size < max_chars) {
+        chars[size++] = ':';
+    }
+    size += sheets_pos_to_chars(range.end, chars + size, max_chars - size);
+
+    return size;
+}
+
+b32 sheets_range_from_str(string8 str, sheet_range* out_range) {
+    sheet_pos positions[2] = { 0 };
+
+    u64 i = 0;
+
+    for (u32 j = 0; j < 2; j++) {
+        if (i >= str.size || !isalpha(str.str[i])) {
+            return false;
+        }
+
+        for (; i < str.size; i++) {
+            u8 c = str.str[i];
+
+            if (c >= 'a' && c <= 'z') {
+                c -= 'a' - 'A';
+            }
+
+            if (c < 'A' || c > 'Z') {
+                break;
+            }
+
+            u32 n = c - 'A';
+            positions[j].col *= 26;
+            positions[j].col += n + 1;
+        }
+        positions[j].col--;
+
+        if (i >= str.size || !isdigit(str.str[i])) {
+            return false;
+        }
+
+        for (; i < str.size; i++) {
+            u8 c = str.str[i];
+
+            if (c < '0' || c > '9') {
+                break;
+            }
+
+            positions[j].row *= 10;
+            positions[j].row += c - '0';
+        }
+
+        if (j == 0 && (i >= str.size || str.str[i] != ':')) {
+            return false;
+        }
+
+        i++;
+    }
+
+    *out_range = (sheet_range){ positions[0], positions[1] };
+
+    return true;
+}
 
 u32 sheets_cell_to_str(sheet_cell_ref cell, u8* chars, u32 max_chars);
 

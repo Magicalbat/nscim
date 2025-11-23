@@ -125,6 +125,16 @@ int main(void) {
 
     wb_destroy(wb);
 
+    sheet_range range = { 0 };
+    if (!sheets_range_from_str(STR8_LIT("0:b12"), &range)) {
+        printf("oops\n");
+    }
+
+    u8 chars[1 + 2 * (SHEET_MAX_COL_CHARS + SHEET_MAX_ROW_CHARS)] = { 0 };
+    u32 size = sheets_range_to_chars(range, chars, sizeof(chars));
+
+    printf("%.*s\n", (int)size, (char*)chars);
+
     #endif
 
     arena_destroy(perm_arena);
