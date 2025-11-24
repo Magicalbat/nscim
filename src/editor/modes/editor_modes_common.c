@@ -91,22 +91,29 @@ void _editor_cursor_right(editor_context* editor, workbook* wb, u32 n) {
     }
 }
 
-void _editor_cursor_block_up(editor_context* editor, workbook* wb, u32 n) {
+void _editor_cursor_block_move_vert(editor_context* editor, workbook* wb, i32 n) {
     sheet_window* win = wb->active_win;
     sheet_buffer* sheet = wb_get_active_sheet(wb, false);
 
-    u32 row = win->cursor_pos.row;
+    i32 row = (i32)win->cursor_pos.row;
     u32 col = win->cursor_pos.col;
 
-    while (n--) {
-        if (row == 0) {
+    i32 dir = 1; u32 count = (u32)n;
+
+    if (n < 0) {
+        dir = -1;
+        count = (u32)(-n);
+    }
+
+    while (count--) {
+        if (row == (dir < 0 ? 0 : (i32)SHEET_MAX_ROWS - 1)) {
             break;
         }
 
-        row--;
+        u32 is_empty_bitfield = 0;
 
         sheet_chunk_pos chunk_pos = {
-            row / SHEET_CHUNK_ROWS,
+            (u32)row / SHEET_CHUNK_ROWS,
             col / SHEET_CHUNK_COLS 
         };
 
@@ -114,42 +121,61 @@ void _editor_cursor_block_up(editor_context* editor, workbook* wb, u32 n) {
 
         u32 col_offset = (col % SHEET_CHUNK_COLS) * SHEET_CHUNK_ROWS;
 
-        b32 looking_for_empty = true;
-        if (chunk == NULL) {
-            looking_for_empty = false;
-        } else {
-            u32 index = row % SHEET_CHUNK_ROWS + col_offset;
+        for (u32 i = 0; i < 2; i++) {
+            if (chunk == NULL) {
+                is_empty_bitfield |= 1 << i;
+            } else {
+                u32 index = (u32)row % SHEET_CHUNK_ROWS + col_offset;
 
-            if (chunk->types[index] == SHEET_CELL_TYPE_NONE) {
-                looking_for_empty = false;
+                if (chunk->types[index] == SHEET_CELL_TYPE_NONE) {
+                    is_empty_bitfield |= 1 << i;
+                }
+            }
+
+            if (i == 0 && row + dir > 0 && row + dir < (i32)SHEET_MAX_ROWS - 1) {
+                row += dir; 
+
+                if (((u32)row / SHEET_CHUNK_ROWS) != chunk_pos.row) {
+                    chunk_pos.row = (u32)((i32)chunk_pos.row + dir);
+                    chunk = sheet_get_chunk(wb, sheet, chunk_pos, false);
+                }
             }
         }
 
-        /*if (row / SHEET_CHUNK_ROWS != chunk_pos.row) {
-            chunk_pos.row--;
-            chunk = sheet_get_chunk(wb, sheet, chunk_pos, false);
-        }*/
+        if ((is_empty_bitfield & 1) && !(is_empty_bitfield >> 1)) {
+            continue;
+        }
 
-        b32 searching = true;
-        while (searching && row > 0) {
+        b8 looking_for_empty = !(is_empty_bitfield >> 1);
+
+        b8 searching = true;
+        while (searching && row > 0 && row < (i32)SHEET_MAX_ROWS - 1) {
             if (chunk == NULL) {
                 if (looking_for_empty) {
                     break;
-                } else if (chunk_pos.row == 0) {
+                } else if (dir < 0 && chunk_pos.row == 0) {
                     row = 0;
                     break;
+                } else if (dir > 0 && chunk_pos.row >= SHEET_CHUNKS_Y - 1) {
+                    row = SHEET_MAX_ROWS - 1;
+                    break;
                 } else {
-                    row = chunk_pos.row * SHEET_CHUNK_ROWS - 1;
-                    chunk_pos.row--;
+                    row = dir < 0 ? 
+                        (i32)chunk_pos.row * SHEET_CHUNK_ROWS - 1:
+                        (i32)(chunk_pos.row + 1) * SHEET_CHUNK_ROWS;
+
+                    chunk_pos.row = (u32)((i32)chunk_pos.row + dir);
                     chunk = sheet_get_chunk(wb, sheet, chunk_pos, false);
                 }
             } else {
-                u32 end_row = chunk_pos.row == 0 ?
-                    0 : chunk_pos.row * SHEET_CHUNK_ROWS - 1;
+                i32 end_row = dir < 0 ?
+                    (i32)(chunk_pos.row * SHEET_CHUNK_ROWS) - 1 :
+                    (i32)((chunk_pos.row + 1) * SHEET_CHUNK_ROWS);
+                end_row = CLAMP(end_row, 0, (i32)SHEET_MAX_ROWS - 1);
 
-                for (;row != end_row; row--) {
+                for (;row != end_row; row += dir) {
                     if (
-                        !((chunk->types[row + col_offset] ==
+                        !((chunk->types[(u32)row + col_offset] ==
                         SHEET_CELL_TYPE_NONE) ^ looking_for_empty)
                     ) {
                         searching = false;
@@ -157,31 +183,33 @@ void _editor_cursor_block_up(editor_context* editor, workbook* wb, u32 n) {
                     }
                 }
 
-                if (searching && chunk_pos.row > 0) {
-                    chunk_pos.row--;
+                if (
+                    searching && (i32)chunk_pos.row + dir > 0 &&
+                    (i32)chunk_pos.row + dir < (i32)SHEET_MAX_ROWS - 1
+                ) {
+                    chunk_pos.row = (u32)((i32)chunk_pos.row + dir);
                     chunk = sheet_get_chunk(wb, sheet, chunk_pos, false);
                 }
             }
         }
 
-        if (row != 0 && looking_for_empty) {
-            row++;
+        if (row != 0 && row != SHEET_MAX_ROWS - 1 && looking_for_empty) {
+            row -= dir;
         }
     }
 
+    u32 final_row = (u32)CLAMP(row, 0, (i32)SHEET_MAX_ROWS - 1);
 
-    if (row != win->cursor_pos.row) {
-        _editor_cursor_up(editor, wb, win->cursor_pos.row - row);
+    if (final_row != win->cursor_pos.row) {
+        if (dir < 0) {
+            _editor_cursor_up(editor, wb, win->cursor_pos.row - final_row);
+        } else {
+            _editor_cursor_down(editor, wb, final_row - win->cursor_pos.row);
+        }
     }
 }
 
-void _editor_cursor_block_down(editor_context* editor, workbook* wb, u32 n) {
-}
-
-void _editor_cursor_block_left(editor_context* editor, workbook* wb, u32 n) {
-}
-
-void _editor_cursor_block_right(editor_context* editor, workbook* wb, u32 n) {
+void _editor_cursor_block_move_horz(editor_context* editor, workbook* wb, i32 n) {
 }
 
 void _editor_scroll_up(editor_context* editor, workbook* wb, u32 n) {

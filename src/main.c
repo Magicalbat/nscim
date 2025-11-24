@@ -71,9 +71,6 @@ int main(void) {
 
     sheet_buffer* sheet = wb_get_active_sheet(wb, true);
     sheet->name = STR8_LIT("Test Sheet");
-    sheet_set_row_height(sheet, 1, 2);
-    sheet_set_row_height(sheet, 4, 3);
-    sheet_set_row_height(sheet, SHEET_MAX_ROWS-1, 10);
 
     u8 test_str_data[6] = { 'T', 'e', 's', 't', ' ', '0' };
     string8 test_str = { test_str_data, 6 };
@@ -86,11 +83,14 @@ int main(void) {
     sheet_set_cell_str(wb, sheet, (sheet_pos){ 2, 2 }, STR8_LIT("Sanity"));
     for (u32 i = 0; i < 50; i++) {
         sheet_set_cell_num(
-            wb, sheet, (sheet_pos){ 2 + i, 1 }, (f64)i * 0.1
+            wb, sheet, (sheet_pos){ 3 + i, 1 }, (f64)i * 0.1
         );
-        sheet_set_cell_num(
-            wb, sheet, (sheet_pos){ 2 + i, 2 }, (f64)(prng_rand() % 100)
-        );
+
+        if (i != 20 && i != 30) {
+            sheet_set_cell_num(
+                wb, sheet, (sheet_pos){ 3 + i, 2 }, (f64)(prng_rand() % 100)
+            );
+        }
     }
 
     for (u32 i = 0; i < 10; i++) {
