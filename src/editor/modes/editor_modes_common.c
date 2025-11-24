@@ -174,8 +174,10 @@ void _editor_cursor_block_move_vert(editor_context* editor, workbook* wb, i32 n)
                 end_row = CLAMP(end_row, 0, (i32)SHEET_MAX_ROWS - 1);
 
                 for (;row != end_row; row += dir) {
+                    u32 index = (u32)(row % SHEET_CHUNK_ROWS) + col_offset;
+
                     if (
-                        !((chunk->types[(u32)row + col_offset] ==
+                        !((chunk->types[index] ==
                         SHEET_CELL_TYPE_NONE) ^ looking_for_empty)
                     ) {
                         searching = false;
@@ -184,8 +186,8 @@ void _editor_cursor_block_move_vert(editor_context* editor, workbook* wb, i32 n)
                 }
 
                 if (
-                    searching && (i32)chunk_pos.row + dir > 0 &&
-                    (i32)chunk_pos.row + dir < (i32)SHEET_MAX_ROWS - 1
+                    searching && (i32)chunk_pos.row + dir >= 0 &&
+                    (i32)chunk_pos.row + dir <= (i32)SHEET_MAX_ROWS - 1
                 ) {
                     chunk_pos.row = (u32)((i32)chunk_pos.row + dir);
                     chunk = sheet_get_chunk(wb, sheet, chunk_pos, false);

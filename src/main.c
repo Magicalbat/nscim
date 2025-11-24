@@ -93,6 +93,11 @@ int main(void) {
         }
     }
 
+    for (u32 i = 0; i < 64; i++) {
+        sheet_set_cell_num(wb, sheet, (sheet_pos){ 64 + i, 4 }, i);
+        sheet_set_cell_num(wb, sheet, (sheet_pos){ 128 + i, 5 }, i);
+    }
+
     for (u32 i = 0; i < 10; i++) {
         sheet_set_col_width(sheet, i, (u8)(i + 5));
     }
