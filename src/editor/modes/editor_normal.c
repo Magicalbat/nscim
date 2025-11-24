@@ -14,6 +14,15 @@ b32 _editor_do_normal(
             case WIN_INPUT_ARROW_RIGHT:
             case 'l': { _editor_cursor_right(editor, wb, count); } break;
 
+            case WIN_INPUT_CTRL_ARROW_LEFT:
+            case 'H': { _editor_cursor_block_left(editor, wb, count); } break;
+            case WIN_INPUT_CTRL_ARROW_DOWN:
+            case 'J': { _editor_cursor_block_down(editor, wb, count); } break;
+            case WIN_INPUT_CTRL_ARROW_UP:
+            case 'K': { _editor_cursor_block_up(editor, wb, count); } break;
+            case WIN_INPUT_CTRL_ARROW_RIGHT:
+            case 'L': { _editor_cursor_block_right(editor, wb, count); } break;
+
             case WIN_INPUT_CTRL('e'): {
                 _editor_scroll_down(editor, wb, count); 
             } break;

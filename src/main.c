@@ -82,8 +82,8 @@ int main(void) {
         sheet_set_cell_str(wb, sheet, (sheet_pos){ i, 5 + i }, test_str);
     }
 
-    sheet_set_cell_str(wb, sheet, (sheet_pos){ 1, 1 }, STR8_LIT("Time"));
-    sheet_set_cell_str(wb, sheet, (sheet_pos){ 1, 2 }, STR8_LIT("Sanity"));
+    sheet_set_cell_str(wb, sheet, (sheet_pos){ 2, 1 }, STR8_LIT("Time"));
+    sheet_set_cell_str(wb, sheet, (sheet_pos){ 2, 2 }, STR8_LIT("Sanity"));
     for (u32 i = 0; i < 50; i++) {
         sheet_set_cell_num(
             wb, sheet, (sheet_pos){ 2 + i, 1 }, (f64)i * 0.1

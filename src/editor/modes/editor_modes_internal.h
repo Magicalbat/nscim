@@ -17,6 +17,11 @@ void _editor_cursor_down(editor_context* editor, workbook* wb, u32 n);
 void _editor_cursor_left(editor_context* editor, workbook* wb, u32 n);
 void _editor_cursor_right(editor_context* editor, workbook* wb, u32 n);
 
+void _editor_cursor_block_up(editor_context* editor, workbook* wb, u32 n);
+void _editor_cursor_block_down(editor_context* editor, workbook* wb, u32 n);
+void _editor_cursor_block_left(editor_context* editor, workbook* wb, u32 n);
+void _editor_cursor_block_right(editor_context* editor, workbook* wb, u32 n);
+
 // These functions perform bounds checking and make sure that
 // the cursor remains on screen when scrolling
 void _editor_scroll_up(editor_context* editor, workbook* wb, u32 n);
@@ -29,4 +34,5 @@ void _editor_scroll_center(workbook* wb);
 
 void _editor_resize_width(workbook* wb, i32 change);
 void _editor_resize_height(workbook* wb, i32 change);
+
 

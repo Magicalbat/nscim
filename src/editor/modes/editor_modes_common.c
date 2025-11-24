@@ -91,6 +91,99 @@ void _editor_cursor_right(editor_context* editor, workbook* wb, u32 n) {
     }
 }
 
+void _editor_cursor_block_up(editor_context* editor, workbook* wb, u32 n) {
+    sheet_window* win = wb->active_win;
+    sheet_buffer* sheet = wb_get_active_sheet(wb, false);
+
+    u32 row = win->cursor_pos.row;
+    u32 col = win->cursor_pos.col;
+
+    while (n--) {
+        if (row == 0) {
+            break;
+        }
+
+        row--;
+
+        sheet_chunk_pos chunk_pos = {
+            row / SHEET_CHUNK_ROWS,
+            col / SHEET_CHUNK_COLS 
+        };
+
+        sheet_chunk* chunk = sheet_get_chunk(wb, sheet, chunk_pos, false);
+
+        u32 col_offset = (col % SHEET_CHUNK_COLS) * SHEET_CHUNK_ROWS;
+
+        b32 looking_for_empty = true;
+        if (chunk == NULL) {
+            looking_for_empty = false;
+        } else {
+            u32 index = row % SHEET_CHUNK_ROWS + col_offset;
+
+            if (chunk->types[index] == SHEET_CELL_TYPE_NONE) {
+                looking_for_empty = false;
+            }
+        }
+
+        /*if (row / SHEET_CHUNK_ROWS != chunk_pos.row) {
+            chunk_pos.row--;
+            chunk = sheet_get_chunk(wb, sheet, chunk_pos, false);
+        }*/
+
+        b32 searching = true;
+        while (searching && row > 0) {
+            if (chunk == NULL) {
+                if (looking_for_empty) {
+                    break;
+                } else if (chunk_pos.row == 0) {
+                    row = 0;
+                    break;
+                } else {
+                    row = chunk_pos.row * SHEET_CHUNK_ROWS - 1;
+                    chunk_pos.row--;
+                    chunk = sheet_get_chunk(wb, sheet, chunk_pos, false);
+                }
+            } else {
+                u32 end_row = chunk_pos.row == 0 ?
+                    0 : chunk_pos.row * SHEET_CHUNK_ROWS - 1;
+
+                for (;row != end_row; row--) {
+                    if (
+                        !((chunk->types[row + col_offset] ==
+                        SHEET_CELL_TYPE_NONE) ^ looking_for_empty)
+                    ) {
+                        searching = false;
+                        break;
+                    }
+                }
+
+                if (searching && chunk_pos.row > 0) {
+                    chunk_pos.row--;
+                    chunk = sheet_get_chunk(wb, sheet, chunk_pos, false);
+                }
+            }
+        }
+
+        if (row != 0 && looking_for_empty) {
+            row++;
+        }
+    }
+
+
+    if (row != win->cursor_pos.row) {
+        _editor_cursor_up(editor, wb, win->cursor_pos.row - row);
+    }
+}
+
+void _editor_cursor_block_down(editor_context* editor, workbook* wb, u32 n) {
+}
+
+void _editor_cursor_block_left(editor_context* editor, workbook* wb, u32 n) {
+}
+
+void _editor_cursor_block_right(editor_context* editor, workbook* wb, u32 n) {
+}
+
 void _editor_scroll_up(editor_context* editor, workbook* wb, u32 n) {
     sheet_window* win = wb->active_win;
 

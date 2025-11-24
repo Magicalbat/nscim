@@ -41,20 +41,24 @@ win_input win_next_input(window* win) {
         }
 
         switch (c) {
-            case 'A': {
-                return WIN_INPUT_ARROW_UP;
-            } break;
+            case 'A': { return WIN_INPUT_ARROW_UP; } break;
+            case 'B': { return WIN_INPUT_ARROW_DOWN; } break;
+            case 'C': { return WIN_INPUT_ARROW_RIGHT; } break;
+            case 'D': { return WIN_INPUT_ARROW_LEFT; } break;
 
-            case 'B': {
-                return WIN_INPUT_ARROW_DOWN;
-            } break;
+            case '1': {
+                if (term_read(term, &c, 1) == 0) return 0;
+                if (c != ';') return 0;
+                if (term_read(term, &c, 1) == 0) return 0;
+                if (c != '5') return 0;
+                if (term_read(term, &c, 1) == 0) return 0;
 
-            case 'C': {
-                return WIN_INPUT_ARROW_RIGHT;
-            } break;
-
-            case 'D': {
-                return WIN_INPUT_ARROW_LEFT;
+                switch (c) {
+                    case 'A': { return WIN_INPUT_CTRL_ARROW_UP; } break;
+                    case 'B': { return WIN_INPUT_CTRL_ARROW_DOWN; } break;
+                    case 'C': { return WIN_INPUT_CTRL_ARROW_RIGHT; } break;
+                    case 'D': { return WIN_INPUT_CTRL_ARROW_LEFT; } break;
+                }
             } break;
         }
     }
