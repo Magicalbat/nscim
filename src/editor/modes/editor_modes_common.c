@@ -91,18 +91,18 @@ void _editor_cursor_right(editor_context* editor, workbook* wb, u32 n) {
     }
 }
 
-void _editor_cursor_block_move_vert(editor_context* editor, workbook* wb, i32 n) {
+void _editor_move_block_vert(editor_context* editor, workbook* wb, i32 amount) {
     sheet_window* win = wb->active_win;
     sheet_buffer* sheet = wb_get_active_sheet(wb, false);
 
     i32 row = (i32)win->cursor_pos.row;
     u32 col = win->cursor_pos.col;
 
-    i32 dir = 1; u32 count = (u32)n;
+    i32 dir = 1; u32 count = (u32)amount;
 
-    if (n < 0) {
+    if (amount < 0) {
         dir = -1;
-        count = (u32)(-n);
+        count = (u32)(-amount);
     }
 
     while (count--) {
@@ -110,6 +110,8 @@ void _editor_cursor_block_move_vert(editor_context* editor, workbook* wb, i32 n)
             break;
         }
 
+        // Two bits for current and next cell
+        // 1 if empty, 0 otherwise 
         u32 is_empty_bitfield = 0;
 
         sheet_chunk_pos chunk_pos = {
@@ -211,7 +213,45 @@ void _editor_cursor_block_move_vert(editor_context* editor, workbook* wb, i32 n)
     }
 }
 
-void _editor_cursor_block_move_horz(editor_context* editor, workbook* wb, i32 n) {
+void _editor_move_block_horz(editor_context* editor, workbook* wb, i32 amount) {
+}
+
+void _editor_move_win_multiple_vert(
+    editor_context* editor, workbook* wb, f32 multiple
+) {
+    sheet_window* win = wb->active_win;
+    sheet_buffer* sheet = wb_get_active_sheet(wb, false);
+
+    i32 dir = 1;
+    f32 scale = multiple;
+
+    if (multiple < 0) {
+        dir = -1;
+        scale = -multiple;
+    }
+
+    i32 height_needed = (i32)(scale * (f32)(win->height - EDITOR_WIN_STATUS_ROWS));
+
+    u32 row = win->cursor_pos.row;
+
+    while (
+        height_needed > 0 && (
+            (dir < 0 && row > 0) ||
+            (dir > 0 && row < SHEET_MAX_ROWS - 1)
+        )
+    ) {
+        u32 cur_height = sheet_get_row_height(sheet, row);
+        height_needed -= cur_height;
+        row = (u32)((i32)row + dir);
+    }
+
+    if (row == win->cursor_pos.row) { return; }
+
+    if (row > win->cursor_pos.row) {
+        _editor_cursor_down(editor, wb, row - win->cursor_pos.row);
+    } else {
+        _editor_cursor_up(editor, wb, win->cursor_pos.row - row);
+    }
 }
 
 void _editor_scroll_up(editor_context* editor, workbook* wb, u32 n) {
@@ -295,8 +335,8 @@ void _editor_scroll_center(workbook* wb) {
 
     win->scroll_pos = win->cursor_pos;
 
-    u32 cur_half_width = sheet_get_col_width(sheet, win->scroll_pos.col) / 2;
-    u32 cur_half_height = sheet_get_row_height(sheet, win->scroll_pos.row) / 2;
+    u32 cur_half_width = sheet_get_col_width(sheet, win->scroll_pos.col) ;
+    u32 cur_half_height = sheet_get_row_height(sheet, win->scroll_pos.row);
 
     while (win->scroll_pos.col > 0 && cur_half_width < win->width / 2) {
         win->scroll_pos.col--;

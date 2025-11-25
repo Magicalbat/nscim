@@ -16,19 +16,19 @@ b32 _editor_do_normal(
 
             case WIN_INPUT_CTRL_ARROW_LEFT:
             case 'H': {
-                _editor_cursor_block_move_horz(editor, wb, -(i32)count); 
+                _editor_move_block_horz(editor, wb, -(i32)count); 
             } break;
             case WIN_INPUT_CTRL_ARROW_DOWN:
             case 'J': {
-                _editor_cursor_block_move_vert(editor, wb, (i32)count); 
+                _editor_move_block_vert(editor, wb, (i32)count); 
             } break;
             case WIN_INPUT_CTRL_ARROW_UP:
             case 'K': {
-                _editor_cursor_block_move_vert(editor, wb, -(i32)count); 
+                _editor_move_block_vert(editor, wb, -(i32)count); 
             } break;
             case WIN_INPUT_CTRL_ARROW_RIGHT:
             case 'L': {
-                _editor_cursor_block_move_horz(editor, wb, (i32)count); 
+                _editor_move_block_horz(editor, wb, (i32)count); 
             } break;
 
             case WIN_INPUT_CTRL('e'): {
@@ -36,6 +36,19 @@ b32 _editor_do_normal(
             } break;
             case WIN_INPUT_CTRL('y'): {
                 _editor_scroll_up(editor, wb, count); 
+            } break;
+
+            case WIN_INPUT_CTRL('b'): {
+                _editor_move_win_multiple_vert(editor, wb, -(f32)count);
+            } break;
+            case WIN_INPUT_CTRL('f'): {
+                _editor_move_win_multiple_vert(editor, wb, (f32)count);
+            } break;
+            case WIN_INPUT_CTRL('u'): {
+                _editor_move_win_multiple_vert(editor, wb, -(f32)count * 0.5f);
+            } break;
+            case WIN_INPUT_CTRL('d'): {
+                _editor_move_win_multiple_vert(editor, wb, (f32)count * 0.5f);
             } break;
 
             // All of these begin multi-input actions

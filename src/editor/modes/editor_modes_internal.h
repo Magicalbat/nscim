@@ -17,11 +17,20 @@ void _editor_cursor_down(editor_context* editor, workbook* wb, u32 n);
 void _editor_cursor_left(editor_context* editor, workbook* wb, u32 n);
 void _editor_cursor_right(editor_context* editor, workbook* wb, u32 n);
 
-void _editor_cursor_block_move_vert(
-    editor_context* editor, workbook* wb, i32 n
+// These functions act like CTRL+Arrow in Excel
+// i.e. When in a cell with contents, it will move
+// until just before an empty cell. When in an empty
+// cell, it will move until a non-empty cell
+void _editor_move_block_vert(editor_context* editor, workbook* wb, i32 amount);
+void _editor_move_block_horz(editor_context* editor, workbook* wb, i32 amount);
+
+// Moves the cursor until it has cleared some multiple of
+// the window's width or height
+void _editor_move_win_multiple_vert(
+    editor_context* editor, workbook* wb, f32 multiple
 );
-void _editor_cursor_block_move_horz(
-    editor_context* editor, workbook* wb, i32 n
+void _editor_move_win_multiple_horz(
+    editor_context* editor, workbook* wb, f32 multiple
 );
 
 // These functions perform bounds checking and make sure that

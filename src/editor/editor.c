@@ -30,5 +30,5 @@ b32 _editor_do_cmd(editor_context*, workbook*, win_input, u32) {
 #include "editor_input.c"
 
 #include "modes/editor_modes_common.c"
-#include "modes/editor_normal.c"
+#include "modes/editor_modes_normal.c"
 
