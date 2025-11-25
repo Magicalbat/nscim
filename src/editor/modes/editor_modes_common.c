@@ -254,6 +254,44 @@ void _editor_move_win_multiple_vert(
     }
 }
 
+void _editor_move_win_multiple_horz(
+    editor_context* editor, workbook* wb, f32 multiple
+) {
+    sheet_window* win = wb->active_win;
+    sheet_buffer* sheet = wb_get_active_sheet(wb, false);
+
+    i32 dir = 1;
+    f32 scale = multiple;
+
+    if (multiple < 0) {
+        dir = -1;
+        scale = -multiple;
+    }
+
+    i32 width_needed = (i32)(scale * (f32)win->width);
+
+    u32 col = win->cursor_pos.col;
+
+    while (
+        width_needed > 0 && (
+            (dir < 0 && col > 0) ||
+            (dir > 0 && col < SHEET_MAX_COLS - 1)
+        )
+    ) {
+        u32 cur_width = sheet_get_col_width(sheet, col);
+        width_needed -= cur_width;
+        col = (u32)((i32)col + dir);
+    }
+
+    if (col == win->cursor_pos.col) { return; }
+
+    if (col > win->cursor_pos.col) {
+        _editor_cursor_right(editor, wb, col - win->cursor_pos.col);
+    } else {
+        _editor_cursor_left(editor, wb, win->cursor_pos.col - col);
+    }
+}
+
 void _editor_scroll_up(editor_context* editor, workbook* wb, u32 n) {
     sheet_window* win = wb->active_win;
 

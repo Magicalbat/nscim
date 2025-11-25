@@ -51,6 +51,13 @@ b32 _editor_do_normal(
                 _editor_move_win_multiple_vert(editor, wb, (f32)count * 0.5f);
             } break;
 
+            case WIN_INPUT_CTRL('g'): {
+                _editor_move_win_multiple_horz(editor, wb, (f32)count * 0.5f);
+            } break;
+            case WIN_INPUT_CTRL('s'): {
+                _editor_move_win_multiple_horz(editor, wb, -(f32)count * 0.5f);
+            } break;
+
             // All of these begin multi-input actions
             case 'z':
             case 'r':
