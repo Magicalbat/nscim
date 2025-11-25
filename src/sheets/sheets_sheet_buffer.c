@@ -98,7 +98,7 @@ static void _sb_init_info(void) {
     _sb_info.siphash_k0 = ((u64)prng_rand() << 32) | (u64)prng_rand();
     _sb_info.siphash_k1 = ((u64)prng_rand() << 32) | (u64)prng_rand();
 
-    _sb_info.empty_cell.type = SHEET_CELL_TYPE_NONE;
+    _sb_info.empty_cell.type = SHEET_CELL_TYPE_INVALID;
     _sb_info.empty_cell.num = 0.0;
     _sb_info.empty_cell.str = NULL;
 
@@ -270,6 +270,14 @@ sheet_chunk* sheet_get_chunk(
         return NULL;
     }
 
+    if (
+        sheet->last_chunk != NULL &&
+        sheet->last_chunk->pos.row == chunk_pos.row &&
+        sheet->last_chunk->pos.col == chunk_pos.col
+    ) {
+        return sheet->last_chunk;
+    }
+
     u64 chunk_hash = _sb_chunk_hash(chunk_pos);
     u64 chunk_idx = chunk_hash % sheet->map_capacity;
 
@@ -299,6 +307,8 @@ sheet_chunk* sheet_get_chunk(
             _sb_chunk_rehash(wb, sheet);
         }
     }
+
+    sheet->last_chunk = chunk;
 
     return chunk;
 }
@@ -361,6 +371,10 @@ sheet_cell_ref sheet_get_cell(
     workbook* wb, sheet_buffer* sheet,
     sheet_pos cell_pos, b32 create_if_empty
 ) {
+    if (cell_pos.row >= SHEET_MAX_ROWS || cell_pos.col >= SHEET_MAX_COLS) {
+        goto return_empty;
+    }
+
     sheet_chunk_pos chunk_pos = {
         cell_pos.row / SHEET_CHUNK_ROWS,
         cell_pos.col / SHEET_CHUNK_COLS
@@ -368,30 +382,11 @@ sheet_cell_ref sheet_get_cell(
 
     sheet_chunk* chunk = NULL;
 
-    if (
-        sheet->last_chunk != NULL &&
-        sheet->last_chunk->pos.row == chunk_pos.row &&
-        sheet->last_chunk->pos.col == chunk_pos.col
-    ) {
-        chunk = sheet->last_chunk;
-    } else {
-        chunk = sheet_get_chunk(wb, sheet, chunk_pos, create_if_empty);
-    }
+    chunk = sheet_get_chunk(wb, sheet, chunk_pos, create_if_empty);
 
     if (chunk == NULL) {
-        if (!_sb_info.initialized) {
-            _sb_init_info();
-        }
-
-        _sb_info.empty_cell.type = SHEET_CELL_TYPE_NONE;
-        _sb_info.empty_cell.num = 0.0;
-        _sb_info.empty_cell.str = NULL;
-
-        return _sb_info.empty_ref;
+        goto return_empty;
     }
-
-    // Update last chunk for the next time
-    sheet->last_chunk = chunk;
 
     u32 local_row = cell_pos.row % SHEET_CHUNK_ROWS;
     u32 local_col = cell_pos.col % SHEET_CHUNK_COLS;
@@ -404,6 +399,17 @@ sheet_cell_ref sheet_get_cell(
     };
 
     return cell_ref;
+
+return_empty:
+    if (!_sb_info.initialized) {
+        _sb_init_info();
+    }
+
+    _sb_info.empty_cell.type = SHEET_CELL_TYPE_INVALID;
+    _sb_info.empty_cell.num = 0.0;
+    _sb_info.empty_cell.str = NULL;
+
+    return _sb_info.empty_ref;
 }
 
 void sheet_set_cell_num(
@@ -411,6 +417,8 @@ void sheet_set_cell_num(
     sheet_pos pos, f64 num
 ) {
     sheet_cell_ref cell = sheet_get_cell(wb, sheet, pos, true);
+
+    if (*cell.type == SHEET_CELL_TYPE_INVALID) { return; }
 
     if (*cell.type == SHEET_CELL_TYPE_STRING) {
         wb_free_string(wb, *cell.str);
@@ -426,6 +434,8 @@ void sheet_set_cell_str(
     sheet_pos pos, string8 str
 ) {
     sheet_cell_ref cell = sheet_get_cell(wb, sheet, pos, true);
+
+    if (*cell.type == SHEET_CELL_TYPE_INVALID) { return; }
 
     u32 capped_size = (u32)MIN(str.size, SHEET_MAX_STRLEN);
 

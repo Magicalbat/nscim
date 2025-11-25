@@ -47,10 +47,12 @@ typedef struct {
 } sheet_range;
 
 typedef enum {
-    SHEET_CELL_TYPE_NONE = 0,
+    SHEET_CELL_TYPE_EMPTY = 0,
 
     SHEET_CELL_TYPE_NUM,
     SHEET_CELL_TYPE_STRING,
+
+    SHEET_CELL_TYPE_INVALID,
 
     _SHEET_CELL_TYPE_COUNT
 } sheet_cell_type_enum;

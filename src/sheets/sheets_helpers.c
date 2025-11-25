@@ -167,7 +167,8 @@ b32 sheets_range_from_str(string8 str, sheet_range* out_range) {
 u32 sheets_cell_to_chars(sheet_cell_ref cell, u8* chars, u32 max_chars) {
     switch ((sheet_cell_type_enum)*cell.type) {
         case _SHEET_CELL_TYPE_COUNT:
-        case SHEET_CELL_TYPE_NONE: {
+        case SHEET_CELL_TYPE_INVALID:
+        case SHEET_CELL_TYPE_EMPTY: {
             return 0;
         } break;
 

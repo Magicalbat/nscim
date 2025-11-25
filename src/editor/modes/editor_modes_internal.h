@@ -21,8 +21,8 @@ void _editor_cursor_right(editor_context* editor, workbook* wb, u32 n);
 // i.e. When in a cell with contents, it will move
 // until just before an empty cell. When in an empty
 // cell, it will move until a non-empty cell
-void _editor_move_block_vert(editor_context* editor, workbook* wb, i32 amount);
-void _editor_move_block_horz(editor_context* editor, workbook* wb, i32 amount);
+void _editor_move_block_vert(editor_context* editor, workbook* wb, i32 diff);
+void _editor_move_block_horz(editor_context* editor, workbook* wb, i32 diff);
 
 // Moves the cursor until it has cleared some multiple of
 // the window's width or height

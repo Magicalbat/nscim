@@ -79,27 +79,37 @@ int main(void) {
         sheet_set_cell_str(wb, sheet, (sheet_pos){ i, 5 + i }, test_str);
     }
 
-    sheet_set_cell_str(wb, sheet, (sheet_pos){ 2, 1 }, STR8_LIT("Time"));
-    sheet_set_cell_str(wb, sheet, (sheet_pos){ 2, 2 }, STR8_LIT("Sanity"));
+    u32 table_row_off = SHEET_MAX_ROWS - 302;
+    u32 table_col_off = SHEET_MAX_COLS - 3;
+
+    sheet_set_cell_str(wb, sheet, (sheet_pos){ table_row_off, table_col_off + 0 }, STR8_LIT("Time"));
+    sheet_set_cell_str(wb, sheet, (sheet_pos){ table_row_off + 1, table_col_off + 1 }, STR8_LIT("Sanity"));
+    sheet_set_cell_str(wb, sheet, (sheet_pos){ table_row_off, table_col_off + 2 }, STR8_LIT("Ians"));
+
     for (u32 i = 0; i < 300; i++) {
         sheet_set_cell_num(
-            wb, sheet, (sheet_pos){ 3 + i, 1 }, (f64)i * 0.1
+            wb, sheet, (sheet_pos){
+                table_row_off + 1 + i, table_col_off 
+            }, (f64)i * 0.1
         );
 
-        if (i != 20 && i != 30) {
-            sheet_set_cell_num(
-                wb, sheet, (sheet_pos){ 3 + i, 2 }, (f64)(prng_rand() % 100)
-            );
-        }
+        f64 x = (f64)i * 0.1;
+        sheet_set_cell_num(
+            wb, sheet, (sheet_pos){
+                table_row_off + 2 + i, table_col_off + 1 
+            },
+            10.0 * sin(x) - 5.0 * x + 100.0
+        );
+
+        sheet_set_cell_num(
+            wb, sheet, (sheet_pos){
+                table_row_off + 1 + i, table_col_off + 2 
+            }, (f64)i * 2.5
+        );
     }
 
-    for (u32 i = 0; i < 64; i++) {
-        sheet_set_cell_num(wb, sheet, (sheet_pos){ 64 + i, 4 }, i);
-        sheet_set_cell_num(wb, sheet, (sheet_pos){ 128 + i, 5 }, i);
-    }
-
-    for (u32 i = 0; i < 10; i++) {
-        sheet_set_col_width(sheet, i, (u8)(i + 5));
+    for (u32 i = SHEET_MAX_ROWS-2; i >= SHEET_MAX_ROWS - 300; i--) {
+        sheet_set_cell_num(wb, sheet, (sheet_pos){ i, 4 }, i % 1000);
     }
 
     editor_context* editor = editor_init(perm_arena);
