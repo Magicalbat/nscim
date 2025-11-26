@@ -58,6 +58,25 @@ b32 _editor_do_normal(
                 _editor_move_win_multiple_horz(editor, wb, -(f32)count * 0.5f);
             } break;
 
+            case 'i': {
+                sheet_window* win = wb->active_win;
+                sheet_buffer* sheet = wb_get_active_sheet(wb, false);
+
+                sheet_cell_ref cell = sheet_get_cell(
+                    wb, sheet, win->cursor_pos, false
+                );
+
+                u32 size = sheets_cell_to_chars(
+                    cell, editor->cell_input_buf,
+                    sizeof(editor->cell_input_buf)
+                );
+
+                editor->cell_input_size = size;
+                editor->cell_input_cursor = 0;
+
+                editor->mode = EDITOR_MODE_CELL_INSERT;
+            } break;
+
             // All of these begin multi-input actions
             case 'z':
             case 'r':

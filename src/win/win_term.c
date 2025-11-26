@@ -4,26 +4,26 @@ typedef struct _win_backend {
 } _win_backend;
 
 void _win_backend_create(mem_arena* arena, window* win) {
-    win->backend = PUSH_STRUCT(arena, _win_backend);
+    win->_backend = PUSH_STRUCT(arena, _win_backend);
 
-    win->backend->term = term_init(arena, MiB(4));
+    win->_backend->term = term_init(arena, MiB(4));
 
-    term_write(win->backend->term, STR8_LIT("\x1b[?1049h\x1b[?25l"));
-    term_flush(win->backend->term);
+    term_write(win->_backend->term, STR8_LIT("\x1b[?1049h"));
+    term_flush(win->_backend->term);
 }
 
 void _win_backend_destroy(window* win) {
-    term_write(win->backend->term, STR8_LIT("\x1b[?1049l\x1b[?25h"));
-    term_flush(win->backend->term);
-    term_quit(win->backend->term);
+    term_write(win->_backend->term, STR8_LIT("\x1b[?1049l\x1b[?25h"));
+    term_flush(win->_backend->term);
+    term_quit(win->_backend->term);
 }
 
 void _win_get_size(window* win, u32* width, u32* height) {
-    term_get_size(win->backend->term, width, height);
+    term_get_size(win->_backend->term, width, height);
 }
 
 win_input win_next_input(window* win) {
-    term_context* term = win->backend->term;
+    term_context* term = win->_backend->term;
 
     u8 c = 0;
 
@@ -68,7 +68,7 @@ win_input win_next_input(window* win) {
 
 b32 win_needs_resize(window* win) {
     u32 width, height;
-    term_get_size(win->backend->term, &width, &height);
+    term_get_size(win->_backend->term, &width, &height);
 
     return width != win->front_buf.width || height != win->front_buf.height;
 }
@@ -121,13 +121,13 @@ void _win_term_set_col(term_context* term, win_col col, b32 fg) {
 }
 
 void _win_draw_front_buf(window* win) {
-    term_context* term = win->backend->term;
+    term_context* term = win->_backend->term;
 
-    b32 redraw = win->first_draw || (
+    b32 redraw = win->_first_draw || (
         win->back_buf.width != win->front_buf.width ||
         win->back_buf.height != win->front_buf.height
     );
-    win->first_draw = false;
+    win->_first_draw = false;
 
     if (redraw) {
         term_write(term, STR8_LIT("\x1b[2J"));
@@ -136,7 +136,7 @@ void _win_draw_front_buf(window* win) {
     win_tile prev_tile = WIN_EMPTY_TILE;
 
     // Reset cursor pos
-    term_write(term, STR8_LIT("\x1b[H"));
+    term_write(term, STR8_LIT("\x1b[H\x1b[?25l"));
     _win_term_set_col(term, prev_tile.fg, true);
     _win_term_set_col(term, prev_tile.bg, false);
 
@@ -178,6 +178,23 @@ void _win_draw_front_buf(window* win) {
 
             prev_tile = tile;
         }
+    }
+
+    
+
+    if (win->cursor_mode != WIN_CURSOR_MODE_HIDDEN) {
+        term_write(term, STR8_LIT("\x1b[?25h"));
+
+        term_write(term, STR8_LIT("\x1b[H"));
+        _win_term_move_cursor(term, (i32)win->cursor_row, true);
+        _win_term_move_cursor(term, (i32)win->cursor_col, false);
+
+        if (win->cursor_mode != win->_prev_cursor_mode) {
+            term_write(term, STR8_LIT("\x1b["));
+            term_write_c(term, (u8)win->cursor_mode + '0');
+            term_write(term, STR8_LIT(" q"));
+            win->_prev_cursor_mode = win->cursor_mode;
+        }    
     }
 
     term_flush(term);

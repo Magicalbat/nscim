@@ -16,7 +16,7 @@ b32 win_tile_eq(win_tile a, win_tile b) {
 window* win_create(mem_arena* arena) {
     window* win = PUSH_STRUCT(arena, window);
 
-    win->first_draw = true;
+    win->_first_draw = true;
 
     _win_backend_create(arena, win);
 

@@ -4,26 +4,6 @@
 
 #define EDITOR_SHEET_NAME_PAD 2
 
-u32 _editor_get_cell_str(workbook* wb, sheet_buffer* sheet, sheet_pos cell_pos, u8 chars[SHEET_MAX_STRLEN]) {
-    sheet_cell_ref cell = sheet_get_cell(wb, sheet, cell_pos, false);
-
-    switch (*cell.type) {
-        case SHEET_CELL_TYPE_NUM: {
-        } break;
-        case SHEET_CELL_TYPE_STRING: {
-            sheet_string* str = *cell.str;
-            memcpy(chars, str->str, str->size);
-            return str->size;
-        } break;
-
-        default: {
-            return 0;
-        } break;
-    }
-
-    return 0;
-}
-
 void _editor_draw_sheet_win(
     win_buffer* buf, editor_context* editor,
     workbook* wb, sheet_window* win

@@ -21,6 +21,27 @@ typedef struct {
     .c = ' ' \
 }
 
+typedef enum {
+    WIN_CUSOR_MODE_DEFAULT = 0,
+    WIN_CURSOR_MODE_BLOCK_BLINK,
+    WIN_CURSOR_MODE_BLOCK_STEADY,
+    WIN_CURSOR_MODE_UNDERLINE_BLINK,
+    WIN_CURSOR_MODE_UNDERLINE_STEADY,
+    WIN_CURSOR_MODE_BAR_BLINK,
+    WIN_CURSOR_MODE_BAR_STEADY,
+
+    WIN_CURSOR_MODE_HIDDEN,
+
+    _WIN_CURSOR_MODE_COUNT,
+} win_cursor_mode_enum;
+
+typedef u8 win_cursor_mode;
+
+STATIC_ASSERT(
+    _WIN_CURSOR_MODE_COUNT <= (1 << (sizeof(win_cursor_mode) * 8)),
+    win_ursor_mode_size
+);
+
 typedef struct {
     u32 width, height;
     // Stored row-major
@@ -28,9 +49,14 @@ typedef struct {
 } win_buffer;
 
 typedef struct {
-    struct _win_backend* backend;
+    struct _win_backend* _backend;
 
-    b32 first_draw;
+    win_cursor_mode cursor_mode;
+    win_cursor_mode _prev_cursor_mode;
+    b8 _first_draw;
+
+    u32 cursor_row;
+    u32 cursor_col;
 
     // These are allocated each frame on frame areans
     win_buffer front_buf;
