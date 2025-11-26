@@ -32,7 +32,12 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb) {
             (editor->input_queue_start + 1) % EDITOR_INPUT_QUEUE_MAX;
         editor->input_queue_size--;
 
-        if (cur_input >= '0' && cur_input <= '9') {
+        b32 capture_num = !(
+            editor->mode == EDITOR_MODE_CELL_INSERT ||
+            editor->mode == EDITOR_MODE_CMD
+        );
+
+        if (capture_num && (cur_input >= '0' && cur_input <= '9')) {
             if (
                 (editor->flags & _EDITOR_FLAG_READING_NUM) !=
                 _EDITOR_FLAG_READING_NUM

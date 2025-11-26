@@ -55,7 +55,9 @@ typedef struct {
     win_cursor_mode _prev_cursor_mode;
     b8 _first_draw;
 
+    // Zero-based
     u32 cursor_row;
+    // Zero-based
     u32 cursor_col;
 
     // These are allocated each frame on frame areans

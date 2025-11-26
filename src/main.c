@@ -79,11 +79,11 @@ int main(void) {
         sheet_set_cell_str(wb, sheet, (sheet_pos){ i, 5 + i }, test_str);
     }
 
-    u32 table_row_off = SHEET_MAX_ROWS - 302;
-    u32 table_col_off = SHEET_MAX_COLS - 3;
+    u32 table_row_off = 1;//SHEET_MAX_ROWS - 302;
+    u32 table_col_off = 1;//SHEET_MAX_COLS - 3;
 
     sheet_set_cell_str(wb, sheet, (sheet_pos){ table_row_off, table_col_off + 0 }, STR8_LIT("Time"));
-    sheet_set_cell_str(wb, sheet, (sheet_pos){ table_row_off + 1, table_col_off + 1 }, STR8_LIT("Sanity"));
+    sheet_set_cell_str(wb, sheet, (sheet_pos){ table_row_off, table_col_off + 1 }, STR8_LIT("Sanity"));
     sheet_set_cell_str(wb, sheet, (sheet_pos){ table_row_off, table_col_off + 2 }, STR8_LIT("Ians"));
 
     for (u32 i = 0; i < 300; i++) {
@@ -96,7 +96,7 @@ int main(void) {
         f64 x = (f64)i * 0.1;
         sheet_set_cell_num(
             wb, sheet, (sheet_pos){
-                table_row_off + 2 + i, table_col_off + 1 
+                table_row_off + 1 + i, table_col_off + 1 
             },
             10.0 * sin(x) - 5.0 * x + 100.0
         );

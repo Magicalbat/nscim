@@ -72,7 +72,7 @@ b32 _editor_do_normal(
                 );
 
                 editor->cell_input_size = size;
-                editor->cell_input_cursor = 0;
+                editor->cell_input_cursor = size;
 
                 editor->mode = EDITOR_MODE_CELL_INSERT;
             } break;

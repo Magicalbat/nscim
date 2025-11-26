@@ -5,15 +5,17 @@
 #define EDITOR_SHEET_NAME_PAD 2
 
 void _editor_draw_sheet_win(
-    win_buffer* buf, editor_context* editor,
+    window* user_win, editor_context* editor,
     workbook* wb, sheet_window* win
 ) {
+    win_buffer* buf = &user_win->back_buf;
+
     u32 y = EDITOR_STATUS_ROWS_TOP + win->start_y;
     u32 max_y = y + win->height - 1;
     u32 max_x = win->start_x + win->width - 1;
 
     sheet_buffer* sheet = wb_win_get_sheet(wb, win, false);
-    b32 active = win == wb->active_win;
+    b32 cur_active = win == wb->active_win;
 
     if (win->height == 0) {
         return;
@@ -69,12 +71,27 @@ void _editor_draw_sheet_win(
     u32 cell_chars_size = 0;
     u8 cell_chars[SHEET_MAX_STRLEN] = { 0 };
 
+    b32 cell_mode = (
+        editor->mode == EDITOR_MODE_CELL_EDIT || 
+        editor->mode == EDITOR_MODE_CELL_VISUAL || 
+        editor->mode == EDITOR_MODE_CELL_INSERT
+    );
+
     // Second status row
     {
-        sheet_cell_ref cell = sheet_get_cell(wb, sheet, win->cursor_pos, false);
-        cell_chars_size = sheets_cell_to_chars(
-            cell, cell_chars, sizeof(cell_chars)
-        );
+        if (cur_active && cell_mode) {
+            cell_chars_size = MIN(editor->cell_input_size, sizeof(cell_chars));
+            memcpy( cell_chars, editor->cell_input_buf, cell_chars_size);
+
+            user_win->cursor_row = win->start_y + 1;
+            user_win->cursor_col = win->start_x + EDITOR_SHEET_NAME_PAD +
+                editor->cell_input_cursor;
+        } else {
+            sheet_cell_ref cell = sheet_get_cell(wb, sheet, win->cursor_pos, false);
+            cell_chars_size = sheets_cell_to_chars(
+                cell, cell_chars, sizeof(cell_chars)
+            );
+        }
 
         for (u32 i = 0; i < win->width; i++) {
             u32 index = i + win->start_x + y * buf->width;
@@ -222,7 +239,7 @@ void _editor_draw_sheet_win(
 
             win_col fg, bg;
 
-            switch ((active << 1) | in_cursor) {
+            switch ((cur_active << 1) | in_cursor) {
                 case 0b00: 
                 case 0b10: {
                     fg = editor->colors.cell_fg;
@@ -263,14 +280,35 @@ void _editor_draw_sheet_win(
     }
 }
 
-void editor_draw(window* win, editor_context* editor, workbook* wb) {
-    win_buffer* buf = &win->back_buf;
+void editor_draw(window* user_win, editor_context* editor, workbook* wb) {
+    win_buffer* buf = &user_win->back_buf;
 
     if (buf->height < EDITOR_STATUS_ROWS) {
         return;
     }
 
     // TODO: draw status rows
+
+    switch (editor->mode) {
+        case EDITOR_MODE_NORMAL:
+        case EDITOR_MODE_VISUAL: {
+            user_win->cursor_mode = WIN_CURSOR_MODE_HIDDEN;
+        } break;
+
+        case EDITOR_MODE_CELL_EDIT:
+        case EDITOR_MODE_CELL_VISUAL: {
+            user_win->cursor_mode = WIN_CURSOR_MODE_BAR_STEADY;
+        } break;
+
+        case EDITOR_MODE_CELL_INSERT:
+        case EDITOR_MODE_CMD: {
+            user_win->cursor_mode = WIN_CURSOR_MODE_BAR_STEADY;
+        } break;
+
+        default: {
+            user_win->cursor_mode = WIN_CURSOR_MODE_HIDDEN;
+        } break;
+    }
 
     wb_win_compute_sizes(wb, buf->width, buf->height - EDITOR_STATUS_ROWS);
 
@@ -284,13 +322,10 @@ void editor_draw(window* win, editor_context* editor, workbook* wb) {
         sheet_window* cur = stack[--stack_size];
 
         if (cur->internal) {
-            if (cur->child0 != NULL)
-                stack[stack_size++] = cur->child0;
-
-            if (cur->child1 != NULL)
-                stack[stack_size++] = cur->child1;
+            if (cur->child0 != NULL) stack[stack_size++] = cur->child0;
+            if (cur->child1 != NULL) stack[stack_size++] = cur->child1;
         } else {
-            _editor_draw_sheet_win(buf, editor, wb, cur);
+            _editor_draw_sheet_win(user_win, editor, wb, cur);
         }
     }
 
