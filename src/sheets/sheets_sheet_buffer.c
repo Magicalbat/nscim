@@ -434,7 +434,6 @@ void sheet_set_cell_str(
     sheet_pos pos, string8 str
 ) {
     sheet_cell_ref cell = sheet_get_cell(wb, sheet, pos, true);
-
     if (*cell.type == SHEET_CELL_TYPE_INVALID) { return; }
 
     u32 capped_size = (u32)MIN(str.size, SHEET_MAX_STRLEN);
@@ -462,6 +461,17 @@ void sheet_set_cell_str(
     memcpy(cell_str->str, str.str, capped_size);
 }
 
+void sheet_clear_cell(workbook* wb, sheet_buffer* sheet, sheet_pos pos) {
+    sheet_cell_ref cell = sheet_get_cell(wb, sheet, pos, true);
+    if (*cell.type == SHEET_CELL_TYPE_INVALID) { return; }
+
+    if (*cell.type == SHEET_CELL_TYPE_STRING) {
+        wb_free_string(wb, *cell.str);
+        *cell.str = NULL;
+    }
+
+    *cell.type = SHEET_CELL_TYPE_EMPTY;
+}
 
 #define _SB_GET_PAGE_BIT(field, byte_idx) \
     ((field[(byte_idx) / (_sb_info.page_size * sizeof(u64) * 8)] >> \

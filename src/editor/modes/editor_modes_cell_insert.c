@@ -26,14 +26,16 @@ b32 _editor_do_cell_insert(
         }
 
         switch (input) {
-            case '\r': {
-                sheet_set_cell_str(
-                    wb, wb_get_active_sheet(wb, true),
-                    wb->active_win->cursor_pos, (string8){
-                        editor->cell_input_buf, editor->cell_input_size 
-                    }
-                );
+            case '\x1b': {
+                if (editor->cell_input_cursor > 0) {
+                    editor->cell_input_cursor--;
+                }
 
+                editor->mode = EDITOR_MODE_CELL_EDIT;
+            } break;
+
+            case '\r': {
+                _editor_store_cell_from_input(editor, wb);
                 editor->mode = EDITOR_MODE_NORMAL;
             } break;
 

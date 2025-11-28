@@ -43,7 +43,9 @@ void _editor_scroll_right(editor_context* editor, workbook* wb, u32 n);
 // Centers the scroll at the cursor
 void _editor_scroll_center(workbook* wb);
 
-void _editor_resize_width(workbook* wb, i32 change);
-void _editor_resize_height(workbook* wb, i32 change);
+void _editor_resize_cell_width(workbook* wb, i32 change);
+void _editor_resize_cell_height(workbook* wb, i32 change);
 
+void _editor_load_cell_to_input(editor_context* editor, workbook* wb);
+void _editor_store_cell_from_input(editor_context* editor, workbook* wb);
 

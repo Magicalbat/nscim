@@ -523,7 +523,7 @@ void _editor_scroll_center(workbook* wb) {
     }
 }
 
-void _editor_resize_width(workbook* wb, i32 change) {
+void _editor_resize_cell_width(workbook* wb, i32 change) {
     sheet_window* win = wb->active_win;
     sheet_buffer* sheet = wb_win_get_sheet(wb, win, true);
     i32 width = (i32)sheet_get_col_width(sheet, win->cursor_pos.col);
@@ -534,7 +534,7 @@ void _editor_resize_width(workbook* wb, i32 change) {
     sheet_set_col_width(sheet, win->cursor_pos.col, (u8)width);
 }
 
-void _editor_resize_height(workbook* wb, i32 change) {
+void _editor_resize_cell_height(workbook* wb, i32 change) {
     sheet_window* win = wb->active_win;
     sheet_buffer* sheet = wb_win_get_sheet(wb, win, true);
     i32 height = (i32)sheet_get_row_height(sheet, win->cursor_pos.row);

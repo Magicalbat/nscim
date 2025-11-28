@@ -37,7 +37,12 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb) {
             editor->mode == EDITOR_MODE_CMD
         );
 
-        if (capture_num && (cur_input >= '0' && cur_input <= '9')) {
+        if (
+            capture_num && (
+                (cur_input >= '1' && cur_input <= '9') || 
+                (cur_input == '0' && editor->flags & _EDITOR_FLAG_READING_NUM)
+            )
+        ) {
             if (
                 (editor->flags & _EDITOR_FLAG_READING_NUM) !=
                 _EDITOR_FLAG_READING_NUM

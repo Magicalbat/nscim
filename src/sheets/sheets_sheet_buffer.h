@@ -166,6 +166,8 @@ void sheet_set_cell_str(
     sheet_pos pos, string8 str
 );
 
+void sheet_clear_cell(workbook* wb, sheet_buffer* sheet, sheet_pos pos);
+
 u8 sheet_get_col_width(sheet_buffer* sheet, u32 col);
 
 void sheet_set_col_width(sheet_buffer* sheet, u32 col, u8 width);

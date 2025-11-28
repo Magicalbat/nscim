@@ -31,6 +31,13 @@ b32 _editor_do_normal(
                 _editor_move_block_horz(editor, wb, (i32)count); 
             } break;
 
+            case 'x': {
+                // This code will still work with an empty sheet
+                // without allocating anything
+                sheet_buffer* sheet = wb_get_active_sheet(wb, false);
+                sheet_clear_cell(wb, sheet, wb->active_win->cursor_pos);
+            } break;
+
             case WIN_INPUT_CTRL('e'): {
                 _editor_scroll_down(editor, wb, count); 
             } break;
@@ -59,22 +66,15 @@ b32 _editor_do_normal(
             } break;
 
             case 'i': {
-                sheet_window* win = wb->active_win;
-                sheet_buffer* sheet = wb_get_active_sheet(wb, false);
-
-                sheet_cell_ref cell = sheet_get_cell(
-                    wb, sheet, win->cursor_pos, false
-                );
-
-                u32 size = sheets_cell_to_chars(
-                    cell, editor->cell_input_buf,
-                    sizeof(editor->cell_input_buf)
-                );
-
-                editor->cell_input_size = size;
-                editor->cell_input_cursor = size;
-
+                _editor_load_cell_to_input(editor, wb);
+                editor->cell_input_cursor = editor->cell_input_size;
                 editor->mode = EDITOR_MODE_CELL_INSERT;
+            } break;
+
+            case 'e': {
+                _editor_load_cell_to_input(editor, wb);
+                editor->cell_input_cursor = editor->cell_input_size - 1;
+                editor->mode = EDITOR_MODE_CELL_EDIT;
             } break;
 
             // All of these begin multi-input actions
@@ -106,21 +106,19 @@ b32 _editor_do_normal(
             case 'r': {
                 switch (input) {
                     case 'h': {
-                        _editor_resize_width(wb, (i32)(-count));
+                        _editor_resize_cell_width(wb, (i32)(-count));
                     } break;
                     case 'j': {
-                        _editor_resize_height(wb, (i32)count);
+                        _editor_resize_cell_height(wb, (i32)count);
                     } break;
                     case 'k': {
-                        _editor_resize_height(wb, (i32)(-count));
+                        _editor_resize_cell_height(wb, (i32)(-count));
                     } break;
                     case 'l': {
-                        _editor_resize_width(wb, (i32)count);
+                        _editor_resize_cell_width(wb, (i32)count);
                     } break;
                 }
             } break;
-
-
 
             // Window Commands 
             case WIN_INPUT_CTRL('w'): {

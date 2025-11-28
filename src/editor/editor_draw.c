@@ -27,6 +27,8 @@ void _editor_draw_sheet_win(
         .c = ' '
     };
 
+    sheet_cell_ref cur_cell = sheet_get_cell(wb, sheet, win->cursor_pos, false);
+
     // First status row
     {
         for (u32 i = 0; i < win->width; i++) {
@@ -63,6 +65,35 @@ void _editor_draw_sheet_win(
             buf->tiles[x + y * buf->width].c = cell_pos_chars[i];
         }
 
+        string8 type_str = { 0 };
+
+        switch (*cur_cell.type) {
+            case SHEET_CELL_TYPE_EMPTY: {
+                type_str = STR8_LIT(" (Empty)");
+            } break;
+
+            case SHEET_CELL_TYPE_NUM: {
+                type_str = STR8_LIT(" (Number)");
+            } break;
+
+            case SHEET_CELL_TYPE_STRING: {
+                type_str = STR8_LIT(" (String)");
+            } break;
+
+            case SHEET_CELL_TYPE_INVALID: {
+                type_str = STR8_LIT(" (Invalid)");
+            } break;
+        }
+
+        for (u32 i = 0; i < type_str.size; i++) {
+            u64 x = (u64)i + EDITOR_SHEET_NAME_PAD + name.size + cell_pos_size;
+
+            if (x >= win->width) { break; }
+
+            x += win->start_x;
+            buf->tiles[x + y * buf->width].c = type_str.str[i];
+        }
+
         y++;
     }
 
@@ -81,15 +112,14 @@ void _editor_draw_sheet_win(
     {
         if (cur_active && cell_mode) {
             cell_chars_size = MIN(editor->cell_input_size, sizeof(cell_chars));
-            memcpy( cell_chars, editor->cell_input_buf, cell_chars_size);
+            memcpy(cell_chars, editor->cell_input_buf, cell_chars_size);
 
             user_win->cursor_row = win->start_y + 1;
             user_win->cursor_col = win->start_x + EDITOR_SHEET_NAME_PAD +
                 editor->cell_input_cursor;
         } else {
-            sheet_cell_ref cell = sheet_get_cell(wb, sheet, win->cursor_pos, false);
             cell_chars_size = sheets_cell_to_chars(
-                cell, cell_chars, sizeof(cell_chars)
+                cur_cell, cell_chars, sizeof(cell_chars)
             );
         }
 
@@ -297,7 +327,7 @@ void editor_draw(window* user_win, editor_context* editor, workbook* wb) {
 
         case EDITOR_MODE_CELL_EDIT:
         case EDITOR_MODE_CELL_VISUAL: {
-            user_win->cursor_mode = WIN_CURSOR_MODE_BAR_STEADY;
+            user_win->cursor_mode = WIN_CURSOR_MODE_BLOCK_STEADY;
         } break;
 
         case EDITOR_MODE_CELL_INSERT:
