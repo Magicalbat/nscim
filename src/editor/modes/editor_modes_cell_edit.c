@@ -10,16 +10,31 @@ b32 _editor_do_cell_edit(
                 editor->mode = EDITOR_MODE_NORMAL;
             } break;
 
+            case 'x': {
+                _editor_input_delete(editor, editor->cell_input_cursor, count);
+
+                if (editor->cell_input_size == 0) {
+                    editor->cell_input_cursor = 0;
+                } else if (
+                    editor->cell_input_cursor > editor->cell_input_size - 1
+                ) {
+                    editor->cell_input_cursor = editor->cell_input_size - 1;
+                }
+            } break;
+
             case WIN_INPUT_ARROW_LEFT:
             case 'h': {
-                u32 move_size = MIN(editor->cell_input_cursor, count);
-                editor->cell_input_cursor -= move_size;
+                _editor_input_cursor_left(editor, count);
             } break;
 
             case WIN_INPUT_ARROW_DOWN:
             case '$':
             case 'j': {
-                editor->cell_input_cursor = editor->cell_input_size - 1;
+                if (editor->cell_input_size == 0) {
+                    editor->cell_input_cursor = 0;
+                } else {
+                    editor->cell_input_cursor = editor->cell_input_size - 1;
+                }
             } break;
 
             case WIN_INPUT_ARROW_UP:
@@ -30,11 +45,20 @@ b32 _editor_do_cell_edit(
 
             case WIN_INPUT_ARROW_RIGHT:
             case 'l': {
-                editor->cell_input_cursor += count;
+                _editor_input_cursor_right(editor, count, 1);
+            } break;
 
-                if (editor->cell_input_cursor > editor->cell_input_size - 1) {
-                    editor->cell_input_cursor = editor->cell_input_size - 1;
-                }
+            case WIN_INPUT_CTRL('h'): {
+                _editor_input_active_left(editor, wb, 1, 1);
+            } break;
+            case WIN_INPUT_CTRL('j'): {
+                _editor_input_active_down(editor, wb, 1, 1);
+            } break;
+            case WIN_INPUT_CTRL('k'): {
+                _editor_input_active_up(editor, wb, 1, 1);
+            } break;
+            case WIN_INPUT_CTRL('l'): {
+                _editor_input_active_right(editor, wb, 1, 1);
             } break;
 
             case 'i': {

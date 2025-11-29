@@ -66,14 +66,12 @@ b32 _editor_do_normal(
             } break;
 
             case 'i': {
-                _editor_load_cell_to_input(editor, wb);
-                editor->cell_input_cursor = editor->cell_input_size;
+                _editor_load_cell_to_input(editor, wb, 0);
                 editor->mode = EDITOR_MODE_CELL_INSERT;
             } break;
 
             case 'e': {
-                _editor_load_cell_to_input(editor, wb);
-                editor->cell_input_cursor = editor->cell_input_size - 1;
+                _editor_load_cell_to_input(editor, wb, 1);
                 editor->mode = EDITOR_MODE_CELL_EDIT;
             } break;
 

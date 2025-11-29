@@ -46,6 +46,28 @@ void _editor_scroll_center(workbook* wb);
 void _editor_resize_cell_width(workbook* wb, i32 change);
 void _editor_resize_cell_height(workbook* wb, i32 change);
 
-void _editor_load_cell_to_input(editor_context* editor, workbook* wb);
+void _editor_load_cell_to_input(
+    editor_context* editor, workbook* wb, u32 max_cursor_off
+);
 void _editor_store_cell_from_input(editor_context* editor, workbook* wb);
+
+void _editor_input_cursor_left(editor_context* editor, u32 n);
+void _editor_input_cursor_right(
+    editor_context* editor, u32 n, u32 max_cursor_off
+);
+
+void _editor_input_delete(editor_context* editor, u32 start, u32 n);
+
+void _editor_input_active_up(
+    editor_context* editor, workbook* wb, u32 n, u32 max_cursor_off
+);
+void _editor_input_active_down(
+    editor_context* editor, workbook* wb, u32 n, u32 max_cursor_off
+);
+void _editor_input_active_left(
+    editor_context* editor, workbook* wb, u32 n, u32 max_cursor_off
+);
+void _editor_input_active_right(
+    editor_context* editor, workbook* wb, u32 n, u32 max_cursor_off
+);
 
