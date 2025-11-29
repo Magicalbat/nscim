@@ -7,8 +7,8 @@ editor_context* editor_init(mem_arena* arena) {
     editor->count = 1;
 
     editor->colors = (editor_colors) {
-        .win_status_fg      = { { 255, 255, 255 } },
-        .win_status_bg      = { {  25,  30,  40 } },
+        .status_fg          = { { 255, 255, 255 } },
+        .status_bg          = { {  25,  30,  40 } },
         .cell_fg            = { { 255, 255, 255 } },
         .cell_bg            = { {  15,  18,  20 } },
         .inactive_cursor_fg = { {  15,  18,  20 } },

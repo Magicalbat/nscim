@@ -3,7 +3,7 @@
 #define EDITOR_MAX_CMD_STRLEN 4096
 
 #define EDITOR_INPUT_QUEUE_MAX 1024
-#define EDITOR_INPUT_MAX_RAW_SEQ 16
+#define EDITOR_INPUT_SEQ_MAX 32
 
 #define EDITOR_WIN_STATUS_ROWS_TOP 2
 #define EDITOR_WIN_STATUS_ROWS_BOTTOM 0
@@ -30,12 +30,12 @@ typedef enum {
 
      EDITOR_FLAG_SHOULD_QUIT = (1 << 0),
      EDITOR_FLAG_SHOULD_DRAW = (1 << 1),
-    _EDITOR_FLAG_READING_NUM = (1 << 2)
+    _EDITOR_FLAG_READING_NUM = (1 << 2),
 } editor_flags;
 
 typedef struct {
-    win_col win_status_fg;
-    win_col win_status_bg;
+    win_col status_fg;
+    win_col status_bg;
 
     win_col cell_fg;
     win_col cell_bg;
@@ -58,6 +58,7 @@ typedef struct {
     editor_colors colors;
     editor_settings settings;
 
+    sheet_pos motion_start;
     u32 count;
 
     u32 cmd_size;
@@ -72,11 +73,11 @@ typedef struct {
     u32 input_queue_end;
     u32 input_queue_size;
 
-    u32 raw_input_seq_size;
+    u32 cur_inputs_size;
 
     u32 flags;
 
-    win_input raw_input_seq[EDITOR_INPUT_MAX_RAW_SEQ];
+    win_input cur_inputs[EDITOR_INPUT_SEQ_MAX];
 
     u8 cmd_buf[EDITOR_MAX_CMD_STRLEN];
     u8 cell_input_buf[SHEET_MAX_STRLEN];

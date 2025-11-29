@@ -3,7 +3,7 @@ b32 _editor_do_cell_edit(
     editor_context* editor, workbook* wb,
     win_input input, u32 count
 ) {
-    if (editor->raw_input_seq_size == 0) {
+    if (editor->cur_inputs_size == 0) {
         switch (input) {
             case '\x1b': {
                 _editor_store_cell_from_input(editor, wb);

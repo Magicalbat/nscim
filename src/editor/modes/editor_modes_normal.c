@@ -3,7 +3,7 @@ b32 _editor_do_normal(
     editor_context* editor, workbook* wb,
     win_input input, u32 count
 ) {
-    if (editor->raw_input_seq_size == 0) {
+    if (editor->cur_inputs_size == 0) {
         switch (input) {
             case WIN_INPUT_ARROW_LEFT:
             case 'h': { _editor_cursor_left(editor, wb, count); } break;
@@ -82,8 +82,8 @@ b32 _editor_do_normal(
                 return false;
             } break;
         }
-    } else if (editor->raw_input_seq_size == 1) {
-        switch (editor->raw_input_seq[0]) {
+    } else if (editor->cur_inputs_size == 1) {
+        switch (editor->cur_inputs[0]) {
             case 'z': {
                 switch (input) {
                     case WIN_INPUT_ARROW_LEFT:

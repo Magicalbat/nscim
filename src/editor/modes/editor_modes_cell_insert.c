@@ -5,7 +5,7 @@ b32 _editor_do_cell_insert(
 ) {
     UNUSED(count);
 
-    if (editor->raw_input_seq_size == 0) {
+    if (editor->cur_inputs_size == 0) {
         if (
             editor->cell_input_size < SHEET_MAX_STRLEN &&
             input >= ' ' && input <= '~'

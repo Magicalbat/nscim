@@ -1,6 +1,9 @@
+
 #define EDITOR_STATUS_ROWS_TOP 0
 #define EDITOR_STATUS_ROWS_BOTTOM 1
 #define EDITOR_STATUS_ROWS (EDITOR_STATUS_ROWS_TOP + EDITOR_STATUS_ROWS_BOTTOM)
+
+#define EDITOR_STATUS_PAD 2
 
 #define EDITOR_SHEET_NAME_PAD 2
 
@@ -22,8 +25,8 @@ void _editor_draw_sheet_win(
     }
 
     win_tile status_tile = {
-        .fg = editor->colors.win_status_fg,
-        .bg = editor->colors.win_status_bg,
+        .fg = editor->colors.status_fg,
+        .bg = editor->colors.status_bg,
         .c = ' '
     };
 
@@ -310,15 +313,26 @@ void _editor_draw_sheet_win(
     }
 }
 
+static string8 _editor_mode_names[_EDITOR_MODE_COUNT] = {
+    [EDITOR_MODE_NULL] = STR8_LIT("Null"),
+
+    [EDITOR_MODE_NORMAL] = STR8_LIT("Normal"),
+    [EDITOR_MODE_VISUAL] = STR8_LIT("Visual"),
+
+    [EDITOR_MODE_CELL_EDIT] = STR8_LIT("Cell Edit"),
+    [EDITOR_MODE_CELL_VISUAL] = STR8_LIT("Cell Visual"),
+    [EDITOR_MODE_CELL_INSERT] = STR8_LIT("Cell Insert"),
+
+    [EDITOR_MODE_CMD] = STR8_LIT("Command"),
+};
+
 void editor_draw(window* user_win, editor_context* editor, workbook* wb) {
     win_buffer* buf = &user_win->back_buf;
 
     if (buf->height < EDITOR_STATUS_ROWS) {
         return;
     }
-
-    // TODO: draw status rows
-
+    
     switch (editor->mode) {
         case EDITOR_MODE_NORMAL:
         case EDITOR_MODE_VISUAL: {
@@ -341,6 +355,25 @@ void editor_draw(window* user_win, editor_context* editor, workbook* wb) {
     }
 
     wb_win_compute_sizes(wb, buf->width, buf->height - EDITOR_STATUS_ROWS);
+    
+    win_tile status_tile = {
+        .fg = editor->colors.status_fg,
+        .bg = editor->colors.status_bg,
+        .c = ' '
+    };
+
+    u32 status_offset = (buf->height - 1) * buf->width;
+    for (u32 x = 0; x < buf->width; x++) {
+        buf->tiles[x + status_offset] = status_tile;
+    }
+
+    string8 mode_str = _editor_mode_names[editor->mode];
+    for (
+        u32 i = 0; i + EDITOR_STATUS_PAD < buf->width &&
+        i < mode_str.size; i++
+    ) {
+        buf->tiles[i + EDITOR_STATUS_PAD + status_offset].c = mode_str.str[i];
+    }
 
     mem_arena_temp scratch = arena_scratch_get(NULL, 0);
 
