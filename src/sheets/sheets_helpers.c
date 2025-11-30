@@ -196,3 +196,22 @@ u32 sheets_cell_to_chars(sheet_cell_ref cell, u8* chars, u32 max_chars) {
     }
 }
 
+sheet_range sheets_fix_range(sheet_range in_range) {
+    sheet_range range = {
+        {
+            MIN(in_range.start.row, in_range.end.row),
+            MIN(in_range.start.col, in_range.end.col),
+        }, {
+            MAX(in_range.start.row, in_range.end.row),
+            MAX(in_range.start.col, in_range.end.col),
+        },
+    };
+
+    range.start.row = MIN(SHEET_MAX_ROWS - 1, range.start.row);
+    range.start.col = MIN(SHEET_MAX_COLS - 1, range.start.col);
+    range.end.row = MIN(SHEET_MAX_ROWS - 1, range.end.row);
+    range.end.col = MIN(SHEET_MAX_COLS - 1, range.end.col);
+
+    return range;
+}
+

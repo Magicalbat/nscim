@@ -3,6 +3,12 @@
 // false when it requires more input to finish
 typedef b32 (_editor_do_mode_func)(editor_context*, workbook*, win_input, u32);
 
+typedef enum {
+    _EDITOR_SERIES_INFER = 0,
+    _EDITOR_SERIES_LINEAR,
+    _EDITOR_SERIES_EXPONENTIAL,
+} _editor_series_mode;
+
 b32 _editor_do_normal(editor_context*, workbook*, win_input, u32);
 b32 _editor_do_visual(editor_context*, workbook*, win_input, u32);
 b32 _editor_do_cell_edit(editor_context*, workbook*, win_input, u32);
@@ -53,7 +59,9 @@ void _editor_scroll_center(workbook* wb);
 void _editor_resize_cell_width(workbook* wb, i32 change);
 void _editor_resize_cell_height(workbook* wb, i32 change);
 
-void _editor_delete_range(workbook* wb, sheet_range range);
+void _editor_fill_series(
+    workbook* wb, sheet_range range, _editor_series_mode series_mdoe
+);
 
 void _editor_load_cell_to_input(
     editor_context* editor, workbook* wb, u32 max_cursor_off

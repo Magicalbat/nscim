@@ -5,6 +5,28 @@ b32 _editor_do_normal(
 ) {
     u32 consume_motion = false;
     sheet_pos init_cursor = wb->active_win->cursor_pos;
+
+    // Checking if the same inputs were pressed twice, execute action if so
+    // This allows for dd to delete the current cell or
+    // yy to yank the current cell, etc.
+    if (
+        editor->flags & _EDITOR_FLAG_PENDING_MOTION && 
+        editor->cur_inputs_size == editor->pending_action_inputs_size
+    ) {
+        b32 same_input = true;
+
+        for (u32 i = 0; i < editor->cur_inputs_size; i++) {
+            if (editor->cur_inputs[i] != editor->pending_action_inputs[i]) {
+                same_input = false;
+                break;
+            }
+        }
+
+        if (same_input) {
+            consume_motion = true;
+            goto execute_motion_action;
+        }
+    }
     
     if (editor->cur_inputs_size == 0) {
         switch (input) {
@@ -33,19 +55,7 @@ b32 _editor_do_normal(
             case 'L': {
                 _editor_move_block_horz(editor, wb, (i32)count); 
             } break;
-
-            case 'd': {
-                if (editor->flags & _EDITOR_FLAG_PENDING_MOTION) {
-                    sheet_buffer* sheet = wb_get_active_sheet(wb, false);
-                    // Clear cell will do nothing on an empty sheet
-                    sheet_clear_cell(wb, sheet, wb->active_win->cursor_pos);
-
-                    consume_motion = true;
-                } else {
-                    _editor_await_motion(editor, input);
-                }
-            } break;
-
+            
             case 'x': {
                 sheet_buffer* sheet = wb_get_active_sheet(wb, false);
                 // Clear cell will do nothing on an empty sheet
@@ -88,6 +98,12 @@ b32 _editor_do_normal(
                 _editor_load_cell_to_input(editor, wb, 1);
                 editor->mode = EDITOR_MODE_CELL_EDIT;
             } break;
+
+            case 'f':
+            case 'd': {
+                _editor_await_motion(editor, input);
+            } break;
+
 
             // All of these begin multi-input actions
             case 'z':
@@ -206,6 +222,8 @@ b32 _editor_do_normal(
         return true;
     }
 
+execute_motion_action:
+
     sheet_pos cur_cursor = wb->active_win->cursor_pos;
 
     if (
@@ -225,6 +243,9 @@ b32 _editor_do_normal(
                 sheet_clear_range(
                     wb, wb_get_active_sheet(wb, false), motion_range
                 );
+            } break;
+            case 'f': {
+                _editor_fill_series(wb, motion_range, _EDITOR_SERIES_INFER);
             } break;
         }
     }

@@ -691,3 +691,45 @@ void _editor_resize_cell_height(workbook* wb, i32 change) {
     sheet_set_row_height(sheet, win->cursor_pos.row, (u8)height);
 }
 
+void _editor_fill_series(
+    workbook* wb, sheet_range in_range, _editor_series_mode series_mdoe
+) {
+    sheet_buffer* sheet = wb_get_active_sheet(wb, true);
+
+    sheet_range range = sheets_fix_range(in_range);
+
+    if (range.start.row != range.end.row && range.start.col != range.end.col) {
+        // TODO: some sort of error info?
+        return;
+    }
+
+    f64 cur_num = 0.0f;
+    f64 step = 1.0f;
+
+    sheet_chunk_pos chunk_pos = {
+        range.start.row / SHEET_CHUNK_ROWS,
+        range.start.col / SHEET_CHUNK_COLS,
+    };
+    sheet_chunk* chunk = sheet_get_chunk(wb, sheet, chunk_pos, true);
+
+    b32 vert = range.start.col == range.end.col;
+    if (vert) {
+        u32 col_offset = (range.start.col % SHEET_CHUNK_COLS) * SHEET_CHUNK_ROWS;
+        
+        for (u32 row = range.start.row; row <= range.end.row; row++) {
+            u32 index = (row % SHEET_CHUNK_ROWS) + col_offset;
+
+            chunk->types[index] = SHEET_CELL_TYPE_NUM;
+            chunk->nums[index] = cur_num;
+
+            cur_num += step;
+
+            if ((row + 1) / SHEET_CHUNK_ROWS != chunk_pos.row) {
+                chunk_pos.row++;
+                chunk = sheet_get_chunk(wb, sheet, chunk_pos, true);
+            }
+        }
+    } else {
+    }
+}
+

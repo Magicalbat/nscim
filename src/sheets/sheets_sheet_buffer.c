@@ -270,6 +270,10 @@ sheet_chunk* sheet_get_chunk(
         return NULL;
     }
 
+    if (chunk_pos.row >= SHEET_CHUNKS_Y || chunk_pos.col >= SHEET_CHUNKS_X) {
+        return NULL;
+    }
+
     if (
         sheet->last_chunk != NULL &&
         sheet->last_chunk->pos.row == chunk_pos.row &&
@@ -321,6 +325,9 @@ sheet_chunk_arr sheet_get_range(
     u32 min_cell_col = MIN(range.start.col, range.end.col);
     u32 max_cell_row = MAX(range.start.row, range.end.row);
     u32 max_cell_col = MAX(range.start.col, range.end.col);
+
+    max_cell_row = MAX(SHEET_MAX_ROWS - 1, max_cell_row);
+    max_cell_col = MAX(SHEET_MAX_COLS - 1, max_cell_col);
 
     sheet_chunk_pos min_chunk_pos = {
         min_cell_row / SHEET_CHUNK_ROWS,
@@ -499,18 +506,10 @@ void sheet_clear_cell(workbook* wb, sheet_buffer* sheet, sheet_pos pos) {
     *cell.type = SHEET_CELL_TYPE_EMPTY;
 }
 
-void sheet_clear_range(workbook* wb, sheet_buffer* sheet, sheet_range raw_range) {
+void sheet_clear_range(workbook* wb, sheet_buffer* sheet, sheet_range in_range) {
     if (sheet->map_capacity == 0) { return; }
 
-    sheet_range range = {
-        {
-            MIN(raw_range.start.row, raw_range.end.row),
-            MIN(raw_range.start.col, raw_range.end.col),
-        }, {
-            MAX(raw_range.start.row, raw_range.end.row),
-            MAX(raw_range.start.col, raw_range.end.col),
-        },
-    };
+    sheet_range range = sheets_fix_range(in_range);
 
     sheet_chunk_pos start_chunk = {
         range.start.row / SHEET_CHUNK_ROWS,
