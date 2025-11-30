@@ -24,6 +24,10 @@ void _editor_cursor_right(editor_context* editor, workbook* wb, u32 n);
 void _editor_move_block_vert(editor_context* editor, workbook* wb, i32 diff);
 void _editor_move_block_horz(editor_context* editor, workbook* wb, i32 diff);
 
+// Moves until the cells next to the current on are empty
+void _editor_move_along_vert(editor_context* editor, workbook* wb, i32 dir);
+void _editor_move_along_horz(editor_context* editor, workbook* wb, i32 dir);
+
 // Moves the cursor until it has cleared some multiple of
 // the window's width or height
 void _editor_move_win_multiple_vert(

@@ -78,6 +78,7 @@ b32 _editor_do_normal(
             // All of these begin multi-input actions
             case 'z':
             case 'r':
+            case 'a':
             case WIN_INPUT_CTRL('w'): {
                 return false;
             } break;
@@ -103,17 +104,48 @@ b32 _editor_do_normal(
 
             case 'r': {
                 switch (input) {
+                    case WIN_INPUT_ARROW_LEFT:
                     case 'h': {
                         _editor_resize_cell_width(wb, (i32)(-count));
                     } break;
+
+                    case WIN_INPUT_ARROW_DOWN:
                     case 'j': {
                         _editor_resize_cell_height(wb, (i32)count);
                     } break;
+
+                    case WIN_INPUT_ARROW_UP:
                     case 'k': {
                         _editor_resize_cell_height(wb, (i32)(-count));
                     } break;
+                        
+                    case WIN_INPUT_ARROW_RIGHT:
                     case 'l': {
                         _editor_resize_cell_width(wb, (i32)count);
+                    } break;
+                }
+            } break;
+
+            case 'a': {
+                switch (input) {
+                    case WIN_INPUT_ARROW_LEFT:
+                    case 'h': {
+                        _editor_move_along_horz(editor, wb, -1);
+                    } break;
+
+                    case WIN_INPUT_ARROW_DOWN:
+                    case 'j': {
+                        _editor_move_along_vert(editor, wb, +1);
+                    } break;
+
+                    case WIN_INPUT_ARROW_UP:
+                    case 'k': {
+                        _editor_move_along_vert(editor, wb, -1);
+                    } break;
+                        
+                    case WIN_INPUT_ARROW_RIGHT:
+                    case 'l': {
+                        _editor_move_along_horz(editor, wb, +1);
                     } break;
                 }
             } break;

@@ -412,6 +412,32 @@ return_empty:
     return _sb_info.empty_ref;
 }
 
+b32 sheet_is_cell_empty(sheet_buffer* sheet, sheet_pos cell_pos) {
+    if (cell_pos.row >= SHEET_MAX_ROWS || cell_pos.col >= SHEET_MAX_COLS) {
+        return true;
+    }
+
+    sheet_chunk_pos chunk_pos = {
+        cell_pos.row / SHEET_CHUNK_ROWS,
+        cell_pos.col / SHEET_CHUNK_COLS
+    };
+
+    sheet_chunk* chunk = NULL;
+
+    chunk = sheet_get_chunk(NULL, sheet, chunk_pos, false);
+
+    if (chunk == NULL) {
+        return true;
+    }
+
+    u32 local_row = cell_pos.row % SHEET_CHUNK_ROWS;
+    u32 local_col = cell_pos.col % SHEET_CHUNK_COLS;
+    u32 index = local_row + local_col * SHEET_CHUNK_ROWS;
+
+    return chunk->types[index] == SHEET_CELL_TYPE_EMPTY || 
+        chunk->types[index] == SHEET_CELL_TYPE_INVALID;
+}
+
 void sheet_set_cell_num(
     workbook* wb, sheet_buffer* sheet,
     sheet_pos pos, f64 num

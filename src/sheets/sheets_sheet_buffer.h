@@ -156,6 +156,8 @@ sheet_cell_ref sheet_get_cell(
     sheet_pos cell_pos, b32 create_if_empty
 );
 
+b32 sheet_is_cell_empty(sheet_buffer* sheet, sheet_pos cell_pos);
+
 void sheet_set_cell_num(
     workbook* wb, sheet_buffer* sheet,
     sheet_pos pos, f64 num

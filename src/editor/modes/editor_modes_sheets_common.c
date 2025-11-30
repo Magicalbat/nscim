@@ -352,6 +352,152 @@ void _editor_move_block_horz(editor_context* editor, workbook* wb, i32 diff) {
     }
 }
 
+void _editor_move_along_vert(editor_context* editor, workbook* wb, i32 dir) {
+    sheet_window* win = wb->active_win;
+    sheet_buffer* sheet = wb_get_active_sheet(wb, false);
+
+    if (
+        (win->cursor_pos.row == 0 && dir == -1) ||
+        (win->cursor_pos.row == SHEET_MAX_ROWS - 1 && dir == 1)
+    ) {
+        return;
+    }
+
+    b8 consider_left = win->cursor_pos.col > 0;
+    b8 consider_right = win->cursor_pos.col < SHEET_MAX_COLS - 1;
+
+    i32 row = (i32)win->cursor_pos.row;
+    u32 col = win->cursor_pos.col;
+
+    if (consider_left) {
+        consider_left &= !sheet_is_cell_empty(
+            sheet, (sheet_pos){ (u32)row, col - 1 }
+        );
+        consider_left &= !sheet_is_cell_empty(
+            sheet, (sheet_pos){ (u32)(row + dir), col - 1 }
+        );
+    }
+
+    if (consider_right) {
+        consider_right &= !sheet_is_cell_empty(
+            sheet, (sheet_pos){ (u32)row, col + 1 }
+        );
+        consider_right &= !sheet_is_cell_empty(
+            sheet, (sheet_pos){ (u32)(row + dir), col + 1 }
+        );
+    }
+
+    b8 last_empty = false;
+
+    for (;
+        row >= 0 && row <= (i32)SHEET_MAX_ROWS - 1 &&
+        (consider_left || consider_right); row += dir
+    ){
+        if (
+            consider_left &&
+            sheet_is_cell_empty(sheet, (sheet_pos){ (u32)row, col - 1})
+        ) {
+            last_empty = true;
+            break;
+        }
+
+        if (
+            consider_right &&
+            sheet_is_cell_empty(sheet, (sheet_pos){ (u32)row, col + 1})
+        ) {
+            last_empty = true;
+            break;
+        }
+    }
+
+    if (last_empty) {
+        row -= dir;
+    }
+
+    u32 final_row = (u32)CLAMP(row, 0, (i32)SHEET_MAX_ROWS - 1);
+
+    if (final_row != win->cursor_pos.row) {
+        if (final_row < win->cursor_pos.row) {
+            _editor_cursor_up(editor, wb, win->cursor_pos.row - final_row);
+        } else {
+            _editor_cursor_down(editor, wb, final_row - win->cursor_pos.row);
+        }
+    }
+}
+
+void _editor_move_along_horz(editor_context* editor, workbook* wb, i32 dir) {
+    sheet_window* win = wb->active_win;
+    sheet_buffer* sheet = wb_get_active_sheet(wb, false);
+
+    if (
+        (win->cursor_pos.col == 0 && dir == -1) ||
+        (win->cursor_pos.col == SHEET_MAX_COLS - 1 && dir == 1)
+    ) {
+        return;
+    }
+
+    b8 consider_top = win->cursor_pos.row > 0;
+    b8 consider_bottom = win->cursor_pos.row < SHEET_MAX_ROWS - 1;
+
+    u32 row = win->cursor_pos.row;
+    i32 col = (i32)win->cursor_pos.col;
+
+    if (consider_top) {
+        consider_top &= !sheet_is_cell_empty(
+            sheet, (sheet_pos){ row - 1, (u32)col }
+        );
+        consider_top &= !sheet_is_cell_empty(
+            sheet, (sheet_pos){ row - 1, (u32)(col + dir) }
+        );
+    }
+
+    if (consider_bottom) {
+        consider_bottom &= !sheet_is_cell_empty(
+            sheet, (sheet_pos){ row + 1, (u32)col }
+        );
+        consider_bottom &= !sheet_is_cell_empty(
+            sheet, (sheet_pos){ row + 1, (u32)(col + dir) }
+        );
+    }
+
+    b8 last_empty = false;
+
+    for (;
+        col >= 0 && col <= (i32)SHEET_MAX_COLS - 1 &&
+        (consider_top || consider_bottom); col += dir
+    ){
+        if (
+            consider_top &&
+            sheet_is_cell_empty(sheet, (sheet_pos){ row - 1, (u32)col })
+        ) {
+            last_empty = true;
+            break;
+        }
+
+        if (
+            consider_bottom &&
+            sheet_is_cell_empty(sheet, (sheet_pos){ row + 1, (u32)col })
+        ) {
+            last_empty = true;
+            break;
+        }
+    }
+
+    if (last_empty) {
+        col -= dir;
+    }
+
+    u32 final_col = (u32)CLAMP(col, 0, (i32)SHEET_MAX_COLS - 1);
+
+    if (final_col != win->cursor_pos.col) {
+        if (final_col < win->cursor_pos.col) {
+            _editor_cursor_left(editor, wb, win->cursor_pos.col - final_col);
+        } else {
+            _editor_cursor_right(editor, wb, final_col - win->cursor_pos.col);
+        }
+    }
+}
+
 void _editor_move_win_multiple_vert(
     editor_context* editor, workbook* wb, f32 multiple
 ) {

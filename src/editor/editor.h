@@ -58,7 +58,6 @@ typedef struct {
     editor_colors colors;
     editor_settings settings;
 
-    sheet_pos motion_start;
     u32 count;
 
     u32 cmd_size;
