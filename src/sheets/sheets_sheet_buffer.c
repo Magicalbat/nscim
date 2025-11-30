@@ -499,6 +499,72 @@ void sheet_clear_cell(workbook* wb, sheet_buffer* sheet, sheet_pos pos) {
     *cell.type = SHEET_CELL_TYPE_EMPTY;
 }
 
+void sheet_clear_range(workbook* wb, sheet_buffer* sheet, sheet_range raw_range) {
+    if (sheet->map_capacity == 0) { return; }
+
+    sheet_range range = {
+        {
+            MIN(raw_range.start.row, raw_range.end.row),
+            MIN(raw_range.start.col, raw_range.end.col),
+        }, {
+            MAX(raw_range.start.row, raw_range.end.row),
+            MAX(raw_range.start.col, raw_range.end.col),
+        },
+    };
+
+    sheet_chunk_pos start_chunk = {
+        range.start.row / SHEET_CHUNK_ROWS,
+        range.start.col / SHEET_CHUNK_COLS,
+    };
+
+    sheet_chunk_pos end_chunk = {
+        range.end.row / SHEET_CHUNK_ROWS,
+        range.end.col / SHEET_CHUNK_COLS,
+    };
+
+    for (u32 c_col = start_chunk.col; c_col <= end_chunk.col; c_col++) {
+        for (u32 c_row = start_chunk.row; c_row <= end_chunk.row; c_row++) {
+            sheet_chunk* chunk = sheet_get_chunk(
+                wb, sheet, (sheet_chunk_pos){ c_row, c_col }, false
+            );
+
+            if (chunk == NULL) { continue; }
+
+            // Local row and col
+            u32 l_start_row = 0;
+            u32 l_start_col = 0;
+            u32 l_end_row = SHEET_CHUNK_ROWS - 1;
+            u32 l_end_col = SHEET_CHUNK_COLS - 1;
+
+            if (c_row == start_chunk.row) {
+                l_start_row = range.start.row % SHEET_CHUNK_ROWS;
+            }
+            if (c_row == end_chunk.row) {
+                l_end_row = range.end.row % SHEET_CHUNK_ROWS;
+            }
+            if (c_col == start_chunk.col) {
+                l_start_col = range.start.col % SHEET_CHUNK_COLS;
+            }
+            if (c_col == end_chunk.col) {
+                l_end_col = range.end.col % SHEET_CHUNK_ROWS;
+            }
+
+            for (u32 l_col = l_start_col; l_col <= l_end_col; l_col++) {
+                for (u32 l_row = l_start_row; l_row <= l_end_row; l_row++) {
+                    u32 index = l_row + l_col * SHEET_CHUNK_ROWS;
+
+                    if (chunk->types[index] == SHEET_CELL_TYPE_STRING) {
+                        wb_free_string(wb, chunk->strings[index]);
+                        chunk->strings[index] = NULL;
+                    }
+
+                    chunk->types[index] = SHEET_CELL_TYPE_EMPTY;
+                }
+            }
+        }
+    }
+}
+
 #define _SB_GET_PAGE_BIT(field, byte_idx) \
     ((field[(byte_idx) / (_sb_info.page_size * sizeof(u64) * 8)] >> \
      (((byte_idx) / _sb_info.page_size) % (sizeof(u64) * 8))) & 0b1)

@@ -28,9 +28,10 @@ typedef enum {
 typedef enum {
     EDITOR_FLAG_NONE = 0,
 
-     EDITOR_FLAG_SHOULD_QUIT = (1 << 0),
-     EDITOR_FLAG_SHOULD_DRAW = (1 << 1),
-    _EDITOR_FLAG_READING_NUM = (1 << 2),
+     EDITOR_FLAG_SHOULD_QUIT    = (1 << 0),
+     EDITOR_FLAG_SHOULD_DRAW    = (1 << 1),
+    _EDITOR_FLAG_READING_NUM    = (1 << 2),
+    _EDITOR_FLAG_PENDING_MOTION = (1 << 3),
 } editor_flags;
 
 typedef struct {
@@ -58,6 +59,9 @@ typedef struct {
     editor_colors colors;
     editor_settings settings;
 
+    sheet_pos motion_start;
+    u32 pending_action_count;
+
     u32 count;
 
     u32 cmd_size;
@@ -73,10 +77,12 @@ typedef struct {
     u32 input_queue_size;
 
     u32 cur_inputs_size;
+    u32 pending_action_inputs_size;
 
     u32 flags;
 
     win_input cur_inputs[EDITOR_INPUT_SEQ_MAX];
+    win_input pending_action_inputs[EDITOR_INPUT_SEQ_MAX];
 
     u8 cmd_buf[EDITOR_MAX_CMD_STRLEN];
     u8 cell_input_buf[SHEET_MAX_STRLEN];

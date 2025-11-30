@@ -10,6 +10,9 @@ b32 _editor_do_cell_visual(editor_context*, workbook*, win_input, u32);
 b32 _editor_do_cell_insert(editor_context*, workbook*, win_input, u32);
 b32 _editor_do_cmd(editor_context*, workbook*, win_input, u32);
 
+void _editor_await_motion(editor_context* editor, win_input cur_input);
+void _editor_consume_motion(editor_context* editor);
+
 // These functions perform bounds checking and make sure that
 // the cursor remains within the window's scroll range
 void _editor_cursor_up(editor_context* editor, workbook* wb, u32 n);
@@ -49,6 +52,8 @@ void _editor_scroll_center(workbook* wb);
 
 void _editor_resize_cell_width(workbook* wb, i32 change);
 void _editor_resize_cell_height(workbook* wb, i32 change);
+
+void _editor_delete_range(workbook* wb, sheet_range range);
 
 void _editor_load_cell_to_input(
     editor_context* editor, workbook* wb, u32 max_cursor_off

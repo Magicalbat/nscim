@@ -3,6 +3,9 @@ b32 _editor_do_normal(
     editor_context* editor, workbook* wb,
     win_input input, u32 count
 ) {
+    u32 consume_motion = false;
+    sheet_pos init_cursor = wb->active_win->cursor_pos;
+    
     if (editor->cur_inputs_size == 0) {
         switch (input) {
             case WIN_INPUT_ARROW_LEFT:
@@ -31,10 +34,21 @@ b32 _editor_do_normal(
                 _editor_move_block_horz(editor, wb, (i32)count); 
             } break;
 
+            case 'd': {
+                if (editor->flags & _EDITOR_FLAG_PENDING_MOTION) {
+                    sheet_buffer* sheet = wb_get_active_sheet(wb, false);
+                    // Clear cell will do nothing on an empty sheet
+                    sheet_clear_cell(wb, sheet, wb->active_win->cursor_pos);
+
+                    consume_motion = true;
+                } else {
+                    _editor_await_motion(editor, input);
+                }
+            } break;
+
             case 'x': {
-                // This code will still work with an empty sheet
-                // without allocating anything
                 sheet_buffer* sheet = wb_get_active_sheet(wb, false);
+                // Clear cell will do nothing on an empty sheet
                 sheet_clear_cell(wb, sheet, wb->active_win->cursor_pos);
             } break;
 
@@ -184,6 +198,38 @@ b32 _editor_do_normal(
             } break;
         }
     }
+
+    if (
+        (editor->flags & _EDITOR_FLAG_PENDING_MOTION) !=
+        _EDITOR_FLAG_PENDING_MOTION
+    ) {
+        return true;
+    }
+
+    sheet_pos cur_cursor = wb->active_win->cursor_pos;
+
+    if (
+        init_cursor.row != cur_cursor.row ||
+        init_cursor.col != cur_cursor.col
+    ) {
+        consume_motion = true;
+    }
+
+    if (!consume_motion) { return true; }
+
+    sheet_range motion_range = { init_cursor, cur_cursor };
+
+    if (editor->pending_action_inputs_size == 1) {
+        switch (editor->pending_action_inputs[0]) {
+            case 'd': {
+                sheet_clear_range(
+                    wb, wb_get_active_sheet(wb, false), motion_range
+                );
+            } break;
+        }
+    }
+
+    _editor_consume_motion(editor);
 
     return true;
 }

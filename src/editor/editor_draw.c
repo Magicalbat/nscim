@@ -71,6 +71,7 @@ void _editor_draw_sheet_win(
         string8 type_str = { 0 };
 
         switch (*cur_cell.type) {
+            case SHEET_CELL_TYPE_INVALID:
             case SHEET_CELL_TYPE_EMPTY: {
                 type_str = STR8_LIT(" (Empty)");
             } break;
@@ -81,10 +82,6 @@ void _editor_draw_sheet_win(
 
             case SHEET_CELL_TYPE_STRING: {
                 type_str = STR8_LIT(" (String)");
-            } break;
-
-            case SHEET_CELL_TYPE_INVALID: {
-                type_str = STR8_LIT(" (Invalid)");
             } break;
         }
 
