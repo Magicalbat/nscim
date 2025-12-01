@@ -9,14 +9,27 @@ b32 _editor_do_normal(
     // Checking if the same inputs were pressed twice, execute action if so
     // This allows for dd to delete the current cell or
     // yy to yank the current cell, etc.
+    u32 next_inputs_size = editor->cur_inputs_size;
+    if (next_inputs_size < EDITOR_INPUT_SEQ_MAX) { next_inputs_size++; };
+
     if (
         editor->flags & _EDITOR_FLAG_PENDING_MOTION && 
-        editor->cur_inputs_size == editor->pending_action_inputs_size
+        next_inputs_size == editor->pending_action_inputs_size
     ) {
         b32 same_input = true;
 
-        for (u32 i = 0; i < editor->cur_inputs_size; i++) {
-            if (editor->cur_inputs[i] != editor->pending_action_inputs[i]) {
+        win_input next_inputs[EDITOR_INPUT_SEQ_MAX] = { };
+        memcpy(
+            next_inputs, editor->cur_inputs,
+            sizeof(win_input) * editor->cur_inputs_size
+        );
+
+        if (next_inputs_size <= EDITOR_INPUT_SEQ_MAX) {
+            next_inputs[next_inputs_size - 1] = input;
+        }
+
+        for (u32 i = 0; i < next_inputs_size; i++) {
+            if (next_inputs[i] != editor->pending_action_inputs[i]) {
                 same_input = false;
                 break;
             }
@@ -102,6 +115,7 @@ b32 _editor_do_normal(
             case 'f':
             case 'd': {
                 _editor_await_motion(editor, input);
+                return true;
             } break;
 
 

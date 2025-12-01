@@ -99,8 +99,11 @@ typedef struct sheet_chunk {
 
     // Cell data, all stored column major
     sheet_cell_type types[SHEET_CHUNK_SIZE];
-    f64 nums[SHEET_CHUNK_SIZE];
-    sheet_string* strings[SHEET_CHUNK_SIZE];
+
+    union {
+        f64 nums[SHEET_CHUNK_SIZE];
+        sheet_string* strings[SHEET_CHUNK_SIZE];
+    };
 } sheet_chunk;
 
 typedef struct {
