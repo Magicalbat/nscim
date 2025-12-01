@@ -5,7 +5,7 @@ void _editor_load_cell_to_input(
     sheet_window* win = wb->active_win;
     sheet_buffer* sheet = wb_get_active_sheet(wb, false);
 
-    sheet_cell_ref cell = sheet_get_cell(wb, sheet, win->cursor_pos, false);
+    sheet_cell_view cell = sheet_get_cell_view(wb, sheet, win->cursor_pos);
 
     u32 size = sheets_cell_to_chars(
         cell, editor->cell_input_buf,

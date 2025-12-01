@@ -42,15 +42,6 @@ static struct {
     u64 siphash_k0;
     u64 siphash_k1;
 
-    // Used to create empty `sheet_cell_ref` structs with valid pointers
-    struct {
-        sheet_cell_type type;
-        f64 num;
-        sheet_string* str;
-    } empty_cell;
-
-    sheet_cell_ref empty_ref;
-
     b32 initialized;
 } _sb_info = { 0 };
 
@@ -97,16 +88,6 @@ static void _sb_init_info(void) {
 
     _sb_info.siphash_k0 = ((u64)prng_rand() << 32) | (u64)prng_rand();
     _sb_info.siphash_k1 = ((u64)prng_rand() << 32) | (u64)prng_rand();
-
-    _sb_info.empty_cell.type = SHEET_CELL_TYPE_INVALID;
-    _sb_info.empty_cell.num = 0.0;
-    _sb_info.empty_cell.str = NULL;
-
-    _sb_info.empty_ref = (sheet_cell_ref){
-        .type = &_sb_info.empty_cell.type,
-        .num = &_sb_info.empty_cell.num,
-        .str = &_sb_info.empty_cell.str,
-    };
 
     _sb_info.initialized = true;
 }
@@ -264,7 +245,6 @@ sheet_chunk* sheet_get_chunk(
     workbook* wb, sheet_buffer* sheet,
     sheet_chunk_pos chunk_pos, b32 create_if_empty
 ) {
-
     // This is the empty sheet
     if (sheet->map_capacity == 0) {
         return NULL;
@@ -315,6 +295,22 @@ sheet_chunk* sheet_get_chunk(
     sheet->last_chunk = chunk;
 
     return chunk;
+}
+
+sheet_chunk* sheet_get_cells_chunk(
+    workbook* wb, sheet_buffer* sheet,
+    sheet_pos pos, b32 create_if_empty
+) {
+    if (pos.row >= SHEET_MAX_ROWS || pos.col >= SHEET_MAX_COLS) {
+        return NULL;
+    }
+
+    sheet_chunk_pos chunk_pos = {
+        pos.row / SHEET_CHUNK_ROWS,
+        pos.col / SHEET_CHUNK_COLS
+    };
+
+    return sheet_get_chunk(wb, sheet, chunk_pos, create_if_empty);
 }
 
 sheet_chunk_arr sheet_get_range(
@@ -374,9 +370,8 @@ sheet_chunk_arr sheet_get_range(
     return chunk_arr;
 }
 
-sheet_cell_ref sheet_get_cell(
-    workbook* wb, sheet_buffer* sheet,
-    sheet_pos cell_pos, b32 create_if_empty
+sheet_cell_view sheet_get_cell_view(
+    workbook* wb, sheet_buffer* sheet, sheet_pos cell_pos
 ) {
     if (cell_pos.row >= SHEET_MAX_ROWS || cell_pos.col >= SHEET_MAX_COLS) {
         goto return_empty;
@@ -389,7 +384,7 @@ sheet_cell_ref sheet_get_cell(
 
     sheet_chunk* chunk = NULL;
 
-    chunk = sheet_get_chunk(wb, sheet, chunk_pos, create_if_empty);
+    chunk = sheet_get_chunk(wb, sheet, chunk_pos, false);
 
     if (chunk == NULL) {
         goto return_empty;
@@ -399,111 +394,124 @@ sheet_cell_ref sheet_get_cell(
     u32 local_col = cell_pos.col % SHEET_CHUNK_COLS;
     u32 index = local_row + local_col * SHEET_CHUNK_ROWS;
 
-    sheet_cell_ref cell_ref = {
-        .type = &chunk->types[index],
-        .num = &chunk->nums[index],
-        .str = &chunk->strings[index]
+    sheet_cell_view cell_view = {
+        .type = chunk->types[index],
+        .num = chunk->nums[index],
+        .str = chunk->strings[index]
     };
 
-    return cell_ref;
+    return cell_view;
 
 return_empty:
-    if (!_sb_info.initialized) {
-        _sb_init_info();
-    }
-
-    _sb_info.empty_cell.type = SHEET_CELL_TYPE_INVALID;
-    _sb_info.empty_cell.num = 0.0;
-    _sb_info.empty_cell.str = NULL;
-
-    return _sb_info.empty_ref;
+    return (sheet_cell_view) {
+        SHEET_CELL_TYPE_EMPTY_CHUNK, 0, NULL
+    };
 }
 
-b32 sheet_is_cell_empty(sheet_buffer* sheet, sheet_pos cell_pos) {
-    if (cell_pos.row >= SHEET_MAX_ROWS || cell_pos.col >= SHEET_MAX_COLS) {
-        return true;
-    }
+b32 sheet_is_cell_empty(sheet_buffer* sheet, sheet_pos pos) {
+    // Pasing NULL for the workbook seems bad, but it should be fine
+    // because we never create if empty
+    sheet_chunk* chunk = sheet_get_cells_chunk(NULL, sheet, pos, false);
 
-    sheet_chunk_pos chunk_pos = {
-        cell_pos.row / SHEET_CHUNK_ROWS,
-        cell_pos.col / SHEET_CHUNK_COLS
-    };
+    if (chunk == NULL) { return true; }
 
-    sheet_chunk* chunk = NULL;
-
-    chunk = sheet_get_chunk(NULL, sheet, chunk_pos, false);
-
-    if (chunk == NULL) {
-        return true;
-    }
-
-    u32 local_row = cell_pos.row % SHEET_CHUNK_ROWS;
-    u32 local_col = cell_pos.col % SHEET_CHUNK_COLS;
+    u32 local_row = pos.row % SHEET_CHUNK_ROWS;
+    u32 local_col = pos.col % SHEET_CHUNK_COLS;
     u32 index = local_row + local_col * SHEET_CHUNK_ROWS;
 
-    return chunk->types[index] == SHEET_CELL_TYPE_EMPTY || 
-        chunk->types[index] == SHEET_CELL_TYPE_INVALID;
+    return chunk->types[index] == SHEET_CELL_TYPE_EMPTY;
 }
 
 void sheet_set_cell_num(
     workbook* wb, sheet_buffer* sheet,
     sheet_pos pos, f64 num
 ) {
-    sheet_cell_ref cell = sheet_get_cell(wb, sheet, pos, true);
+    sheet_chunk* chunk = sheet_get_cells_chunk(wb, sheet, pos, true);
 
-    if (*cell.type == SHEET_CELL_TYPE_INVALID) { return; }
+    if (chunk == NULL) { return; }
 
-    if (*cell.type == SHEET_CELL_TYPE_STRING) {
-        wb_free_string(wb, *cell.str);
-        *cell.str = NULL;
+    u32 local_row = pos.row % SHEET_CHUNK_ROWS;
+    u32 local_col = pos.col % SHEET_CHUNK_COLS;
+    u32 index = local_row + local_col * SHEET_CHUNK_ROWS;
+
+    if (chunk->types[index] == SHEET_CELL_TYPE_EMPTY) {
+        chunk->set_cell_count++;
     }
 
-    *cell.type = SHEET_CELL_TYPE_NUM;
-    *cell.num = num;
+    if (chunk->types[index] == SHEET_CELL_TYPE_STRING) {
+        wb_free_string(wb, chunk->strings[index]);
+        chunk->strings[index] = NULL;
+    }
+
+    chunk->types[index] = SHEET_CELL_TYPE_NUM;
+    chunk->nums[index] = num;
 }
 
 void sheet_set_cell_str(
     workbook* wb, sheet_buffer* sheet,
     sheet_pos pos, string8 str
 ) {
-    sheet_cell_ref cell = sheet_get_cell(wb, sheet, pos, true);
-    if (*cell.type == SHEET_CELL_TYPE_INVALID) { return; }
+    sheet_chunk* chunk = sheet_get_cells_chunk(wb, sheet, pos, true);
+
+    if (chunk == NULL) { return; }
+
+    u32 local_row = pos.row % SHEET_CHUNK_ROWS;
+    u32 local_col = pos.col % SHEET_CHUNK_COLS;
+    u32 index = local_row + local_col * SHEET_CHUNK_ROWS;
+
+    if (chunk->types[index] == SHEET_CELL_TYPE_EMPTY) {
+        chunk->set_cell_count++;
+    }
 
     u32 capped_size = (u32)MIN(str.size, SHEET_MAX_STRLEN);
 
     b32 create_str = true;
-    if (*cell.type == SHEET_CELL_TYPE_STRING) {
-        sheet_string* cell_str = *cell.str;
+    if (chunk->types[index] == SHEET_CELL_TYPE_STRING) {
+        sheet_string* cell_str = chunk->strings[index];
 
         if (cell_str->capacity >= capped_size) {
             create_str = false;
         } else {
             wb_free_string(wb, cell_str);
-            *cell.str = NULL;
+            chunk->strings[index] = NULL;
         }
     }
 
     if (create_str) {
-        *cell.str = wb_create_string(wb, capped_size);
+        chunk->strings[index] = wb_create_string(wb, capped_size);
     }
 
-    *cell.type = SHEET_CELL_TYPE_STRING;
-    sheet_string* cell_str = *cell.str;
+    chunk->types[index] = SHEET_CELL_TYPE_STRING;
+    sheet_string* cell_str = chunk->strings[index];
 
     cell_str->size = capped_size;
     memcpy(cell_str->str, str.str, capped_size);
 }
 
 void sheet_clear_cell(workbook* wb, sheet_buffer* sheet, sheet_pos pos) {
-    sheet_cell_ref cell = sheet_get_cell(wb, sheet, pos, true);
-    if (*cell.type == SHEET_CELL_TYPE_INVALID) { return; }
+    sheet_chunk* chunk = sheet_get_cells_chunk(wb, sheet, pos, true);
 
-    if (*cell.type == SHEET_CELL_TYPE_STRING) {
-        wb_free_string(wb, *cell.str);
-        *cell.str = NULL;
+    if (chunk == NULL) { return; }
+
+    u32 local_row = pos.row % SHEET_CHUNK_ROWS;
+    u32 local_col = pos.col % SHEET_CHUNK_COLS;
+    u32 index = local_row + local_col * SHEET_CHUNK_ROWS;
+
+    if (chunk->types[index] == SHEET_CELL_TYPE_STRING) {
+        wb_free_string(wb, chunk->strings[index]);
+        chunk->strings[index] = NULL;
     }
 
-    *cell.type = SHEET_CELL_TYPE_EMPTY;
+    if (chunk->types[index] != SHEET_CELL_TYPE_EMPTY) {
+        chunk->set_cell_count--;
+
+        if (chunk->set_cell_count == 0) {
+            // TODO: add chunk deleting
+            #warning implement chunk deleting 
+        }
+    }
+
+    chunk->types[index] = SHEET_CELL_TYPE_EMPTY;
 }
 
 void sheet_clear_range(workbook* wb, sheet_buffer* sheet, sheet_range in_range) {
@@ -557,8 +565,16 @@ void sheet_clear_range(workbook* wb, sheet_buffer* sheet, sheet_range in_range) 
                         chunk->strings[index] = NULL;
                     }
 
+                    if (chunk->types[index] != SHEET_CELL_TYPE_EMPTY) {
+                        chunk->set_cell_count--;
+                    }
+
                     chunk->types[index] = SHEET_CELL_TYPE_EMPTY;
                 }
+            }
+
+            if (chunk->set_cell_count == 0) {
+                #warning implement chunk deleting 
             }
         }
     }

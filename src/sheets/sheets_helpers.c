@@ -164,10 +164,10 @@ b32 sheets_range_from_str(string8 str, sheet_range* out_range) {
     return true;
 }
 
-u32 sheets_cell_to_chars(sheet_cell_ref cell, u8* chars, u32 max_chars) {
-    switch ((sheet_cell_type_enum)*cell.type) {
+u32 sheets_cell_to_chars(sheet_cell_view cell, u8* chars, u32 max_chars) {
+    switch ((sheet_cell_type_enum)cell.type) {
         case _SHEET_CELL_TYPE_COUNT:
-        case SHEET_CELL_TYPE_INVALID:
+        case SHEET_CELL_TYPE_EMPTY_CHUNK:
         case SHEET_CELL_TYPE_EMPTY: {
             return 0;
         } break;
@@ -175,7 +175,7 @@ u32 sheets_cell_to_chars(sheet_cell_ref cell, u8* chars, u32 max_chars) {
         case SHEET_CELL_TYPE_NUM: {
             i32 written = snprintf(
                 (char*)chars, max_chars > 0 ? max_chars - 1 : 0, 
-                "%g", *cell.num
+                "%g", cell.num
             );
 
             if (written < 0) {
@@ -186,10 +186,8 @@ u32 sheets_cell_to_chars(sheet_cell_ref cell, u8* chars, u32 max_chars) {
         } break;
 
         case SHEET_CELL_TYPE_STRING: {
-            sheet_string* str = *cell.str;
-
-            u32 size = MIN(str->size, max_chars);
-            memcpy(chars, str->str, size);
+            u32 size = MIN(cell.str->size, max_chars);
+            memcpy(chars, cell.str->str, size);
 
             return size;
         } break;

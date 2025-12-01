@@ -706,28 +706,14 @@ void _editor_fill_series(
     f64 cur_num = 0.0f;
     f64 step = 1.0f;
 
-    sheet_chunk_pos chunk_pos = {
-        range.start.row / SHEET_CHUNK_ROWS,
-        range.start.col / SHEET_CHUNK_COLS,
-    };
-    sheet_chunk* chunk = sheet_get_chunk(wb, sheet, chunk_pos, true);
-
     b32 vert = range.start.col == range.end.col;
     if (vert) {
-        u32 col_offset = (range.start.col % SHEET_CHUNK_COLS) * SHEET_CHUNK_ROWS;
-        
         for (u32 row = range.start.row; row <= range.end.row; row++) {
-            u32 index = (row % SHEET_CHUNK_ROWS) + col_offset;
-
-            chunk->types[index] = SHEET_CELL_TYPE_NUM;
-            chunk->nums[index] = cur_num;
+            sheet_set_cell_num(
+                wb, sheet, (sheet_pos){ row, range.start.col }, cur_num
+            );
 
             cur_num += step;
-
-            if ((row + 1) / SHEET_CHUNK_ROWS != chunk_pos.row) {
-                chunk_pos.row++;
-                chunk = sheet_get_chunk(wb, sheet, chunk_pos, true);
-            }
         }
     } else {
     }

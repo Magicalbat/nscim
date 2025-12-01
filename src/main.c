@@ -80,7 +80,7 @@ int main(void) {
     }
 
     u32 table_row_off = 1;//SHEET_MAX_ROWS - 302;
-    u32 table_col_off = 1;//SHEET_MAX_COLS - 3;
+    u32 table_col_off = 2;//SHEET_MAX_COLS - 3;
 
     sheet_set_cell_str(wb, sheet, (sheet_pos){ table_row_off, table_col_off + 0 }, STR8_LIT("Time"));
     sheet_set_cell_str(wb, sheet, (sheet_pos){ table_row_off, table_col_off + 1 }, STR8_LIT("Sanity"));

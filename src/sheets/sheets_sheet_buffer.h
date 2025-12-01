@@ -52,7 +52,7 @@ typedef enum {
     SHEET_CELL_TYPE_NUM,
     SHEET_CELL_TYPE_STRING,
 
-    SHEET_CELL_TYPE_INVALID,
+    SHEET_CELL_TYPE_EMPTY_CHUNK,
 
     _SHEET_CELL_TYPE_COUNT
 } sheet_cell_type_enum;
@@ -82,10 +82,10 @@ typedef struct {
 } sheet_string_list;
 
 typedef struct {
-    sheet_cell_type* type;
-    f64* num;
-    sheet_string** str;
-} sheet_cell_ref;
+    sheet_cell_type type;
+    f64 num;
+    const sheet_string* str;
+} sheet_cell_view;
 
 typedef struct sheet_chunk {
     sheet_chunk_pos pos;
@@ -94,6 +94,8 @@ typedef struct sheet_chunk {
 
     // Used for hash collisions and free lists
     struct sheet_chunk* next;
+
+    u32 set_cell_count;
 
     // Cell data, all stored column major
     sheet_cell_type types[SHEET_CHUNK_SIZE];
@@ -144,6 +146,12 @@ sheet_chunk* sheet_get_chunk(
     sheet_chunk_pos chunk_pos, b32 create_if_empty
 );
 
+// Returns the chunk that the cell is in 
+sheet_chunk* sheet_get_cells_chunk(
+    workbook* wb, sheet_buffer* sheet,
+    sheet_pos pos, b32 create_if_empty
+);
+
 // Chunks will be returned column-major in the array,
 // but there may be less than expected if `create_if_empty` is false
 sheet_chunk_arr sheet_get_range(
@@ -151,12 +159,11 @@ sheet_chunk_arr sheet_get_range(
     sheet_range cell_range, b32 create_if_empty
 );
 
-sheet_cell_ref sheet_get_cell(
-    workbook* wb, sheet_buffer* sheet,
-    sheet_pos cell_pos, b32 create_if_empty
+sheet_cell_view sheet_get_cell_view(
+    workbook* wb, sheet_buffer* sheet, sheet_pos pos
 );
 
-b32 sheet_is_cell_empty(sheet_buffer* sheet, sheet_pos cell_pos);
+b32 sheet_is_cell_empty(sheet_buffer* sheet, sheet_pos pos);
 
 void sheet_set_cell_num(
     workbook* wb, sheet_buffer* sheet,

@@ -30,7 +30,7 @@ void _editor_draw_sheet_win(
         .c = ' '
     };
 
-    sheet_cell_ref cur_cell = sheet_get_cell(wb, sheet, win->cursor_pos, false);
+    sheet_cell_view cur_cell = sheet_get_cell_view(wb, sheet, win->cursor_pos);
 
     // First status row
     {
@@ -70,8 +70,8 @@ void _editor_draw_sheet_win(
 
         string8 type_str = { 0 };
 
-        switch (*cur_cell.type) {
-            case SHEET_CELL_TYPE_INVALID:
+        switch ((sheet_cell_type_enum)cur_cell.type) {
+            case SHEET_CELL_TYPE_EMPTY_CHUNK:
             case SHEET_CELL_TYPE_EMPTY: {
                 type_str = STR8_LIT(" (Empty)");
             } break;
@@ -83,6 +83,8 @@ void _editor_draw_sheet_win(
             case SHEET_CELL_TYPE_STRING: {
                 type_str = STR8_LIT(" (String)");
             } break;
+
+            case _SHEET_CELL_TYPE_COUNT: break;
         }
 
         for (u32 i = 0; i < type_str.size; i++) {
@@ -287,8 +289,8 @@ void _editor_draw_sheet_win(
                 } break;
             }
 
-            sheet_cell_ref cell = sheet_get_cell(
-                wb, sheet, (sheet_pos){ row, col }, false
+            sheet_cell_view cell = sheet_get_cell_view(
+                wb, sheet, (sheet_pos){ row, col }
             );
             cell_chars_size = sheets_cell_to_chars(
                 cell, cell_chars, sizeof(cell_chars)
