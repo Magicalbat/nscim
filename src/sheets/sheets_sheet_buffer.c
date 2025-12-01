@@ -297,6 +297,28 @@ sheet_chunk* sheet_get_chunk(
     return chunk;
 }
 
+void _sb_chunk_free(workbook* wb, sheet_buffer* sheet, sheet_chunk* chunk) {
+    u64 chunk_idx = chunk->hash % sheet->map_capacity;
+
+    if (sheet->chunk_map[chunk_idx] == chunk) {
+        sheet->chunk_map[chunk_idx] = chunk->next;
+        sheet->num_chunks--;
+    } else {
+        sheet_chunk* parent = sheet->chunk_map[chunk_idx];
+
+        while (parent != NULL && parent->next != chunk) {
+            parent = parent->next;
+        }
+
+        if (parent != NULL) {
+            parent->next = chunk->next;
+            sheet->num_chunks--;
+        }
+    }
+
+    wb_free_chunk(wb, chunk);
+}
+
 sheet_chunk* sheet_get_cells_chunk(
     workbook* wb, sheet_buffer* sheet,
     sheet_pos pos, b32 create_if_empty
@@ -506,8 +528,8 @@ void sheet_clear_cell(workbook* wb, sheet_buffer* sheet, sheet_pos pos) {
         chunk->set_cell_count--;
 
         if (chunk->set_cell_count == 0) {
-            // TODO: add chunk deleting
-            #warning implement chunk deleting 
+            _sb_chunk_free(wb, sheet, chunk);
+            return;
         }
     }
 
@@ -574,7 +596,7 @@ void sheet_clear_range(workbook* wb, sheet_buffer* sheet, sheet_range in_range) 
             }
 
             if (chunk->set_cell_count == 0) {
-                #warning implement chunk deleting 
+                _sb_chunk_free(wb, sheet, chunk);
             }
         }
     }

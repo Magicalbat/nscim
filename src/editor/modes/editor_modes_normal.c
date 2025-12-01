@@ -3,7 +3,7 @@ b32 _editor_do_normal(
     editor_context* editor, workbook* wb,
     win_input input, u32 count
 ) {
-    u32 consume_motion = false;
+    u32 act_on_motion = false;
     sheet_pos init_cursor = wb->active_win->cursor_pos;
 
     // Checking if the same inputs were pressed twice, execute action if so
@@ -36,7 +36,7 @@ b32 _editor_do_normal(
         }
 
         if (same_input) {
-            consume_motion = true;
+            act_on_motion = true;
             goto execute_motion_action;
         }
     }
@@ -244,10 +244,10 @@ execute_motion_action:
         init_cursor.row != cur_cursor.row ||
         init_cursor.col != cur_cursor.col
     ) {
-        consume_motion = true;
+        act_on_motion = true;
     }
 
-    if (!consume_motion) { return true; }
+    if (!act_on_motion) { goto consume_motion; }
 
     sheet_range motion_range = { init_cursor, cur_cursor };
 
@@ -264,8 +264,8 @@ execute_motion_action:
         }
     }
 
+consume_motion:
     _editor_consume_motion(editor);
-
     return true;
 }
 

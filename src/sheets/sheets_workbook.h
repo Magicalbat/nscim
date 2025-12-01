@@ -1,5 +1,5 @@
 
-#define SHEETS_WORKBOOK_RESERVE_SIZE GiB(1)
+#define SHEETS_WORKBOOK_RESERVE_SIZE MiB(256)
 #define SHEETS_WORKBOOK_COMMIT_SIZE MiB(16)
 
 // Workbooks store the state of all open sheets and windows
