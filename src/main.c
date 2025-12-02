@@ -69,7 +69,7 @@ int main(void) {
 
     workbook* wb = wb_create();
 
-    sheet_buffer* sheet = wb_get_active_sheet(wb, true);
+    /*sheet_buffer* sheet = wb_get_active_sheet(wb, true);
     sheet->name = STR8_LIT("Test Sheet");
 
     u8 test_str_data[6] = { 'T', 'e', 's', 't', ' ', '0' };
@@ -110,7 +110,7 @@ int main(void) {
 
     for (u32 i = SHEET_MAX_ROWS-2; i >= SHEET_MAX_ROWS - 300; i--) {
         sheet_set_cell_num(wb, sheet, (sheet_pos){ i, 4 }, i % 1000);
-    }
+    }*/
 
     editor_context* editor = editor_init(perm_arena);
 

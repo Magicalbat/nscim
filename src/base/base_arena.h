@@ -6,9 +6,9 @@
 #define ARENA_SCRATCH_RESERVE MiB(64)
 #define ARENA_SCRATCH_COMMIT KiB(64)
 
-typedef struct arena {
-    struct arena* current;
-    struct arena* prev;
+typedef struct mem_arena {
+    struct mem_arena* current;
+    struct mem_arena* prev;
 
     u64 reserve_size;
     u64 commit_size;

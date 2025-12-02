@@ -18,7 +18,7 @@ void _editor_draw_sheet_win(
     u32 max_x = win->start_x + win->width - 1;
 
     sheet_buffer* sheet = wb_win_get_sheet(wb, win, false);
-    b32 cur_active = win == wb->active_win;
+    b32 cur_active = win == wb->active_win && editor->mode != EDITOR_MODE_CMD;
 
     if (win->height == 0) {
         return;
@@ -161,6 +161,11 @@ void _editor_draw_sheet_win(
         }
     }
 
+    u32 draw_select = cur_active && editor->mode == EDITOR_MODE_VISUAL;
+    sheet_range select_range = sheets_fix_range(
+        (sheet_range){ { win->select_start, win->cursor_pos } }
+    );
+
     // Drawing column titles
     {
         u32 x = SHEET_MAX_ROW_CHARS + win->start_x;
@@ -178,12 +183,18 @@ void _editor_draw_sheet_win(
                 width / 2 - num_col_chars / 2 : 0;
 
             win_col fg, bg;
-            if (col != win->cursor_pos.col) {
-                fg = editor->colors.rc_fg;
-                bg = editor->colors.rc_bg;
-            } else {
+            if (
+                col == win->cursor_pos.col || (
+                    draw_select && 
+                    col >= select_range.start.col &&
+                    col <= select_range.end.col
+                )
+            ) {
                 fg = editor->colors.rc_bg;
                 bg = editor->colors.rc_fg;
+            } else {
+                fg = editor->colors.rc_fg;
+                bg = editor->colors.rc_bg;
             }
 
             for (u32 i = 0; i < width && x + i <= max_x; i++) {
@@ -228,12 +239,18 @@ void _editor_draw_sheet_win(
             u32 draw_start = num_row_chars < max_row_chars ? max_row_chars - num_row_chars : 0;
 
             win_col fg, bg;
-            if (row != win->cursor_pos.row) {
-                fg = editor->colors.rc_fg;
-                bg = editor->colors.rc_bg;
-            } else {
+            if (
+                row == win->cursor_pos.row || (
+                    draw_select &&
+                    row >= select_range.start.row &&
+                    row <= select_range.end.row
+                )
+            ) {
                 fg = editor->colors.rc_bg;
                 bg = editor->colors.rc_fg;
+            } else {
+                fg = editor->colors.rc_fg;
+                bg = editor->colors.rc_bg;
             }
 
             for (u32 i = 0; i < height && y_tmp <= max_y; i++, y_tmp++) {
@@ -287,6 +304,17 @@ void _editor_draw_sheet_win(
                     fg = editor->colors.inactive_cursor_fg;
                     bg = editor->colors.inactive_cursor_bg;
                 } break;
+            }
+
+            if (
+                !in_cursor && draw_select && 
+                row >= select_range.start.row && 
+                row <= select_range.end.row && 
+                col >= select_range.start.col && 
+                col <= select_range.end.col
+            ) {
+                fg = editor->colors.selection_fg;
+                bg = editor->colors.selection_bg;
             }
 
             sheet_cell_view cell = sheet_get_cell_view(

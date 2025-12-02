@@ -669,26 +669,24 @@ void _editor_scroll_center(workbook* wb) {
     }
 }
 
-void _editor_resize_cell_width(workbook* wb, i32 change) {
-    sheet_window* win = wb->active_win;
-    sheet_buffer* sheet = wb_win_get_sheet(wb, win, true);
-    i32 width = (i32)sheet_get_col_width(sheet, win->cursor_pos.col);
+void _editor_resize_col_width(workbook* wb, u32 col, i32 change) {
+    sheet_buffer* sheet = wb_get_active_sheet(wb, true);
+    i32 width = (i32)sheet_get_col_width(sheet, col);
 
     width += change;
     width = CLAMP(width, 1, SHEET_MAX_COL_WIDTH);
 
-    sheet_set_col_width(sheet, win->cursor_pos.col, (u8)width);
+    sheet_set_col_width(sheet, col, (u8)width);
 }
 
-void _editor_resize_cell_height(workbook* wb, i32 change) {
-    sheet_window* win = wb->active_win;
-    sheet_buffer* sheet = wb_win_get_sheet(wb, win, true);
-    i32 height = (i32)sheet_get_row_height(sheet, win->cursor_pos.row);
+void _editor_resize_row_height(workbook* wb, u32 row, i32 change) {
+    sheet_buffer* sheet = wb_get_active_sheet(wb, true);
+    i32 height = (i32)sheet_get_row_height(sheet, row);
 
     height += change;
     height = CLAMP(height, 1, SHEET_MAX_ROW_HEIGHT);
 
-    sheet_set_row_height(sheet, win->cursor_pos.row, (u8)height);
+    sheet_set_row_height(sheet, row, (u8)height);
 }
 
 #define _EDITOR_SERIES_MAX_NUMS 8
@@ -701,7 +699,7 @@ _editor_series_mode _editor_analyze_series(
     if (mode == _EDITOR_SERIES_INFER) {
         mode = _EDITOR_SERIES_LINEAR;
 
-        if (nums_count > 1 && nums[nums_count - 1] != 0) {
+        if (nums_count > 2 && nums[nums_count - 1] != 0) {
             f64 factor = nums[nums_count - 2] / nums[nums_count - 1];
             b32 constant_factor = true;
 

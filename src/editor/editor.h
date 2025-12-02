@@ -43,6 +43,9 @@ typedef struct {
 
     win_col inactive_cursor_fg;
     win_col inactive_cursor_bg;
+    
+    win_col selection_fg;
+    win_col selection_bg;
 
     win_col rc_fg;
     win_col rc_bg;

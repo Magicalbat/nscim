@@ -13,6 +13,8 @@ editor_context* editor_init(mem_arena* arena) {
         .cell_bg            = { {  15,  18,  20 } },
         .inactive_cursor_fg = { {  15,  18,  20 } },
         .inactive_cursor_bg = { { 150, 150, 150 } },
+        .selection_fg       = { {  15,  18,  20 } },
+        .selection_bg       = { { 200, 200, 200 } },
         .rc_fg              = { { 131,  27,  88 } },
         .rc_bg              = { { 214, 212, 243 } },
     };

@@ -1,64 +1,16 @@
-
-b32 _editor_do_normal(
+b32 _editor_do_visual(
     editor_context* editor, workbook* wb,
     win_input input, u32 count
 ) {
-    u32 act_on_motion = false;
-    sheet_pos init_cursor = wb->active_win->cursor_pos;
+    b32 enter_normal = false;
 
-    // Checking if the same inputs were pressed twice, execute action if so
-    // This allows for dd to delete the current cell or
-    // yy to yank the current cell, etc.
-    u32 next_inputs_size = editor->cur_inputs_size;
-    if (next_inputs_size < EDITOR_INPUT_SEQ_MAX) { next_inputs_size++; };
+    sheet_range select_range = (sheet_range){ {
+        wb->active_win->select_start, wb->active_win->cursor_pos 
+    }};
 
-    if (
-        editor->flags & _EDITOR_FLAG_PENDING_MOTION && 
-        next_inputs_size == editor->pending_action_inputs_size
-    ) {
-        b32 same_input = true;
-
-        win_input next_inputs[EDITOR_INPUT_SEQ_MAX] = { };
-        memcpy(
-            next_inputs, editor->cur_inputs,
-            sizeof(win_input) * editor->cur_inputs_size
-        );
-
-        if (next_inputs_size <= EDITOR_INPUT_SEQ_MAX) {
-            next_inputs[next_inputs_size - 1] = input;
-        }
-
-        for (u32 i = 0; i < next_inputs_size; i++) {
-            if (next_inputs[i] != editor->pending_action_inputs[i]) {
-                same_input = false;
-                break;
-            }
-        }
-
-        if (same_input) {
-            act_on_motion = true;
-            goto execute_motion_action;
-        }
-    }
-    
     if (editor->cur_inputs_size == 0) {
         switch (input) {
-            case 'v': {
-                sheet_window* win = wb->active_win;
-
-                win->select_start = win->cursor_pos;
-                editor->mode = EDITOR_MODE_VISUAL;
-            } break;
-
-            case 'i': {
-                _editor_load_cell_to_input(editor, wb, 0);
-                editor->mode = EDITOR_MODE_CELL_INSERT;
-            } break;
-
-            case 'e': {
-                _editor_load_cell_to_input(editor, wb, 1);
-                editor->mode = EDITOR_MODE_CELL_EDIT;
-            } break;
+            case '\x1b': { enter_normal = true; } break;
 
             case WIN_INPUT_ARROW_LEFT:
             case 'h': { _editor_cursor_left(editor, wb, count); } break;
@@ -119,17 +71,28 @@ b32 _editor_do_normal(
                 _editor_move_win_multiple_horz(editor, wb, -(f32)count * 0.5f);
             } break;
 
-            case 'x': {
+            case 'x': 
+            case 'd': {
+                // TODO: x vs d behavior for entire row/column
+
                 sheet_buffer* sheet = wb_get_active_sheet(wb, false);
                 // Clear cell will do nothing on an empty sheet
-                sheet_clear_cell(wb, sheet, wb->active_win->cursor_pos);
+                sheet_clear_range(wb, sheet, select_range);
+
+                enter_normal = true;
             } break;
-            
-            case 'X':
-            case 'd':
+
+            case 'i': {
+                #warning TODO
+            } break;
+
+            case 'e': {
+                #warning TODO
+            } break;
+
             case 'c': {
-                _editor_await_motion(editor, input);
-                return true;
+                _editor_continue_series(wb, select_range, _EDITOR_SERIES_INFER);
+                enter_normal = true;
             } break;
 
             // All of these begin multi-input actions
@@ -161,33 +124,47 @@ b32 _editor_do_normal(
             } break;
 
             case 'r': {
+                sheet_range fixed_range = sheets_fix_range(select_range);
+
                 switch (input) {
                     case WIN_INPUT_ARROW_LEFT:
                     case 'h': {
-                        _editor_resize_col_width(
-                            wb, wb->active_win->cursor_pos.col, -(i32)count
-                        );
+                        for (
+                            u32 col = fixed_range.start.col;
+                            col <= fixed_range.end.col; col++
+                        ) {
+                            _editor_resize_col_width(wb, col, -(i32)count);
+                        }
                     } break;
 
                     case WIN_INPUT_ARROW_DOWN:
                     case 'j': {
-                        _editor_resize_row_height(
-                            wb, wb->active_win->cursor_pos.row, (i32)count
-                        );
+                        for (
+                            u32 row = fixed_range.start.row;
+                            row <= fixed_range.end.row; row++
+                        ) {
+                            _editor_resize_row_height(wb, row, (i32)count);
+                        }
                     } break;
 
                     case WIN_INPUT_ARROW_UP:
                     case 'k': {
-                        _editor_resize_row_height(
-                            wb, wb->active_win->cursor_pos.row, -(i32)count
-                        );
+                        for (
+                            u32 row = fixed_range.start.row;
+                            row <= fixed_range.end.row; row++
+                        ) {
+                            _editor_resize_row_height(wb, row, -(i32)count);
+                        }
                     } break;
                         
                     case WIN_INPUT_ARROW_RIGHT:
                     case 'l': {
-                        _editor_resize_col_width(
-                            wb, wb->active_win->cursor_pos.col, (i32)count
-                        );
+                        for (
+                            u32 col = fixed_range.start.col;
+                            col <= fixed_range.end.col; col++
+                        ) {
+                            _editor_resize_col_width(wb, col, (i32)count);
+                        }
                     } break;
                 }
             } break;
@@ -218,17 +195,33 @@ b32 _editor_do_normal(
 
             case 'C': {
                 switch (input) {
-                    case 'i':
-                    case 'e':
+                    case 'i': {
+                        _editor_continue_series(
+                            wb, select_range, _EDITOR_SERIES_INFER
+                        );
+                        enter_normal = true;
+                    } break;
+
                     case 'l': {
-                        _editor_await_motion(editor, input);
-                        return true;
+                        _editor_continue_series(
+                            wb, select_range, _EDITOR_SERIES_LINEAR
+                        );
+                        enter_normal = true;
+                    } break;
+
+                    case 'e': {
+                        _editor_continue_series(
+                            wb, select_range, _EDITOR_SERIES_EXPONENTIAL
+                        );
+                        enter_normal = true;
                     } break;
                 }
             } break;
 
             // Window Commands 
             case WIN_INPUT_CTRL('w'): {
+                enter_normal = true;
+
                 switch (input) {
                     case 'h': {
                         while (count--) { wb_win_change_active_horz(wb, -1); }
@@ -257,123 +250,18 @@ b32 _editor_do_normal(
                     case 'n': {
                         wb_win_split(wb, SHEETS_WIN_SPLIT_HORZ, false);
                     } break;
+
+                    default: {
+                        enter_normal = false;
+                    } break;
                 }
             } break;
         }
     }
 
-    if (
-        (editor->flags & _EDITOR_FLAG_PENDING_MOTION) !=
-        _EDITOR_FLAG_PENDING_MOTION
-    ) {
-        return true;
+    if (enter_normal) {
+        editor->mode = EDITOR_MODE_NORMAL;
     }
 
-execute_motion_action:
-
-    sheet_pos cur_cursor = wb->active_win->cursor_pos;
-
-    if (
-        init_cursor.row != cur_cursor.row ||
-        init_cursor.col != cur_cursor.col
-    ) {
-        act_on_motion = true;
-    }
-
-    if (!act_on_motion) { goto consume_motion; }
-
-    if (editor->pending_action_inputs_size == 0) {
-        goto consume_motion;
-    }
-
-    i32 motion_offset_rows = (i32)cur_cursor.row - (i32)init_cursor.row;
-    i32 motion_offset_cols = (i32)cur_cursor.col - (i32)init_cursor.col;
-
-    sheet_range motion_range = { {init_cursor, cur_cursor} };
-
-    for (u32 i = 0; i < editor->pending_action_count; i++) {
-        switch (editor->pending_action_inputs[0]) {
-            case 'X':
-            case 'd': {
-                // TODO: x vs d behavior for entire row/column
-
-                sheet_clear_range(
-                    wb, wb_get_active_sheet(wb, false), motion_range
-                );
-            } break;
-
-            case 'C': 
-            case 'c': {
-                _editor_series_mode series_mode = _EDITOR_SERIES_INFER;
-
-                if (editor->pending_action_inputs_size > 1) {
-                    switch (editor->pending_action_inputs[1]) {
-                        case 'l': {
-                            series_mode = _EDITOR_SERIES_LINEAR;
-                        } break;
-                        case 'e': {
-                            series_mode = _EDITOR_SERIES_EXPONENTIAL;
-                        } break;
-                    }
-                }
-
-                _editor_continue_series(wb, motion_range, series_mode);
-            } break;
-        }
-
-        if (i == editor->pending_action_count - 1) { break; }
-
-        b32 last = false;
-
-        for (u32 j = 0; j < 2; j++) {
-            i32 new_row = (i32)motion_range.cells[j].row + motion_offset_rows;
-            i32 new_col = (i32)motion_range.cells[j].col + motion_offset_cols;
-
-            if (new_row < 0) {
-                new_row = 0;
-                last = true;
-            } else if (new_row >= (i32)SHEET_MAX_ROWS) {
-                new_row = SHEET_MAX_ROWS - 1;
-                last = true;
-            }
-
-            if (new_col < 0) {
-                new_col = 0;
-                last = true;
-            } else if (new_col >= (i32)SHEET_MAX_COLS) {
-                new_col = SHEET_MAX_COLS - 1;
-                last = true;
-            }
-
-            motion_range.cells[j].row = (u32)new_row;
-            motion_range.cells[j].col = (u32)new_col;
-        }
-
-        if (last) { break; }
-    }
-
-    if (motion_range.end.row > wb->active_win->cursor_pos.row) {
-        _editor_cursor_down(
-            editor, wb, motion_range.end.row - wb->active_win->cursor_pos.row
-        );
-    } else {
-        _editor_cursor_up(
-            editor, wb, wb->active_win->cursor_pos.row - motion_range.end.row
-        );
-    }
-    
-    if (motion_range.end.col > wb->active_win->cursor_pos.col) {
-        _editor_cursor_right(
-            editor, wb, motion_range.end.col - wb->active_win->cursor_pos.col
-        );
-    } else {
-        _editor_cursor_left(
-            editor, wb, wb->active_win->cursor_pos.col - motion_range.end.col
-        );
-    }
-
-consume_motion:
-    _editor_consume_motion(editor);
     return true;
 }
-

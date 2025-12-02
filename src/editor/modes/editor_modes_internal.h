@@ -56,8 +56,8 @@ void _editor_scroll_right(editor_context* editor, workbook* wb, u32 n);
 // Centers the scroll at the cursor
 void _editor_scroll_center(workbook* wb);
 
-void _editor_resize_cell_width(workbook* wb, i32 change);
-void _editor_resize_cell_height(workbook* wb, i32 change);
+void _editor_resize_col_width(workbook* wb, u32 col, i32 change);
+void _editor_resize_row_height(workbook* wb, u32 row, i32 change);
 
 void _editor_continue_series(
     workbook* wb, sheet_range range, _editor_series_mode series_mdoe
