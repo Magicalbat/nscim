@@ -316,6 +316,10 @@ void _sb_chunk_free(workbook* wb, sheet_buffer* sheet, sheet_chunk* chunk) {
         }
     }
 
+    if (chunk == sheet->last_chunk) {
+        sheet->last_chunk = NULL;
+    }
+
     wb_free_chunk(wb, chunk);
 }
 
@@ -418,16 +422,21 @@ sheet_cell_view sheet_get_cell_view(
 
     sheet_cell_view cell_view = {
         .type = chunk->types[index],
-        .num = chunk->nums[index],
-        .str = chunk->strings[index]
     };
+
+    switch (chunk->types[index]) {
+        case SHEET_CELL_TYPE_NUM: {
+            cell_view.num = chunk->nums[index];
+        } break;
+        case SHEET_CELL_TYPE_STRING: {
+            cell_view.str = chunk->strings[index];
+        } break;
+    }
 
     return cell_view;
 
 return_empty:
-    return (sheet_cell_view) {
-        SHEET_CELL_TYPE_EMPTY_CHUNK, 0, NULL
-    };
+    return (sheet_cell_view) { SHEET_CELL_TYPE_EMPTY_CHUNK, { 0 } };
 }
 
 b32 sheet_is_cell_empty(sheet_buffer* sheet, sheet_pos pos) {

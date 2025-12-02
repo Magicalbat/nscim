@@ -177,7 +177,7 @@ u32 sheets_cell_to_chars(sheet_cell_view cell, u8* chars, u32 max_chars) {
 
             i32 written = 0;
 
-            if (cell.num <= (f64)INT64_MAX && cell.num == floor(cell.num)) {
+            if (cell.num < (f64)INT64_MAX && cell.num == floor(cell.num)) {
                 written = snprintf(
                     (char*)chars, max_write, "%" PRIi64, (i64)cell.num
                 );

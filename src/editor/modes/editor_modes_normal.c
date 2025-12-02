@@ -118,11 +118,11 @@ b32 _editor_do_normal(
                 return true;
             } break;
 
-
             // All of these begin multi-input actions
             case 'z':
             case 'r':
             case 'a':
+            case 'C':
             case WIN_INPUT_CTRL('w'): {
                 return false;
             } break;
@@ -194,6 +194,17 @@ b32 _editor_do_normal(
                 }
             } break;
 
+            case 'C': {
+                switch (input) {
+                    case 'i':
+                    case 'e':
+                    case 'l': {
+                        _editor_await_motion(editor, input);
+                        return true;
+                    } break;
+                }
+            } break;
+
             // Window Commands 
             case WIN_INPUT_CTRL('w'): {
                 switch (input) {
@@ -251,18 +262,34 @@ execute_motion_action:
 
     sheet_range motion_range = { init_cursor, cur_cursor };
 
-    if (editor->pending_action_inputs_size == 1) {
-        switch (editor->pending_action_inputs[0]) {
-            case 'd': {
-                sheet_clear_range(
-                    wb, wb_get_active_sheet(wb, false), motion_range
-                );
-            } break;
+    if (editor->pending_action_inputs_size == 0) {
+        goto consume_motion;
+    }
 
-            case 'c': {
-                _editor_continue_series(wb, motion_range, _EDITOR_SERIES_INFER);
-            } break;
-        }
+    switch (editor->pending_action_inputs[0]) {
+        case 'd': {
+            sheet_clear_range(
+                wb, wb_get_active_sheet(wb, false), motion_range
+            );
+        } break;
+
+        case 'C': 
+        case 'c': {
+            _editor_series_mode series_mode = _EDITOR_SERIES_INFER;
+
+            if (editor->pending_action_inputs_size > 1) {
+                switch (editor->pending_action_inputs[1]) {
+                    case 'l': {
+                        series_mode = _EDITOR_SERIES_LINEAR;
+                    } break;
+                    case 'e': {
+                        series_mode = _EDITOR_SERIES_EXPONENTIAL;
+                    } break;
+                }
+            }
+
+            _editor_continue_series(wb, motion_range, series_mode);
+        } break;
     }
 
 consume_motion:

@@ -691,12 +691,65 @@ void _editor_resize_cell_height(workbook* wb, i32 change) {
     sheet_set_row_height(sheet, win->cursor_pos.row, (u8)height);
 }
 
+#define _EDITOR_SERIES_MAX_NUMS 8
+
+_editor_series_mode _editor_analyze_series(
+    _editor_series_mode mode,
+    f64 nums[_EDITOR_SERIES_MAX_NUMS], u32 nums_count,
+    f64* start_num, f64* step
+) {
+    if (mode == _EDITOR_SERIES_INFER) {
+        if (nums_count <= 1) {
+            mode = _EDITOR_SERIES_LINEAR;
+        } else {
+            f64 factor = nums[nums_count - 2] / nums[nums_count - 1];
+            b32 constant_factor = true;
+
+            for (i32 i = (i32)nums_count - 2; i >= 0; i--) {
+                f64 cur_factor = nums[i] / nums[i+1];
+
+                if (fabs(cur_factor - factor) > 1e-8) {
+                    constant_factor = false;
+                    break;
+                }
+            }
+
+            mode = constant_factor ?
+                _EDITOR_SERIES_EXPONENTIAL : _EDITOR_SERIES_LINEAR;
+        }
+    }
+
+    if (mode == _EDITOR_SERIES_LINEAR) {
+        if (nums_count == 0) {
+            *step = 1.0f;
+            *start_num = 0.0f;
+        } else if (nums_count == 1) {
+            *step = 1.0f;
+            *start_num = nums[0] + *step;
+        } else {
+            *step = nums[0] - nums[1];
+            *start_num = nums[0] + *step;
+        }
+    } else if (_EDITOR_SERIES_EXPONENTIAL) {
+        if (nums_count == 0) {
+            *start_num = 1.0f;
+            *step = 2.0f;
+        } else if (nums_count == 1) {
+            *step = 2.0f;
+            *start_num = nums[0] * *step;
+        } else {
+            *step = nums[0] / nums[1];
+            *start_num = nums[0] * *step;
+        }
+    }
+
+    return mode;
+}
+
 void _editor_continue_series(
-    workbook* wb, sheet_range in_range, _editor_series_mode series_mdoe
+    workbook* wb, sheet_range range, _editor_series_mode series_mode
 ) {
     sheet_buffer* sheet = wb_get_active_sheet(wb, true);
-
-    sheet_range range = sheets_fix_range(in_range);
 
     if (range.start.row != range.end.row && range.start.col != range.end.col) {
         // TODO: some sort of error info?
@@ -706,16 +759,64 @@ void _editor_continue_series(
     f64 cur_num = 0.0f;
     f64 step = 1.0f;
 
+    f64 analysis_nums[_EDITOR_SERIES_MAX_NUMS] = { 0 };
+    u32 analysis_count = 0;
+
     b32 vert = range.start.col == range.end.col;
     if (vert) {
-        for (u32 row = range.start.row; row <= range.end.row; row++) {
-            sheet_set_cell_num(
-                wb, sheet, (sheet_pos){ row, range.start.col }, cur_num
+        i32 dir = range.end.row > range.start.row ? 1 : -1;
+
+        i32 analysis_row = (i32)range.start.row - dir;
+
+        for (
+            u32 i = 0; analysis_row >= 0 && analysis_row < (i32)SHEET_MAX_ROWS &&
+            i < _EDITOR_SERIES_MAX_NUMS; i++, analysis_row -= dir
+        ) {
+            sheet_cell_view cell = sheet_get_cell_view(
+                wb, sheet, (sheet_pos){ (u32)analysis_row, range.start.col }
             );
 
-            cur_num += step;
+            if (cell.type != SHEET_CELL_TYPE_NUM) { break; }
+
+            analysis_nums[analysis_count++] = cell.num;
+        }
+
+        series_mode = _editor_analyze_series(
+            series_mode, analysis_nums, analysis_count,
+            &cur_num, &step
+        );
+
+        for (
+            i32 row = (i32)range.start.row;
+            row != (i32)range.end.row + dir; row += dir
+        ) {
+            sheet_set_cell_num(
+                wb, sheet, (sheet_pos){ (u32)row, range.start.col }, cur_num
+            );
+
+            if (series_mode == _EDITOR_SERIES_LINEAR) {
+                cur_num += step;
+            } else {
+                cur_num *= step;
+            }
         }
     } else {
+        i32 dir = range.end.col > range.start.col ? 1 : -1;
+
+        for (
+            i32 col = (i32)range.start.col;
+            col != (i32)range.end.col + dir; col += dir
+        ) {
+            sheet_set_cell_num(
+                wb, sheet, (sheet_pos){ range.start.row, (u32)col }, cur_num
+            );
+
+            if (series_mode == _EDITOR_SERIES_LINEAR) {
+                cur_num += step;
+            } else {
+                cur_num *= step;
+            }
+        }
     }
 }
 

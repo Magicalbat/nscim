@@ -59,6 +59,9 @@ typedef struct {
     editor_colors colors;
     editor_settings settings;
 
+    // Index into input queue, where the action began
+    u32 action_start_input;
+
     sheet_pos motion_start;
     u32 pending_action_count;
 

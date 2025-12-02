@@ -83,8 +83,11 @@ typedef struct {
 
 typedef struct {
     sheet_cell_type type;
-    f64 num;
-    const sheet_string* str;
+
+    union {
+        f64 num;
+        const sheet_string* str;
+    };
 } sheet_cell_view;
 
 typedef struct sheet_chunk {

@@ -6,7 +6,6 @@ void _editor_await_motion(editor_context* editor, win_input cur_input) {
         editor->cur_inputs[editor->cur_inputs_size++] = cur_input;
     }
 
-
     editor->pending_action_inputs_size = editor->cur_inputs_size;
 
     memcpy(

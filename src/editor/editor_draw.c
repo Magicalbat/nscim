@@ -329,6 +329,58 @@ static string8 _editor_mode_names[_EDITOR_MODE_COUNT] = {
     [EDITOR_MODE_CMD] = STR8_LIT("Command"),
 };
 
+void _editor_draw_status(window* user_win, editor_context* editor) {
+    win_buffer* buf = &user_win->back_buf;
+
+    win_tile status_tile = {
+        .fg = editor->colors.status_fg,
+        .bg = editor->colors.status_bg,
+        .c = ' '
+    };
+
+    u32 status_offset = (buf->height - 1) * buf->width;
+    for (u32 x = 0; x < buf->width; x++) {
+        buf->tiles[x + status_offset] = status_tile;
+    }
+
+    if (editor->mode == EDITOR_MODE_CMD) {
+    } else {
+        string8 mode_str = _editor_mode_names[editor->mode];
+
+        for (
+            u32 i = 0; i + EDITOR_STATUS_PAD < buf->width &&
+            i < mode_str.size; i++
+        ) {
+            buf->tiles[i + EDITOR_STATUS_PAD + status_offset].c = mode_str.str[i];
+        }
+
+        u32 input_draw_offset = EDITOR_INPUT_SEQ_MAX + EDITOR_STATUS_PAD;
+        u32 input_draw_start = buf->width > input_draw_offset ?
+            buf->width - input_draw_offset : 0;
+
+        u32 input_idx = editor->action_start_input;
+
+        for (
+            u32 x = input_draw_start; x < buf->width &&
+            input_idx != editor->input_queue_end; x++
+        ) {
+            win_input input = editor->input_queue[input_idx];
+
+            if (input < '\x1b') {
+                buf->tiles[x + status_offset].c = '^';
+                if (++x < buf->width) {
+                    buf->tiles[x + status_offset].c = 'A' - 1 + input;
+                }
+            } else {
+                buf->tiles[x + status_offset].c = input;
+            }
+
+            input_idx++;
+            input_idx %= EDITOR_INPUT_QUEUE_MAX;
+        }
+    }
+}
+
 void editor_draw(window* user_win, editor_context* editor, workbook* wb) {
     win_buffer* buf = &user_win->back_buf;
 
@@ -358,26 +410,9 @@ void editor_draw(window* user_win, editor_context* editor, workbook* wb) {
     }
 
     wb_win_compute_sizes(wb, buf->width, buf->height - EDITOR_STATUS_ROWS);
+
+    _editor_draw_status(user_win, editor);
     
-    win_tile status_tile = {
-        .fg = editor->colors.status_fg,
-        .bg = editor->colors.status_bg,
-        .c = ' '
-    };
-
-    u32 status_offset = (buf->height - 1) * buf->width;
-    for (u32 x = 0; x < buf->width; x++) {
-        buf->tiles[x + status_offset] = status_tile;
-    }
-
-    string8 mode_str = _editor_mode_names[editor->mode];
-    for (
-        u32 i = 0; i + EDITOR_STATUS_PAD < buf->width &&
-        i < mode_str.size; i++
-    ) {
-        buf->tiles[i + EDITOR_STATUS_PAD + status_offset].c = mode_str.str[i];
-    }
-
     mem_arena_temp scratch = arena_scratch_get(NULL, 0);
 
     u32 stack_size = 0;
