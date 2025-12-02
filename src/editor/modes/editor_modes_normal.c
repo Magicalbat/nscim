@@ -260,36 +260,91 @@ execute_motion_action:
 
     if (!act_on_motion) { goto consume_motion; }
 
-    sheet_range motion_range = { init_cursor, cur_cursor };
-
     if (editor->pending_action_inputs_size == 0) {
         goto consume_motion;
     }
 
-    switch (editor->pending_action_inputs[0]) {
-        case 'd': {
-            sheet_clear_range(
-                wb, wb_get_active_sheet(wb, false), motion_range
-            );
-        } break;
+    i32 motion_offset_rows = (i32)cur_cursor.row - (i32)init_cursor.row;
+    i32 motion_offset_cols = (i32)cur_cursor.col - (i32)init_cursor.col;
 
-        case 'C': 
-        case 'c': {
-            _editor_series_mode series_mode = _EDITOR_SERIES_INFER;
+    sheet_range motion_range = { {init_cursor, cur_cursor} };
 
-            if (editor->pending_action_inputs_size > 1) {
-                switch (editor->pending_action_inputs[1]) {
-                    case 'l': {
-                        series_mode = _EDITOR_SERIES_LINEAR;
-                    } break;
-                    case 'e': {
-                        series_mode = _EDITOR_SERIES_EXPONENTIAL;
-                    } break;
+    for (u32 i = 0; i < editor->pending_action_count; i++) {
+        switch (editor->pending_action_inputs[0]) {
+            case 'd': {
+                sheet_clear_range(
+                    wb, wb_get_active_sheet(wb, false), motion_range
+                );
+            } break;
+
+            case 'C': 
+            case 'c': {
+                _editor_series_mode series_mode = _EDITOR_SERIES_INFER;
+
+                if (editor->pending_action_inputs_size > 1) {
+                    switch (editor->pending_action_inputs[1]) {
+                        case 'l': {
+                            series_mode = _EDITOR_SERIES_LINEAR;
+                        } break;
+                        case 'e': {
+                            series_mode = _EDITOR_SERIES_EXPONENTIAL;
+                        } break;
+                    }
                 }
+
+                _editor_continue_series(wb, motion_range, series_mode);
+            } break;
+        }
+
+        if (i == editor->pending_action_count - 1) { break; }
+
+        b32 last = false;
+
+        for (u32 j = 0; j < 2; j++) {
+            i32 new_row = (i32)motion_range.cells[j].row + motion_offset_rows;
+            i32 new_col = (i32)motion_range.cells[j].col + motion_offset_cols;
+
+            if (new_row < 0) {
+                new_row = 0;
+                last = true;
+            } else if (new_row >= (i32)SHEET_MAX_ROWS) {
+                new_row = SHEET_MAX_ROWS - 1;
+                last = true;
             }
 
-            _editor_continue_series(wb, motion_range, series_mode);
-        } break;
+            if (new_col < 0) {
+                new_col = 0;
+                last = true;
+            } else if (new_col >= (i32)SHEET_MAX_COLS) {
+                new_col = SHEET_MAX_COLS - 1;
+                last = true;
+            }
+
+            motion_range.cells[j].row = (u32)new_row;
+            motion_range.cells[j].col = (u32)new_col;
+        }
+
+        if (last) { break; }
+    }
+
+    if (motion_range.end.row > wb->active_win->cursor_pos.row) {
+        _editor_cursor_down(
+            editor, wb, motion_range.end.row - wb->active_win->cursor_pos.row
+        );
+    } else {
+        _editor_cursor_up(
+            editor, wb, wb->active_win->cursor_pos.row - motion_range.end.row
+        );
+    }
+    
+    if (motion_range.end.col > wb->active_win->cursor_pos.col) {
+        _editor_cursor_right(
+            editor, wb, motion_range.end.col - wb->active_win->cursor_pos.col
+        );
+    } else {
+        _editor_cursor_left(
+            editor, wb, wb->active_win->cursor_pos.col - motion_range.end.col
+        );
     }
 
 consume_motion:

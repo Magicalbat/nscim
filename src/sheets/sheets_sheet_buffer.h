@@ -41,9 +41,12 @@ typedef struct {
     u32 row, col;
 } sheet_chunk_pos;
 
-typedef struct {
-    sheet_pos start;
-    sheet_pos end;
+typedef union {
+    struct {
+        sheet_pos start;
+        sheet_pos end;
+    };
+    sheet_pos cells[2];
 } sheet_range;
 
 typedef enum {

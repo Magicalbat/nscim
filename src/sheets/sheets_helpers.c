@@ -159,7 +159,7 @@ b32 sheets_range_from_str(string8 str, sheet_range* out_range) {
         i++;
     }
 
-    *out_range = (sheet_range){ positions[0], positions[1] };
+    *out_range = (sheet_range){ { positions[0], positions[1] } };
 
     return true;
 }
@@ -203,13 +203,13 @@ u32 sheets_cell_to_chars(sheet_cell_view cell, u8* chars, u32 max_chars) {
 
 sheet_range sheets_fix_range(sheet_range in_range) {
     sheet_range range = {
-        {
+        { {
             MIN(in_range.start.row, in_range.end.row),
             MIN(in_range.start.col, in_range.end.col),
         }, {
             MAX(in_range.start.row, in_range.end.row),
             MAX(in_range.start.col, in_range.end.col),
-        },
+        } },
     };
 
     range.start.row = MIN(SHEET_MAX_ROWS - 1, range.start.row);

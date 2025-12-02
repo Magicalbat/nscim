@@ -699,13 +699,18 @@ _editor_series_mode _editor_analyze_series(
     f64* start_num, f64* step
 ) {
     if (mode == _EDITOR_SERIES_INFER) {
-        if (nums_count <= 1) {
-            mode = _EDITOR_SERIES_LINEAR;
-        } else {
+        mode = _EDITOR_SERIES_LINEAR;
+
+        if (nums_count > 1 && nums[nums_count - 1] != 0) {
             f64 factor = nums[nums_count - 2] / nums[nums_count - 1];
             b32 constant_factor = true;
 
             for (i32 i = (i32)nums_count - 2; i >= 0; i--) {
+                if (nums[i + 1] == 0) {
+                    constant_factor = false;
+                    break;
+                }
+
                 f64 cur_factor = nums[i] / nums[i+1];
 
                 if (fabs(cur_factor - factor) > 1e-8) {
@@ -714,8 +719,7 @@ _editor_series_mode _editor_analyze_series(
                 }
             }
 
-            mode = constant_factor ?
-                _EDITOR_SERIES_EXPONENTIAL : _EDITOR_SERIES_LINEAR;
+            if (constant_factor) { mode = _EDITOR_SERIES_EXPONENTIAL; }
         }
     }
 
@@ -802,6 +806,27 @@ void _editor_continue_series(
         }
     } else {
         i32 dir = range.end.col > range.start.col ? 1 : -1;
+
+        i32 analysis_col = (i32)range.start.col - dir;
+
+        for (
+            u32 i = 0; analysis_col >= 0 && analysis_col < (i32)SHEET_MAX_COLS &&
+            i < _EDITOR_SERIES_MAX_NUMS; i++, analysis_col -= dir
+        ) {
+            sheet_cell_view cell = sheet_get_cell_view(
+                wb, sheet, (sheet_pos){ range.start.row, (u32)analysis_col }
+            );
+
+            if (cell.type != SHEET_CELL_TYPE_NUM) { break; }
+
+            analysis_nums[analysis_count++] = cell.num;
+        }
+
+        series_mode = _editor_analyze_series(
+            series_mode, analysis_nums, analysis_count,
+            &cur_num, &step
+        );
+
 
         for (
             i32 col = (i32)range.start.col;
