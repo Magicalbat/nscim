@@ -691,7 +691,7 @@ void _editor_resize_cell_height(workbook* wb, i32 change) {
     sheet_set_row_height(sheet, win->cursor_pos.row, (u8)height);
 }
 
-void _editor_fill_series(
+void _editor_continue_series(
     workbook* wb, sheet_range in_range, _editor_series_mode series_mdoe
 ) {
     sheet_buffer* sheet = wb_get_active_sheet(wb, true);

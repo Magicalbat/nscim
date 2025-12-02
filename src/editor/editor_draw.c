@@ -296,11 +296,15 @@ void _editor_draw_sheet_win(
                 cell, cell_chars, sizeof(cell_chars)
             );
 
+            b32 too_big = cell_chars_size > width;
+
             for (u32 i = 0; i < height && i + y <= max_y; i++) {
                 for (u32 j = 0; j < width && x + j <= max_x; j++) {
+                    u8 c = i == 0 && j < cell_chars_size ? cell_chars[j] : ' ';
+                    if (too_big) { c = '#'; }
+
                     buf->tiles[x + j + (y + i) * buf->width] = (win_tile) {
-                        .fg = fg, .bg = bg,
-                        .c = i == 0 && j < cell_chars_size ? cell_chars[j] : ' '
+                        .fg = fg, .bg = bg, .c = c
                     };
                 }
             }

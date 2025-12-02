@@ -5,6 +5,7 @@ b32 _editor_do_cell_edit(
 ) {
     if (editor->cur_inputs_size == 0) {
         switch (input) {
+            case '\r':
             case '\x1b': {
                 _editor_store_cell_from_input(editor, wb);
                 editor->mode = EDITOR_MODE_NORMAL;

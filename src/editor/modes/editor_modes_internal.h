@@ -59,7 +59,7 @@ void _editor_scroll_center(workbook* wb);
 void _editor_resize_cell_width(workbook* wb, i32 change);
 void _editor_resize_cell_height(workbook* wb, i32 change);
 
-void _editor_fill_series(
+void _editor_continue_series(
     workbook* wb, sheet_range range, _editor_series_mode series_mdoe
 );
 

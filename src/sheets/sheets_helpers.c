@@ -173,10 +173,17 @@ u32 sheets_cell_to_chars(sheet_cell_view cell, u8* chars, u32 max_chars) {
         } break;
 
         case SHEET_CELL_TYPE_NUM: {
-            i32 written = snprintf(
-                (char*)chars, max_chars > 0 ? max_chars - 1 : 0, 
-                "%g", cell.num
-            );
+            u64 max_write = max_chars > 0 ? max_chars - 1 : 0;
+
+            i32 written = 0;
+
+            if (cell.num <= (f64)INT64_MAX && cell.num == floor(cell.num)) {
+                written = snprintf(
+                    (char*)chars, max_write, "%" PRIi64, (i64)cell.num
+                );
+            } else {
+                written = snprintf((char*)chars, max_write, "%g", cell.num);
+            }
 
             if (written < 0) {
                 return 0;

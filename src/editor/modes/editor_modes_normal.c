@@ -112,8 +112,8 @@ b32 _editor_do_normal(
                 editor->mode = EDITOR_MODE_CELL_EDIT;
             } break;
 
-            case 'f':
-            case 'd': {
+            case 'd':
+            case 'c': {
                 _editor_await_motion(editor, input);
                 return true;
             } break;
@@ -258,8 +258,9 @@ execute_motion_action:
                     wb, wb_get_active_sheet(wb, false), motion_range
                 );
             } break;
-            case 'f': {
-                _editor_fill_series(wb, motion_range, _EDITOR_SERIES_INFER);
+
+            case 'c': {
+                _editor_continue_series(wb, motion_range, _EDITOR_SERIES_INFER);
             } break;
         }
     }
