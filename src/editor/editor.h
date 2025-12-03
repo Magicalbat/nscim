@@ -1,6 +1,6 @@
 
 // Maximum langth of command string (bytes)
-#define EDITOR_MAX_CMD_STRLEN 4096
+#define EDITOR_CMD_MAX_STRLEN 2048
 
 #define EDITOR_INPUT_QUEUE_MAX 1024
 #define EDITOR_INPUT_SEQ_MAX 32
@@ -90,7 +90,7 @@ typedef struct {
     win_input cur_inputs[EDITOR_INPUT_SEQ_MAX];
     win_input pending_action_inputs[EDITOR_INPUT_SEQ_MAX];
 
-    u8 cmd_buf[EDITOR_MAX_CMD_STRLEN];
+    u8 cmd_buf[EDITOR_CMD_MAX_STRLEN];
     u8 cell_input_buf[SHEET_MAX_STRLEN];
 
     win_input input_queue[EDITOR_INPUT_QUEUE_MAX];

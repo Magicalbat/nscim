@@ -53,7 +53,7 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb) {
             editor->flags |= _EDITOR_FLAG_READING_NUM;
 
             // Ignore any counts over ten million
-            if (editor->count >= 1e7) { continue; }
+            if (editor->count >= 1e7) { goto ignore_input; }
 
             editor->count *= 10;
             editor->count += cur_input - '0';
@@ -75,7 +75,6 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb) {
                 editor->cur_inputs_size = 0;
                 editor->count = 1;
 
-
                 if (
                     (editor->flags & _EDITOR_FLAG_PENDING_MOTION) !=
                     _EDITOR_FLAG_PENDING_MOTION
@@ -85,6 +84,19 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb) {
             } else if (editor->cur_inputs_size < EDITOR_INPUT_SEQ_MAX) {
                 editor->cur_inputs[editor->cur_inputs_size++] = cur_input;
             }
+        }
+
+
+        continue;
+
+    ignore_input:
+        if (editor->input_queue_size == 0) {
+            u32 pos = editor->input_queue_start;
+            pos = pos == 0 ? EDITOR_INPUT_QUEUE_MAX - 1 : pos - 1;
+
+            editor->input_queue_start = pos;
+            editor->input_queue_end = pos;
+        } else {
         }
     }
 }

@@ -372,14 +372,28 @@ void _editor_draw_status(window* user_win, editor_context* editor) {
     }
 
     if (editor->mode == EDITOR_MODE_CMD) {
+        u8 draw_chars[EDITOR_CMD_MAX_STRLEN + 1] = { ':' };
+        u32 draw_size = editor->cmd_size + 1;
+        memcpy(draw_chars + 1, editor->cmd_buf, editor->cmd_size);
+
+        for ( u32 i = 0; i < buf->width && i < draw_size; i++) {
+            buf->tiles[i + status_offset].c = draw_chars[i];
+        }
+
+        user_win->cursor_row = buf->height - 1;
+        user_win->cursor_col = MIN(buf->width - 1, editor->cmd_cursor + 1);
     } else {
         string8 mode_str = _editor_mode_names[editor->mode];
 
+        u32 mode_draw_offset = EDITOR_STATUS_PAD + (u32)mode_str.size;
+        u32 mode_draw_start = buf->width > mode_draw_offset ? 
+            buf->width - mode_draw_offset : 0;
+
         for (
-            u32 i = 0; i + EDITOR_STATUS_PAD < buf->width &&
+            u32 i = 0; i + mode_draw_start < buf->width &&
             i < mode_str.size; i++
         ) {
-            buf->tiles[i + EDITOR_STATUS_PAD + status_offset].c = mode_str.str[i];
+            buf->tiles[i + mode_draw_start + status_offset].c = mode_str.str[i];
         }
 
         u32 input_draw_offset = EDITOR_INPUT_SEQ_MAX + EDITOR_STATUS_PAD;
@@ -389,7 +403,7 @@ void _editor_draw_status(window* user_win, editor_context* editor) {
         u32 input_idx = editor->action_start_input;
 
         for (
-            u32 x = input_draw_start; x < buf->width &&
+            u32 x = input_draw_start; x < mode_draw_start &&
             input_idx != editor->input_queue_end; x++
         ) {
             win_input input = editor->input_queue[input_idx];

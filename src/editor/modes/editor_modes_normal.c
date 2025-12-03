@@ -60,6 +60,12 @@ b32 _editor_do_normal(
                 editor->mode = EDITOR_MODE_CELL_EDIT;
             } break;
 
+            case ':': {
+                editor->mode = EDITOR_MODE_CMD;
+                editor->cmd_size = 0;
+                editor->cmd_cursor = 0;
+            } break;
+
             case WIN_INPUT_ARROW_LEFT:
             case 'h': { _editor_cursor_left(editor, wb, count); } break;
             case WIN_INPUT_ARROW_DOWN:
@@ -291,6 +297,8 @@ execute_motion_action:
 
     sheet_range motion_range = { {init_cursor, cur_cursor} };
 
+    b32 last = false;
+
     for (u32 i = 0; i < editor->pending_action_count; i++) {
         switch (editor->pending_action_inputs[0]) {
             case 'X':
@@ -321,9 +329,7 @@ execute_motion_action:
             } break;
         }
 
-        if (i == editor->pending_action_count - 1) { break; }
-
-        b32 last = false;
+        if (last || i == editor->pending_action_count - 1) { break; }
 
         for (u32 j = 0; j < 2; j++) {
             i32 new_row = (i32)motion_range.cells[j].row + motion_offset_rows;
@@ -348,8 +354,6 @@ execute_motion_action:
             motion_range.cells[j].row = (u32)new_row;
             motion_range.cells[j].col = (u32)new_col;
         }
-
-        if (last) { break; }
     }
 
     if (motion_range.end.row > wb->active_win->cursor_pos.row) {

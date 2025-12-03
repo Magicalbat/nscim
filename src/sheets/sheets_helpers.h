@@ -26,3 +26,7 @@ u32 sheets_cell_to_chars(sheet_cell_view cell, u8* chars, u32 max_chars);
 // Also clamps start and end to be within bounds
 sheet_range sheets_fix_range(sheet_range in_range);
 
+void sheets_parse_store_str(
+    workbook* wb, sheet_buffer* sheet, string8 base_str, sheet_pos pos
+);
+

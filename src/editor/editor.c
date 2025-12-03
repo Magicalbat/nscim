@@ -9,9 +9,6 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb);
 b32 _editor_do_cell_visual(editor_context*, workbook*, win_input, u32) {
     return false;
 }
-b32 _editor_do_cmd(editor_context*, workbook*, win_input, u32) {
-    return false;
-}
 
 #include "modes/editor_modes_internal.h"
 
@@ -28,4 +25,5 @@ b32 _editor_do_cmd(editor_context*, workbook*, win_input, u32) {
 #include "modes/editor_modes_visual.c"
 #include "modes/editor_modes_cell_insert.c"
 #include "modes/editor_modes_cell_edit.c"
+#include "modes/editor_modes_cmd.c"
 

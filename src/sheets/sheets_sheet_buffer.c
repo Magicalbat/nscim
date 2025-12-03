@@ -53,7 +53,7 @@ static void _sb_init_info(void) {
 
     // Number of u64s in the width bitfield
     _sb_info.width_bitfield_u64s = (
-        SHEET_MAX_COLS * sizeof(u16) + bitfield_coverage - 1
+        SHEET_MAX_COLS * sizeof(u8) + bitfield_coverage - 1
     ) / bitfield_coverage;
 
     // Number of u64 in the height bitfield

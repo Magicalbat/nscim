@@ -5,6 +5,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <ctype.h>
 
 #if defined(__linux__)
 #   define PLATFORM_LINUX
