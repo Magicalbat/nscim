@@ -24,6 +24,8 @@ void _editor_load_cell_to_input(
 void _editor_store_cell_from_input(editor_context* editor, workbook* wb) {
     sheet_window* win = wb->active_win;
 
+    win->prev_edit_pos = win->cursor_pos;
+
     string8 str = { editor->cell_input_buf, (u64)editor->cell_input_size };
 
     if (str.size == 0) {

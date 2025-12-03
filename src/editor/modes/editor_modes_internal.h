@@ -26,6 +26,11 @@ void _editor_cursor_down(editor_context* editor, workbook* wb, u32 n);
 void _editor_cursor_left(editor_context* editor, workbook* wb, u32 n);
 void _editor_cursor_right(editor_context* editor, workbook* wb, u32 n);
 
+// These functions perform bounds checking and make sure that
+// the cursor remains within the window's scroll range
+void _editor_cursor_set_row(editor_context* editor, workbook* wb, u32 row);
+void _editor_cursor_set_col(editor_context* editor, workbook* wb, u32 col);
+
 // These functions act like CTRL+Arrow in Excel
 // i.e. When in a cell with contents, it will move
 // until just before an empty cell. When in an empty

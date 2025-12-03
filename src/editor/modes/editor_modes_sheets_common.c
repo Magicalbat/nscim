@@ -92,6 +92,31 @@ void _editor_cursor_right(editor_context* editor, workbook* wb, u32 n) {
     }
 }
 
+void _editor_cursor_set_row(editor_context* editor, workbook* wb, u32 row) {
+    sheet_window* win = wb->active_win;
+
+    if (row == win->cursor_pos.row) { return; }
+
+    if (row > win->cursor_pos.row) {
+        _editor_cursor_down(editor, wb, row - win->cursor_pos.row);
+    } else {
+        _editor_cursor_up(editor, wb, win->cursor_pos.row - row);
+    }
+}
+
+void _editor_cursor_set_col(editor_context* editor, workbook* wb, u32 col) {
+    sheet_window* win = wb->active_win;
+
+    if (col == win->cursor_pos.col) { return; }
+
+    if (col > win->cursor_pos.col) {
+        _editor_cursor_right(editor, wb, col - win->cursor_pos.col);
+    } else {
+        _editor_cursor_left(editor, wb, win->cursor_pos.col - col);
+    }
+
+}
+
 void _editor_move_block_vert(editor_context* editor, workbook* wb, i32 diff) {
     sheet_window* win = wb->active_win;
     sheet_buffer* sheet = wb_get_active_sheet(wb, false);
@@ -211,14 +236,7 @@ void _editor_move_block_vert(editor_context* editor, workbook* wb, i32 diff) {
     }
 
     u32 final_row = (u32)CLAMP(row, 0, (i32)SHEET_MAX_ROWS - 1);
-
-    if (final_row != win->cursor_pos.row) {
-        if (final_row < win->cursor_pos.row) {
-            _editor_cursor_up(editor, wb, win->cursor_pos.row - final_row);
-        } else {
-            _editor_cursor_down(editor, wb, final_row - win->cursor_pos.row);
-        }
-    }
+    _editor_cursor_set_row(editor, wb, final_row);
 }
 
 void _editor_move_block_horz(editor_context* editor, workbook* wb, i32 diff) {
@@ -342,14 +360,7 @@ void _editor_move_block_horz(editor_context* editor, workbook* wb, i32 diff) {
     }
 
     u32 final_col = (u32)CLAMP(col, 0, (i32)SHEET_MAX_COLS - 1);
-
-    if (final_col != win->cursor_pos.col) {
-        if (final_col < win->cursor_pos.col) {
-            _editor_cursor_left(editor, wb, win->cursor_pos.col - final_col);
-        } else {
-            _editor_cursor_right(editor, wb, final_col - win->cursor_pos.col);
-        }
-    }
+    _editor_cursor_set_col(editor, wb, final_col);
 }
 
 void _editor_move_along_vert(editor_context* editor, workbook* wb, i32 dir) {

@@ -55,9 +55,47 @@ b32 _editor_do_normal(
                 editor->mode = EDITOR_MODE_CELL_INSERT;
             } break;
 
+            case 'I': {
+                sheet_pos prev_pos = wb->active_win->prev_edit_pos;
+                _editor_cursor_set_row(editor, wb, prev_pos.row);
+                _editor_cursor_set_col(editor, wb, prev_pos.col);
+
+                _editor_load_cell_to_input(editor, wb, 0);
+                editor->mode = EDITOR_MODE_CELL_INSERT;
+            } break;
+
             case 'e': {
                 _editor_load_cell_to_input(editor, wb, 1);
                 editor->mode = EDITOR_MODE_CELL_EDIT;
+            } break;
+
+            case 'E': {
+                sheet_pos prev_pos = wb->active_win->prev_edit_pos;
+                _editor_cursor_set_row(editor, wb, prev_pos.row);
+                _editor_cursor_set_col(editor, wb, prev_pos.col);
+
+                _editor_load_cell_to_input(editor, wb, 1);
+                editor->mode = EDITOR_MODE_CELL_EDIT;
+            } break;
+
+            case 's': {
+                sheet_buffer* sheet = wb_get_active_sheet(wb, false);
+                sheet_clear_cell(wb, sheet, wb->active_win->cursor_pos);
+
+                _editor_load_cell_to_input(editor, wb, 0);
+                editor->mode = EDITOR_MODE_CELL_INSERT;
+            } break;
+
+            case 'S': {
+                sheet_pos prev_pos = wb->active_win->prev_edit_pos;
+                _editor_cursor_set_row(editor, wb, prev_pos.row);
+                _editor_cursor_set_col(editor, wb, prev_pos.col);
+
+                sheet_buffer* sheet = wb_get_active_sheet(wb, false);
+                sheet_clear_cell(wb, sheet, wb->active_win->cursor_pos);
+
+                _editor_load_cell_to_input(editor, wb, 0);
+                editor->mode = EDITOR_MODE_CELL_INSERT;
             } break;
 
             case ':': {
@@ -356,25 +394,8 @@ execute_motion_action:
         }
     }
 
-    if (motion_range.end.row > wb->active_win->cursor_pos.row) {
-        _editor_cursor_down(
-            editor, wb, motion_range.end.row - wb->active_win->cursor_pos.row
-        );
-    } else {
-        _editor_cursor_up(
-            editor, wb, wb->active_win->cursor_pos.row - motion_range.end.row
-        );
-    }
-    
-    if (motion_range.end.col > wb->active_win->cursor_pos.col) {
-        _editor_cursor_right(
-            editor, wb, motion_range.end.col - wb->active_win->cursor_pos.col
-        );
-    } else {
-        _editor_cursor_left(
-            editor, wb, wb->active_win->cursor_pos.col - motion_range.end.col
-        );
-    }
+    _editor_cursor_set_row(editor, wb, motion_range.end.row);
+    _editor_cursor_set_col(editor, wb, motion_range.end.col);
 
 consume_motion:
     _editor_consume_motion(editor);

@@ -66,6 +66,8 @@ typedef struct sheet_window {
     sheet_pos cursor_pos;
     // Position where selection started
     sheet_pos select_start;
+    // Previously edited cell
+    sheet_pos prev_edit_pos;
 } sheet_window;
 
 sheet_buffer* wb_win_get_sheet(workbook* wb, sheet_window* win, b32 create_if_empty);
