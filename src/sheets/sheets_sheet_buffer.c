@@ -545,6 +545,51 @@ void sheet_clear_cell(workbook* wb, sheet_buffer* sheet, sheet_pos pos) {
     chunk->types[index] = SHEET_CELL_TYPE_EMPTY;
 }
 
+void _sheet_clear_chunk(
+    workbook* wb, sheet_buffer* sheet, sheet_chunk* chunk,
+    sheet_range range, sheet_chunk_pos start_chunk, sheet_chunk_pos end_chunk
+) {
+    // Local row and col
+    u32 l_start_row = 0;
+    u32 l_start_col = 0;
+    u32 l_end_row = SHEET_CHUNK_ROWS - 1;
+    u32 l_end_col = SHEET_CHUNK_COLS - 1;
+
+    if (chunk->pos.row == start_chunk.row) {
+        l_start_row = range.start.row % SHEET_CHUNK_ROWS;
+    }
+    if (chunk->pos.row == end_chunk.row) {
+        l_end_row = range.end.row % SHEET_CHUNK_ROWS;
+    }
+    if (chunk->pos.col == start_chunk.col) {
+        l_start_col = range.start.col % SHEET_CHUNK_COLS;
+    }
+    if (chunk->pos.col == end_chunk.col) {
+        l_end_col = range.end.col % SHEET_CHUNK_COLS;
+    }
+
+    for (u32 l_col = l_start_col; l_col <= l_end_col; l_col++) {
+        for (u32 l_row = l_start_row; l_row <= l_end_row; l_row++) {
+            u32 index = l_row + l_col * SHEET_CHUNK_ROWS;
+
+            if (chunk->types[index] == SHEET_CELL_TYPE_STRING) {
+                wb_free_string(wb, chunk->strings[index]);
+                chunk->strings[index] = NULL;
+            }
+
+            if (chunk->types[index] != SHEET_CELL_TYPE_EMPTY) {
+                chunk->set_cell_count--;
+            }
+
+            chunk->types[index] = SHEET_CELL_TYPE_EMPTY;
+        }
+    }
+
+    if (chunk->set_cell_count == 0) {
+        _sb_chunk_free(wb, sheet, chunk);
+    }
+}
+
 void sheet_clear_range(workbook* wb, sheet_buffer* sheet, sheet_range in_range) {
     if (sheet->map_capacity == 0) { return; }
 
@@ -560,52 +605,43 @@ void sheet_clear_range(workbook* wb, sheet_buffer* sheet, sheet_range in_range) 
         range.end.col / SHEET_CHUNK_COLS,
     };
 
-    for (u32 c_col = start_chunk.col; c_col <= end_chunk.col; c_col++) {
-        for (u32 c_row = start_chunk.row; c_row <= end_chunk.row; c_row++) {
-            sheet_chunk* chunk = sheet_get_chunk(
-                wb, sheet, (sheet_chunk_pos){ c_row, c_col }, false
-            );
+    u32 num_chunks = (end_chunk.row - start_chunk.row + 1) *
+        (end_chunk.col - start_chunk.col + 1);
 
-            if (chunk == NULL) { continue; }
+    if (num_chunks < sheet->map_capacity) {
+        for (u32 c_col = start_chunk.col; c_col <= end_chunk.col; c_col++) {
+            for (u32 c_row = start_chunk.row; c_row <= end_chunk.row; c_row++) {
+                sheet_chunk* chunk = sheet_get_chunk(
+                    wb, sheet, (sheet_chunk_pos){ c_row, c_col }, false
+                );
 
-            // Local row and col
-            u32 l_start_row = 0;
-            u32 l_start_col = 0;
-            u32 l_end_row = SHEET_CHUNK_ROWS - 1;
-            u32 l_end_col = SHEET_CHUNK_COLS - 1;
+                if (chunk == NULL) { continue; }
 
-            if (c_row == start_chunk.row) {
-                l_start_row = range.start.row % SHEET_CHUNK_ROWS;
+                _sheet_clear_chunk(
+                    wb, sheet, chunk, range, start_chunk, end_chunk
+                );
             }
-            if (c_row == end_chunk.row) {
-                l_end_row = range.end.row % SHEET_CHUNK_ROWS;
-            }
-            if (c_col == start_chunk.col) {
-                l_start_col = range.start.col % SHEET_CHUNK_COLS;
-            }
-            if (c_col == end_chunk.col) {
-                l_end_col = range.end.col % SHEET_CHUNK_ROWS;
-            }
+        }
+    } else {
+        for (u32 i = 0; i < sheet->map_capacity; i++) {
+            sheet_chunk* chunk = sheet->chunk_map[i];
+            sheet_chunk* next = NULL;
 
-            for (u32 l_col = l_start_col; l_col <= l_end_col; l_col++) {
-                for (u32 l_row = l_start_row; l_row <= l_end_row; l_row++) {
-                    u32 index = l_row + l_col * SHEET_CHUNK_ROWS;
+            while (chunk != NULL) {
+                next = chunk->next;
 
-                    if (chunk->types[index] == SHEET_CELL_TYPE_STRING) {
-                        wb_free_string(wb, chunk->strings[index]);
-                        chunk->strings[index] = NULL;
-                    }
-
-                    if (chunk->types[index] != SHEET_CELL_TYPE_EMPTY) {
-                        chunk->set_cell_count--;
-                    }
-
-                    chunk->types[index] = SHEET_CELL_TYPE_EMPTY;
+                if (
+                    chunk->pos.row >= start_chunk.row &&
+                    chunk->pos.row <= end_chunk.row &&
+                    chunk->pos.col >= start_chunk.col &&
+                    chunk->pos.col <= end_chunk.col
+                ) {
+                    _sheet_clear_chunk(
+                        wb, sheet, chunk, range, start_chunk, end_chunk
+                    );
                 }
-            }
 
-            if (chunk->set_cell_count == 0) {
-                _sb_chunk_free(wb, sheet, chunk);
+                chunk = next;
             }
         }
     }

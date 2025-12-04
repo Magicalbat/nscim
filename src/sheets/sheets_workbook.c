@@ -135,12 +135,14 @@ sheet_chunk* wb_create_chunk(workbook* wb) {
 }
 
 void wb_free_chunk(workbook* wb, sheet_chunk* chunk) {
-    for (u32 i = 0; i < SHEET_CHUNK_SIZE; i++) {
-        if (
-            chunk->types[i] == SHEET_CELL_TYPE_STRING &&
-            chunk->strings[i] != NULL
-        ) {
-            wb_free_string(wb, chunk->strings[i]);
+    if (chunk->set_cell_count > 0) {
+        for (u32 i = 0; i < SHEET_CHUNK_SIZE; i++) {
+            if (
+                chunk->types[i] == SHEET_CELL_TYPE_STRING &&
+                chunk->strings[i] != NULL
+            ) {
+                wb_free_string(wb, chunk->strings[i]);
+            }
         }
     }
 
