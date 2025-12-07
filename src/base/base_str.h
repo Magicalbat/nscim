@@ -4,6 +4,11 @@ typedef struct {
     u64 size;
 } string8;
 
+typedef struct {
+    u16* str;
+    u64 size;
+} string16;
+
 typedef struct string8_node {
     string8 str;
     struct string8_node* next;
@@ -22,6 +27,12 @@ typedef struct {
     string8 delim;
     string8 end;
 } string8_concat_desc;
+
+typedef struct {
+    u32 codepoint;
+    // In characters of the string
+    u32 len;
+} string_decode;
 
 #define STR8_LIT(s) (string8){ (u8*)(s), sizeof(s) - 1 }
 
@@ -54,4 +65,24 @@ string8 str8_concat(
 
 void str8_list_add_existing(string8_list* list, string8_node* node);
 void str8_list_add(mem_arena* arena, string8_list* list, string8 str);
+
+// Returns the decode output of the first unicode codepoint
+// after offset bytes in the utf-8 string
+string_decode utf8_decode(string8 str, u64 offset);
+// Returns the decode output of the first unicode codepoint
+// after offset 16-bit characters in the utf-16 string
+string_decode utf16_decode(string16 str, u64 offset);
+// Encodes the codepoint to out and returns the length in characters
+// out must contain at least four characters
+u32 utf8_encode(u32 codepoint, u8* out);
+// Encodes the codepoint to out and returns the length in characters
+// out must contain at least two characters
+u32 utf16_encode(u32 codepoint, u16* out);
+
+// Converts a utf-16 string16 to a utf-8 string8
+// Null termination is not counted toward the size of the string
+string8 str8_from_str16(mem_arena* arena, string16 str, b32 null_terminate);
+// Converts a utf-8 string8 to a utf-16 string16
+// Null termination is not counted toward the size of the string
+string16 str16_from_str8(mem_arena* arena, string8 str, b32 null_terminate);
 

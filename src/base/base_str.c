@@ -170,3 +170,184 @@ void str8_list_add(mem_arena* arena, string8_list* list, string8 str) {
     str8_list_add_existing(list, node);
 }
 
+// Based off of the decoders from Chris Wellons and Mr 4th
+// https://nullprogram.com/blog/2017/10/06/
+// https://git.mr4th.com/mr4th-public/mr4th/src/branch/main/src/base/base_big_functions.c#L696
+string_decode utf8_decode(string8 str, u64 offset) {
+    static const u8 lengths[] = {
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 3, 3, 4, 0
+    };
+    static const u8 first_byte_masks[] = {
+        0, 0x7f, 0x1f, 0x0f, 0x07
+    };
+    static const u8 final_shifts[] = {
+        0, 18, 12, 6, 0
+    };
+
+    string_decode out = {
+        // Replacement Character '�'
+        .codepoint = 0xfffd,
+        .len = 1
+    };
+
+    if (offset >= str.size) {
+        return out;
+    }
+
+    u32 first_byte = str.str[offset];
+    u32 len = lengths[first_byte >> 3];
+
+    if (len <= 0 || offset + len > str.size) {
+        return out;
+    }
+
+    u32 codepoint = (first_byte & first_byte_masks[len]) << 18;
+    switch (len) {
+        case 4: codepoint |= ((u32)str.str[offset+3] & 0x3f);
+        // fallthrough
+        case 3: codepoint |= (((u32)str.str[offset+2] & 0x3f) << 6);
+        // fallthrough
+        case 2: codepoint |= (((u32)str.str[offset+1] & 0x3f) << 12);
+        default: break;
+    }
+
+    codepoint >>= final_shifts[len];
+
+    out.codepoint = codepoint;
+    out.len = len;
+
+    return out;
+}
+
+string_decode utf16_decode(string16 str, u64 offset) {
+    string_decode out = {
+        // Replacement Character '�'
+        .codepoint = 0xfffd,
+        .len = 1
+    };
+
+    if (offset >= str.size) {
+        return out;
+    }
+
+    u32 first_char = str.str[offset];
+
+    if (first_char < 0xd800 || first_char > 0xdbff) {
+        out.codepoint = first_char;
+    } else if (offset + 1 < str.size) {
+        u32 second_char = str.str[offset + 1];
+
+        // First char was already checked
+        if (second_char >= 0xdc00 && second_char <= 0xdfff) {
+            out.codepoint = ((first_char - 0xd800) << 10) |
+                (second_char - 0xdc00) + 0x10000;
+            out.len = 2;
+        }
+    }
+
+    return out;
+}
+
+u32 utf8_encode(u32 codepoint, u8* out) {
+    u32 size = 0;
+
+    if (codepoint <= 0x7f) {
+        out[0] = (u8)(codepoint & 0xff);
+
+        size = 1;
+    } else if (codepoint <= 0x7ff) {
+        out[0] = (u8)(0xc0 | (codepoint >> 6));
+        out[1] = (u8)(0x80 | (codepoint & 0x3f));
+
+        size = 2;
+    } else if (codepoint <= 0xffff) {
+        out[0] = (u8)(0xe0 | (codepoint >> 12));
+        out[1] = (u8)(0x80 | ((codepoint >> 6) & 0x3f));
+        out[2] = (u8)(0x80 | (codepoint & 0x3f));
+
+        size = 3;
+    } else if (codepoint <= 0x10fff) {
+        out[0] = (u8)(0xf0 | (codepoint >> 18));
+        out[1] = (u8)(0x80 | ((codepoint >> 12) & 0x3f));
+        out[2] = (u8)(0x80 | ((codepoint >> 6) & 0x3f));
+        out[3] = (u8)(0x80 | (codepoint & 0x3f));
+
+        size = 4;
+    } else {
+        // Replacement Character '�'
+        size = utf8_encode(0xfffd, out);
+    }
+
+    return size;
+}
+
+u32 utf16_encode(u32 codepoint, u16* out) {
+    u32 size = 0;
+
+    if (codepoint < 0x10000) {
+        out[0] = (u16)codepoint;
+
+        size = 1;
+    } else {
+        codepoint -= 0x10000;
+        
+        out[0] = (u16)((codepoint >> 10) + 0xd800);
+        out[1] = (u16)((codepoint & 0x3ff) + 0xdc00);
+
+        size = 1;
+    }
+
+    return size;
+}
+
+string8 str8_from_str16(mem_arena* arena, string16 str, b32 null_terminate) {
+    u64 max_size = str.size * 3 + (null_terminate ? 1 : 0);
+    u8* out = PUSH_ARRAY(arena, u8, max_size);
+
+    u64 out_size = 0;
+    u64 offset = 0;
+
+    while (offset < str.size) {
+        string_decode decode = utf16_decode(str, offset);
+
+        offset += decode.len;
+        
+        out_size += utf8_encode(decode.codepoint, out);
+    }
+
+    u64 required_chars = out_size + (null_terminate ? 1 : 0);
+    u64 unused_chars = max_size - required_chars;
+    arena_pop(arena, unused_chars * sizeof(u8));
+
+    return (string8) {
+        .str = out,
+        .size = out_size
+    };
+}
+
+string16 str16_from_str8(mem_arena* arena, string8 str, b32 null_terminate) {
+    u64 max_size = str.size + (null_terminate ? 1 : 0);
+    u16* out = PUSH_ARRAY(arena, u16, max_size);
+
+    u64 out_size = 0;
+    u64 offset = 0;
+
+    while (offset < str.size) {
+        string_decode decode = utf8_decode(str, offset);
+
+        offset += decode.len;
+
+        out_size += utf16_encode(decode.codepoint, out + out_size);
+    }
+
+    u64 required_chars = out_size + (null_terminate ? 1 : 0);
+    u64 unused_chars = max_size - required_chars;
+    arena_pop(arena, unused_chars * sizeof(u16));
+
+    return (string16) {
+        .str = out,
+        .size = out_size
+    };
+}
+
