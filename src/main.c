@@ -27,6 +27,32 @@ int main(void) {
 
     mem_arena* perm_arena = arena_create(MiB(64), MiB(1), true);
 
+    string8_list list = { 0 };
+
+    str8_list_add(perm_arena, &list, STR8_LIT("Hello World\n"));
+    str8_list_add(perm_arena, &list, STR8_LIT("Line 1\n"));
+    str8_list_add(perm_arena, &list, STR8_LIT("Line 2\n"));
+    str8_list_add(perm_arena, &list, STR8_LIT("Line 3\n"));
+    str8_list_add(perm_arena, &list, STR8_LIT("Line 4\n"));
+    str8_list_add(perm_arena, &list, STR8_LIT("Line 5\n"));
+    str8_list_add(perm_arena, &list, STR8_LIT("Line 6\n"));
+
+    string8 file_name = STR8_LIT("test.txt");
+
+    plat_file_write(file_name, &list, false);
+    u64 size = plat_file_size(file_name);
+
+    printf("test.txt is %" PRIu64 " bytes large\n", size);
+
+    getc(stdin);
+
+    string8 file = plat_file_read(perm_arena, file_name);
+    printf("\n========================\n\n%.*s\n", STR8_FMT(file));
+
+    plat_file_delete(file_name);
+
+    return 0;
+
     #if 0
 
     term_context* term = term_init(perm_arena, MiB(4));

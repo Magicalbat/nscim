@@ -18,8 +18,8 @@ typedef struct {
     string8_node* first;
     string8_node* last;
 
-    u32 count;
     u64 total_size;
+    u64 count;
 } string8_list;
 
 typedef struct {
@@ -57,6 +57,7 @@ void str8_to_lower_ip(string8 in, string8* out);
 string8 str8_to_upper(mem_arena* arena, string8 str);
 string8 str8_to_lower(mem_arena* arena, string8 str);
 
+string8 str8_concat_simple(mem_arena* arena, const string8_list* list);
 string8 str8_concat(
     mem_arena* arena,
     const string8_list* list,
