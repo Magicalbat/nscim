@@ -246,9 +246,7 @@ sheet_chunk* sheet_get_chunk(
     sheet_chunk_pos chunk_pos, b32 create_if_empty
 ) {
     // This is the empty sheet
-    if (sheet->map_capacity == 0) {
-        return NULL;
-    }
+    if (sheet->map_capacity == 0) { return NULL; }
 
     if (chunk_pos.row >= SHEET_CHUNKS_Y || chunk_pos.col >= SHEET_CHUNKS_X) {
         return NULL;

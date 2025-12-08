@@ -97,7 +97,7 @@ b32 _editor_do_visual(
 
             // All of these begin multi-input actions
             case 'z':
-            case 'r':
+            case 'f':
             case 'a':
             case 'M':
             case WIN_INPUT_CTRL('w'): {
@@ -123,7 +123,7 @@ b32 _editor_do_visual(
                 }
             } break;
 
-            case 'r': {
+            case 'f': {
                 sheet_range fixed_range = sheets_fix_range(select_range);
 
                 switch (input) {

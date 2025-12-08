@@ -178,7 +178,7 @@ b32 _editor_do_normal(
 
             // All of these begin multi-input actions
             case 'z':
-            case 'r':
+            case 'f':
             case 'a':
             case 'M':
             case WIN_INPUT_CTRL('w'): {
@@ -204,7 +204,7 @@ b32 _editor_do_normal(
                 }
             } break;
 
-            case 'r': {
+            case 'f': {
                 switch (input) {
                     case WIN_INPUT_ARROW_LEFT:
                     case 'h': {

@@ -150,6 +150,7 @@ typedef struct sheet_buffer {
     u64* _row_height_bitfield;
 } sheet_buffer;
 
+// `wb` can be NULL if create_if_empty is false
 sheet_chunk* sheet_get_chunk(
     workbook* wb, sheet_buffer* sheet,
     sheet_chunk_pos chunk_pos, b32 create_if_empty

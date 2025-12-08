@@ -10,8 +10,14 @@ typedef struct {
 
     sheet_pos orig_pos;
 
-    u32 rows;
-    u32 cols;
+    u32 num_rows;
+    u32 num_cols;
+
+    u32 num_column_widths;
+    u32 num_row_heights;
+
+    u8* column_widths;
+    u8* row_heights;
 
     union {
         struct {
@@ -19,11 +25,14 @@ typedef struct {
 
             union {
                 f64* nums;
-                sheet_string** strings;
+                string8** strings;
             };
         } arrays;
 
         struct {
+            u32 offset_rows;
+            u32 offset_cols;
+
             u32 map_capacity;
             u32 num_chunks;
 
@@ -32,4 +41,12 @@ typedef struct {
     };
 } sheet_range_copy;
 
+sheet_range_copy* sheet_range_copy_create(
+    mem_arena* arena, sheet_buffer* sheet, sheet_range range
+);
+
+void sheet_range_copy_restore(
+    sheet_range_copy* range_copy, workbook* wb,
+    sheet_buffer* sheet, sheet_pos pos
+);
 
