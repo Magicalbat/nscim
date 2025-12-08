@@ -2,9 +2,7 @@
 typedef enum {
     SHEETS_WIN_SPLIT_VERT = 0b0,
     SHEETS_WIN_SPLIT_HORZ = 0b1,
-} sheet_window_split_enum;
-
-typedef u32 sheet_window_split;
+} sheet_window_split;
 
 // Stores information about how the user is editing a sheet
 // Akin to vim windows

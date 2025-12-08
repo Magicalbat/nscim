@@ -171,7 +171,7 @@ b32 _editor_do_normal(
             
             case 'X':
             case 'd':
-            case 'c': {
+            case 'm': {
                 _editor_await_motion(editor, input);
                 return true;
             } break;
@@ -180,7 +180,7 @@ b32 _editor_do_normal(
             case 'z':
             case 'r':
             case 'a':
-            case 'C':
+            case 'M':
             case WIN_INPUT_CTRL('w'): {
                 return false;
             } break;
@@ -260,7 +260,7 @@ b32 _editor_do_normal(
                 }
             } break;
 
-            case 'C': {
+            case 'M': {
                 switch (input) {
                     case 'i':
                     case 'e':
@@ -348,8 +348,8 @@ execute_motion_action:
                 );
             } break;
 
-            case 'C': 
-            case 'c': {
+            case 'M': 
+            case 'm': {
                 _editor_series_mode series_mode = _EDITOR_SERIES_INFER;
 
                 if (editor->pending_action_inputs_size > 1) {

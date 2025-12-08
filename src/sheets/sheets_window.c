@@ -101,7 +101,7 @@ void wb_win_compute_sizes(workbook* wb, u32 total_width, u32 total_height) {
         sheet_window* parent = cur->parent;
         b32 is_child1 = parent->child1 == cur;
 
-        u32 child_case = (parent->split_dir << 1) | (u32)is_child1;
+        u32 child_case = ((u32)parent->split_dir << 1) | (u32)is_child1;
 
         switch (child_case) {
             // Vertical, child0

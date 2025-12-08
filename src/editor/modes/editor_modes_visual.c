@@ -90,7 +90,7 @@ b32 _editor_do_visual(
                 #warning TODO
             } break;
 
-            case 'c': {
+            case 'm': {
                 _editor_continue_series(wb, select_range, _EDITOR_SERIES_INFER);
                 enter_normal = true;
             } break;
@@ -99,7 +99,7 @@ b32 _editor_do_visual(
             case 'z':
             case 'r':
             case 'a':
-            case 'C':
+            case 'M':
             case WIN_INPUT_CTRL('w'): {
                 return false;
             } break;
@@ -193,7 +193,7 @@ b32 _editor_do_visual(
                 }
             } break;
 
-            case 'C': {
+            case 'M': {
                 switch (input) {
                     case 'i': {
                         _editor_continue_series(
