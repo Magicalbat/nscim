@@ -167,13 +167,6 @@ b32 _editor_do_normal(
                 _editor_move_win_multiple_horz(editor, wb, -(f32)count * 0.5f);
             } break;
 
-            case 'p': {
-                if (wb->clipboard != NULL) {
-                    sheet_buffer* sheet = wb_get_active_sheet(wb, true);
-                    wb_paste_range(wb, sheet, wb->active_win->cursor_pos);
-                }
-            } break;
-
             case 'x': {
                 sheet_buffer* sheet = wb_get_active_sheet(wb, false);
                 // Clear cell will do nothing on an empty sheet

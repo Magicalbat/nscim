@@ -1,4 +1,3 @@
-
 #include "base/base.h"
 #include "platform/platform.h"
 #include "term/term.h"

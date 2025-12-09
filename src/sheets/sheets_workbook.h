@@ -2,9 +2,6 @@
 #define SHEETS_WB_RESERVE_SIZE MiB(256)
 #define SHEETS_WB_COMMIT_SIZE MiB(16)
 
-#define SHEETS_WB_CLIPBOARD_RESERVE_SIZE MiB(64)
-#define SHEETS_WB_CLIPBOARD_COMMIT_SIZE MiB(1)
-
 // Workbooks store the state of all open sheets and windows
 // All allocations for sheets (besides buffers themselves)
 // are done on the workbook arena, so free-list can be shared
@@ -47,10 +44,6 @@ typedef struct workbook {
     sheet_chunk** scratch_chunks;
     u64 scratch_chunks_reserve;
     u64 scratch_chunks_commit;
-
-    mem_arena* clipboard_arena;
-    // TODO: clipboard for text as well
-    sheet_range_copy* clipboard;
 } workbook;
 
 workbook* wb_create(void);
@@ -70,7 +63,4 @@ void wb_free_chunk(workbook* wb, sheet_chunk* chunk);
 // Invalid sizes will get rounded up and capped at SHEET_MAX_STRLEN
 sheet_string* wb_create_string(workbook* wb, u32 capacity);
 void wb_free_string(workbook* wb, sheet_string* str);
-
-void wb_copy_range(workbook* wb, sheet_buffer* sheet, sheet_range range);
-void wb_paste_range(workbook* wb, sheet_buffer* sheet, sheet_pos pos);
 

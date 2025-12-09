@@ -30,12 +30,6 @@ workbook* wb_create(void) {
     wb->scratch_chunks_commit = 0;
     wb->scratch_chunks = plat_mem_reserve(wb->scratch_chunks_reserve);
 
-    wb->clipboard_arena = arena_create(
-        SHEETS_WB_CLIPBOARD_RESERVE_SIZE,
-        SHEETS_WB_CLIPBOARD_COMMIT_SIZE,
-        ARENA_FLAG_GROWABLE | ARENA_FLAG_DECOMMIT
-    );
-
     return wb;
 }
 
@@ -59,8 +53,6 @@ void wb_destroy(workbook* wb) {
     }
 
     plat_mem_release(wb->scratch_chunks, wb->scratch_chunks_reserve);
-
-    arena_destroy(wb->clipboard_arena);
 
     arena_destroy(wb->arena);
 }
@@ -232,17 +224,5 @@ void wb_free_string(workbook* wb, sheet_string* str) {
     MEM_ZERO(str->str, sizeof(u8) * str->capacity);
 
     SLL_PUSH_BACK(list->first, list->last, str);
-}
-
-void wb_copy_range(workbook* wb, sheet_buffer* sheet, sheet_range range) {
-    arena_clear(wb->clipboard_arena);
-
-    wb->clipboard = sheet_range_copy_create(wb->clipboard_arena, sheet, range);
-}
-
-void wb_paste_range(workbook* wb, sheet_buffer* sheet, sheet_pos pos) {
-    if (wb->clipboard == NULL) { return; }
-
-    sheet_range_copy_restore(wb->clipboard, wb, sheet, pos);
 }
 
