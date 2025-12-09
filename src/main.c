@@ -18,6 +18,8 @@ void draw(
 );
 
 int main(void) {
+    plat_init();
+
     {
         u64 seeds[2] = { 0 };
         plat_get_entropy(seeds, sizeof(seeds));
@@ -119,12 +121,19 @@ int main(void) {
     window* win = win_create(perm_arena);
     
     draw(win, wb, editor, frame_arena);
+
+    u64 prev_frame_time = plat_now_usec();
     
     while (
         (editor->flags & EDITOR_FLAG_SHOULD_QUIT) !=
         EDITOR_FLAG_SHOULD_QUIT
     ) {
-        editor_update(win, editor, wb);
+        u64 cur_frame_time = plat_now_usec();
+        f32 delta = (f32)(cur_frame_time - prev_frame_time) * 1e-6f;
+
+        prev_frame_time = cur_frame_time;
+
+        editor_update(win, editor, wb, delta);
 
         if ((editor->flags & EDITOR_FLAG_SHOULD_DRAW)) {
             draw(win, wb, editor, frame_arena);
@@ -136,6 +145,8 @@ int main(void) {
                 arena_clear(frame_arena);
             }
         }
+
+        plat_sleep_ms(15);
     }
 
     win_destroy(win);

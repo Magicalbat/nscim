@@ -11,27 +11,107 @@ sheet_buffer* wb_win_get_sheet(workbook* wb, sheet_window* win, b32 create_if_em
     return win->_sheet;
 }
 
+void _wb_win_compute_size(sheet_window* cur, sheet_window* parent) {
+    b32 is_child1 = parent->child1 == cur;
+
+    u32 child_case = ((u32)parent->split_dir << 1) | (u32)is_child1;
+
+    switch (child_case) {
+        // Vertical, child0
+        case 0b00: {
+            cur->start_x = parent->start_x;
+            cur->start_y = parent->start_y;
+            cur->width = (u32)ceil((f64)parent->width * cur->parent_fraction);
+            cur->height = parent->height;
+        } break;
+
+        // Vertical, child1
+        case 0b01: {
+            cur->start_x = parent->start_x + parent->child0->width;
+            cur->start_y = parent->start_y;
+            cur->width = parent->width - parent->child0->width;
+            cur->height = parent->height;
+        } break;
+
+        // Horizontal, child0
+        case 0b10: {
+            cur->start_x = parent->start_x;
+            cur->start_y = parent->start_y;
+            cur->width = parent->width;
+            cur->height = (u32)ceil((f64)parent->height * cur->parent_fraction);
+        } break;
+
+        // Horizontal, child1
+        case 0b11: {
+            cur->start_x = parent->start_x;
+            cur->start_y = parent->start_y + parent->child0->height;
+            cur->width = parent->width;
+            cur->height = parent->height - parent->child0->height;
+        } break;
+    }
+}
+
 void wb_win_split(workbook* wb, sheet_window_split split, b32 open_in_both) {
-    sheet_window* win = wb->active_win;
+    sheet_window* parent = wb->active_win;
+
+    parent->split_dir = split;
 
     for (u32 i = 0; i < 2; i++) {
-        win->children[i] = _wb_create_win(wb);
+        parent->children[i] = _wb_create_win(wb);
 
-        win->children[i]->parent = win;
-        win->children[i]->parent_fraction = 0.5;
+        sheet_window* cur = parent->children[i];
+
+        cur->parent = parent;
+        cur->parent_fraction = 0.5;
 
         if (open_in_both || i == 0) {
-            win->children[i]->_sheet = win->_sheet;
-            win->children[i]->scroll_pos = win->scroll_pos;
-            win->children[i]->cursor_pos = win->cursor_pos;
+            cur->_sheet = parent->_sheet;
+            cur->scroll_pos = parent->scroll_pos;
+            cur->cursor_pos = parent->cursor_pos;
+        }
+
+        _wb_win_compute_size(cur, parent);
+
+        u32 child_case = ((u32)split << 1) | (u32)(i == 1);
+        switch (child_case) {
+            // Vertical, child0
+            case 0b00: {
+                cur->anim_start_x = (f32)parent->start_x;
+                cur->anim_start_y = (f32)parent->start_y;
+                cur->anim_width = (f32)parent->width;
+                cur->anim_height = (f32)parent->height;
+            } break;
+
+            // Vertical, child1
+            case 0b01: {
+                cur->anim_start_x = (f32)(parent->start_x + parent->width);
+                cur->anim_start_y = (f32)parent->start_y;
+                cur->anim_width = 0.0f;
+                cur->anim_height = (f32)parent->height;
+            } break;
+
+            // Horizontal, child0
+            case 0b10: {
+                cur->anim_start_x = (f32)parent->start_x;
+                cur->anim_start_y = (f32)parent->start_y;
+                cur->anim_width = (f32)parent->width;
+                cur->anim_height = (f32)parent->height;
+            } break;
+
+            // Horizontal, child1
+            case 0b11: {
+                cur->anim_start_x = (f32)parent->start_x;
+                cur->anim_start_y = (f32)(parent->start_y + parent->height);
+                cur->anim_width = (f32)parent->width;
+                cur->anim_height = 0.0f;
+            } break;
         }
     }
 
-    win->split_dir = split;
-    win->internal = true;
-    win->_sheet = wb->empty_buffer;
+    parent->internal = true;
+    parent->_sheet = wb->empty_buffer;
 
-    wb->active_win = win->child1;
+    wb->active_win = parent->child1;
 }
 
 void wb_win_close(workbook* wb) {
@@ -99,43 +179,8 @@ void wb_win_compute_sizes(workbook* wb, u32 total_width, u32 total_height) {
     while (stack_size != 0) {
         sheet_window* cur = stack[--stack_size];
         sheet_window* parent = cur->parent;
-        b32 is_child1 = parent->child1 == cur;
 
-        u32 child_case = ((u32)parent->split_dir << 1) | (u32)is_child1;
-
-        switch (child_case) {
-            // Vertical, child0
-            case 0b00: {
-                cur->start_x = parent->start_x;
-                cur->start_y = parent->start_y;
-                cur->width = (u32)ceil((f64)parent->width * cur->parent_fraction);
-                cur->height = parent->height;
-            } break;
-
-            // Vertical, child1
-            case 0b01: {
-                cur->start_x = parent->start_x + parent->child0->width;
-                cur->start_y = parent->start_y;
-                cur->width = parent->width - parent->child0->width;
-                cur->height = parent->height;
-            } break;
-
-            // Horizontal, child0
-            case 0b10: {
-                cur->start_x = parent->start_x;
-                cur->start_y = parent->start_y;
-                cur->width = parent->width;
-                cur->height = (u32)ceil((f64)parent->height * cur->parent_fraction);
-            } break;
-
-            // Horizontal, child1
-            case 0b11: {
-                cur->start_x = parent->start_x;
-                cur->start_y = parent->start_y + parent->child0->height;
-                cur->width = parent->width;
-                cur->height = parent->height - parent->child0->height;
-            } break;
-        }
+        _wb_win_compute_size(cur, parent);
 
         if (!cur->internal) {
             wb_win_update_num_rows(cur);
@@ -275,6 +320,37 @@ void _wb_win_change_active(workbook* wb, sheet_window* cur, i32 dir, sheet_windo
     }
 
     wb->active_win = cur;
+}
+
+void wb_win_update_anims(workbook* wb, f32 anim_speed, f32 delta) {
+    mem_arena_temp scratch = arena_scratch_get(NULL, 0);
+    u32 stack_size = 0;
+    sheet_window** stack = PUSH_ARRAY(scratch.arena, sheet_window*, wb->num_windows);
+
+    stack[stack_size++] = wb->root_win;
+
+    while (stack_size != 0) {
+        sheet_window* cur = stack[--stack_size];
+
+        cur->anim_start_x = exp_anim(
+            cur->anim_start_x, (f32)cur->start_x, anim_speed, delta, 1.0f
+        );
+        cur->anim_start_y = exp_anim(
+            cur->anim_start_y, (f32)cur->start_y, anim_speed, delta, 1.0f
+        );
+        cur->anim_width = exp_anim(
+            cur->anim_width, (f32)cur->width, anim_speed, delta, 1.0f
+        );
+        cur->anim_height = exp_anim(
+            cur->anim_height, (f32)cur->height, anim_speed, delta, 1.0f
+        );
+
+        // Ensure that child0 is processed first
+        if (cur->child1 != NULL) { stack[stack_size++] = cur->child1; }
+        if (cur->child0 != NULL) { stack[stack_size++] = cur->child0; }
+    }
+
+    arena_scratch_release(scratch);
 }
 
 void wb_win_change_active_horz(workbook* wb, i32 dir) {

@@ -165,3 +165,16 @@ u64 siphash(u8* data, u64 size, u64 k0, u64 k1) {
     return b;
 }
 
+f32 exp_decay(f32 a, f32 b, f32 decay, f32 delta) {
+    return b + (a - b) * expf(-decay * delta);
+}
+
+f32 exp_anim(f32 a, f32 b, f32 decay, f32 delta, f32 thresh) {
+    f32 out = b + (a - b) * expf(-decay * delta);
+    if (fabsf(b - out) < thresh) {
+        out = b;
+    }
+
+    return out;
+}
+

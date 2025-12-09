@@ -27,7 +27,7 @@ void plat_sleep_ms(u32 ms) {
 u64 plat_now_usec(void) {
     LARGE_INTEGER ticks = { 0 };
 
-    if (!QueryPerformanceFrequency(&ticks)) {
+    if (!QueryPerformanceCounter(&ticks)) {
         return 0;
     }
 

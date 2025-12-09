@@ -37,6 +37,11 @@ typedef struct sheet_window {
     u32 width;
     u32 height;
 
+    f32 anim_start_x;
+    f32 anim_start_y;
+    f32 anim_width;
+    f32 anim_height;
+
     // Total rows and columns the window currently displays
     u32 num_rows;
     u32 num_cols;
@@ -79,6 +84,8 @@ void wb_win_split(workbook* wb, sheet_window_split split, b32 open_in_both);
 void wb_win_close(workbook* wb);
 
 void wb_win_compute_sizes(workbook* wb, u32 total_width, u32 total_height);
+
+void wb_win_update_anims(workbook* wb, f32 anim_speed, f32 delta);
 
 // Given the current height of the window,
 // this function updates the number of visible rows

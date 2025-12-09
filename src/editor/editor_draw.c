@@ -13,16 +13,19 @@ void _editor_draw_sheet_win(
 ) {
     win_buffer* buf = &user_win->back_buf;
 
-    u32 y = EDITOR_STATUS_ROWS_TOP + win->start_y;
-    u32 max_y = y + win->height - 1;
-    u32 max_x = win->start_x + win->width - 1;
+    u32 start_x = (u32)win->anim_start_x;
+    u32 start_y = (u32)win->anim_start_y;
+    u32 win_width = (u32)win->anim_width;
+    u32 win_height = (u32)win->anim_height;
+
+    u32 y = EDITOR_STATUS_ROWS_TOP + start_y;
+    u32 max_y = y + win_height - 1;
+    u32 max_x = start_x + win_width - 1;
 
     sheet_buffer* sheet = wb_win_get_sheet(wb, win, false);
     b32 cur_active = win == wb->active_win && editor->mode != EDITOR_MODE_CMD;
 
-    if (win->height == 0) {
-        return;
-    }
+    if (win_height == 0 || win_width == 0) { return; }
 
     win_tile status_tile = {
         .fg = editor->colors.status_fg,
@@ -34,8 +37,8 @@ void _editor_draw_sheet_win(
 
     // First status row
     {
-        for (u32 i = 0; i < win->width; i++) {
-            buf->tiles[i + win->start_x + y * buf->width] = status_tile;
+        for (u32 i = 0; i < win_width; i++) {
+            buf->tiles[i + start_x + y * buf->width] = status_tile;
         }
 
         string8 name = sheet->name.size == 0 ?
@@ -44,9 +47,9 @@ void _editor_draw_sheet_win(
         for (u64 i = 0; i < name.size; i++) {
             u64 x = i + EDITOR_SHEET_NAME_PAD;
 
-            if (x >= win->width) { break; }
+            if (x >= win_width) { break; }
 
-            x += win->start_x;
+            x += start_x;
             buf->tiles[x + y * buf->width].c = name.str[i];
         }
 
@@ -62,9 +65,9 @@ void _editor_draw_sheet_win(
         for (u32 i = 0; i < cell_pos_size; i++) {
             u64 x = (u64)i + EDITOR_SHEET_NAME_PAD + name.size;
 
-            if (x >= win->width) { break; }
+            if (x >= win_width) { break; }
 
-            x += win->start_x;
+            x += start_x;
             buf->tiles[x + y * buf->width].c = cell_pos_chars[i];
         }
 
@@ -90,9 +93,9 @@ void _editor_draw_sheet_win(
         for (u32 i = 0; i < type_str.size; i++) {
             u64 x = (u64)i + EDITOR_SHEET_NAME_PAD + name.size + cell_pos_size;
 
-            if (x >= win->width) { break; }
+            if (x >= win_width) { break; }
 
-            x += win->start_x;
+            x += start_x;
             buf->tiles[x + y * buf->width].c = type_str.str[i];
         }
 
@@ -116,8 +119,8 @@ void _editor_draw_sheet_win(
             cell_chars_size = MIN(editor->cell_input_size, sizeof(cell_chars));
             memcpy(cell_chars, editor->cell_input_buf, cell_chars_size);
 
-            user_win->cursor_row = win->start_y + 1;
-            user_win->cursor_col = win->start_x + EDITOR_SHEET_NAME_PAD +
+            user_win->cursor_row = start_y + 1;
+            user_win->cursor_col = start_x + EDITOR_SHEET_NAME_PAD +
                 editor->cell_input_cursor;
         } else {
             cell_chars_size = sheets_cell_to_chars(
@@ -125,8 +128,8 @@ void _editor_draw_sheet_win(
             );
         }
 
-        for (u32 i = 0; i < win->width; i++) {
-            u32 index = i + win->start_x + y * buf->width;
+        for (u32 i = 0; i < win_width; i++) {
+            u32 index = i + start_x + y * buf->width;
             buf->tiles[index] = status_tile;
 
             if (
@@ -168,7 +171,7 @@ void _editor_draw_sheet_win(
 
     // Drawing column titles
     {
-        u32 x = SHEET_MAX_ROW_CHARS + win->start_x;
+        u32 x = SHEET_MAX_ROW_CHARS + start_x;
 
         u32 num_col_chars = 0;
         u8 col_chars[SHEET_MAX_COL_CHARS] = { 0 };
@@ -224,7 +227,7 @@ void _editor_draw_sheet_win(
         u32 num_row_chars = 0;
         u8 row_chars[SHEET_MAX_ROW_CHARS] = { 0 };
 
-        u32 max_row_chars = MIN(SHEET_MAX_ROW_CHARS, win->width);
+        u32 max_row_chars = MIN(SHEET_MAX_ROW_CHARS, win_width);
 
         for (
             u32 row_off = 0;
@@ -255,7 +258,7 @@ void _editor_draw_sheet_win(
 
             for (u32 i = 0; i < height && y_tmp <= max_y; i++, y_tmp++) {
                 for (u32 j = 0; j < max_row_chars; j++) {
-                    buf->tiles[j + win->start_x + y_tmp * buf->width] =
+                    buf->tiles[j + start_x + y_tmp * buf->width] =
                     (win_tile){
                         .fg = fg, .bg = bg,
                         .c = i == 0 && j >= draw_start ?
@@ -267,7 +270,7 @@ void _editor_draw_sheet_win(
 
         for (; y_tmp <= max_y; y_tmp++) {
             for (u32 x = 0; x < max_row_chars; x++) {
-                u32 idx = x + win->start_x + y_tmp * buf->width;
+                u32 idx = x + start_x + y_tmp * buf->width;
                 buf->tiles[idx] = status_tile;
             }
         }
@@ -277,7 +280,7 @@ void _editor_draw_sheet_win(
         u32 row = row_off + win->scroll_pos.row;
         u32 height = sheet_get_row_height(sheet, row);
 
-        u32 x = SHEET_MAX_ROW_CHARS + win->start_x;
+        u32 x = SHEET_MAX_ROW_CHARS + start_x;
 
         for (u32 col_off = 0; col_off < win->num_cols; col_off++) {
             u32 col = col_off + win->scroll_pos.col;

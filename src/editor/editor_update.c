@@ -1,5 +1,8 @@
 
-void editor_update(window* win, editor_context* editor, workbook* wb) {
+void editor_update(
+    window* win, editor_context* editor,
+    workbook* wb, f32 delta
+) {
     win_input input = 0;
 
     editor->flags &= ~(u32)EDITOR_FLAG_SHOULD_DRAW;
@@ -17,8 +20,10 @@ void editor_update(window* win, editor_context* editor, workbook* wb) {
 
     _editor_process_inputs_raw(editor, wb);
 
-    if (win_needs_resize(win)) {
+    if (true || win_needs_resize(win)) {
         editor->flags |= EDITOR_FLAG_SHOULD_DRAW;
+
+        wb_win_update_anims(wb, editor->settings.anim_speed, delta);
     }
 }
 

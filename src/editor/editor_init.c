@@ -21,7 +21,8 @@ editor_context* editor_init(mem_arena* arena) {
 
     editor->settings = (editor_settings) {
         .cursor_row_pad = 2,
-        .cursor_col_pad = 1
+        .cursor_col_pad = 1,
+        .anim_speed = 25.0f,
     };
 
     return editor;

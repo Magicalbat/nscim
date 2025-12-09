@@ -54,6 +54,8 @@ typedef struct {
 typedef struct {
     u32 cursor_row_pad;
     u32 cursor_col_pad;
+
+    f32 anim_speed;
 } editor_settings;
 
 typedef struct {
@@ -103,7 +105,10 @@ void editor_push_inputs(
     win_input* inputs, u32 num_inputs
 );
 
-void editor_update(window* win, editor_context* editor, workbook* wb);
+void editor_update(
+    window* win, editor_context* editor,
+    workbook* wb, f32 delta
+);
 
 void editor_draw(window* win, editor_context* editor, workbook* wb);
 
