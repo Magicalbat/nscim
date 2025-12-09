@@ -25,7 +25,7 @@ int main(void) {
         prng_seed(seeds[0], seeds[1]);
     }
 
-    mem_arena* perm_arena = arena_create(MiB(64), MiB(1), true);
+    mem_arena* perm_arena = arena_create(MiB(64), MiB(1), ARENA_FLAG_GROWABLE);
 
     #if 0
 
@@ -114,8 +114,8 @@ int main(void) {
 
     editor_context* editor = editor_init(perm_arena);
 
-    mem_arena* frame_arena = arena_create(MiB(64), MiB(1), false);
-    mem_arena* prev_frame_arena = arena_create(MiB(64), MiB(1), false);
+    mem_arena* frame_arena = arena_create(MiB(64), MiB(1), 0);
+    mem_arena* prev_frame_arena = arena_create(MiB(64), MiB(1), 0);
 
     window* win = win_create(perm_arena);
     

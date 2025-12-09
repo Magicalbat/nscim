@@ -40,6 +40,10 @@ b32 _editor_do_normal(
             goto execute_motion_action;
         }
     }
+
+    if (editor->flags & _EDITOR_FLAG_PENDING_MOTION) {
+        count *= editor->pending_action_count;
+    }
     
     if (editor->cur_inputs_size == 0) {
         switch (input) {
@@ -161,6 +165,13 @@ b32 _editor_do_normal(
             } break;
             case WIN_INPUT_CTRL('s'): {
                 _editor_move_win_multiple_horz(editor, wb, -(f32)count * 0.5f);
+            } break;
+
+            case 'p': {
+                if (wb->clipboard != NULL) {
+                    sheet_buffer* sheet = wb_get_active_sheet(wb, true);
+                    wb_paste_range(wb, sheet, wb->active_win->cursor_pos);
+                }
             } break;
 
             case 'x': {
@@ -330,72 +341,36 @@ execute_motion_action:
         goto consume_motion;
     }
 
-    i32 motion_offset_rows = (i32)cur_cursor.row - (i32)init_cursor.row;
-    i32 motion_offset_cols = (i32)cur_cursor.col - (i32)init_cursor.col;
-
     sheet_range motion_range = { {init_cursor, cur_cursor} };
 
-    b32 last = false;
+    switch (editor->pending_action_inputs[0]) {
+        case 'X':
+        case 'd': {
+            // TODO: x vs d behavior for entire row/column
 
-    for (u32 i = 0; i < editor->pending_action_count; i++) {
-        switch (editor->pending_action_inputs[0]) {
-            case 'X':
-            case 'd': {
-                // TODO: x vs d behavior for entire row/column
+            sheet_clear_range(
+                wb, wb_get_active_sheet(wb, false), motion_range
+            );
+        } break;
 
-                sheet_clear_range(
-                    wb, wb_get_active_sheet(wb, false), motion_range
-                );
-            } break;
+        case 'M': 
+        case 'm': {
+            _editor_series_mode series_mode = _EDITOR_SERIES_INFER;
 
-            case 'M': 
-            case 'm': {
-                _editor_series_mode series_mode = _EDITOR_SERIES_INFER;
-
-                if (editor->pending_action_inputs_size > 1) {
-                    switch (editor->pending_action_inputs[1]) {
-                        case 'l': {
-                            series_mode = _EDITOR_SERIES_LINEAR;
-                        } break;
-                        case 'e': {
-                            series_mode = _EDITOR_SERIES_EXPONENTIAL;
-                        } break;
-                    }
+            if (editor->pending_action_inputs_size > 1) {
+                switch (editor->pending_action_inputs[1]) {
+                    case 'l': {
+                        series_mode = _EDITOR_SERIES_LINEAR;
+                    } break;
+                    case 'e': {
+                        series_mode = _EDITOR_SERIES_EXPONENTIAL;
+                    } break;
                 }
-
-                _editor_continue_series(wb, motion_range, series_mode);
-            } break;
-        }
-
-        if (last || i == editor->pending_action_count - 1) { break; }
-
-        for (u32 j = 0; j < 2; j++) {
-            i32 new_row = (i32)motion_range.cells[j].row + motion_offset_rows;
-            i32 new_col = (i32)motion_range.cells[j].col + motion_offset_cols;
-
-            if (new_row < 0) {
-                new_row = 0;
-                last = true;
-            } else if (new_row >= (i32)SHEET_MAX_ROWS) {
-                new_row = SHEET_MAX_ROWS - 1;
-                last = true;
             }
 
-            if (new_col < 0) {
-                new_col = 0;
-                last = true;
-            } else if (new_col >= (i32)SHEET_MAX_COLS) {
-                new_col = SHEET_MAX_COLS - 1;
-                last = true;
-            }
-
-            motion_range.cells[j].row = (u32)new_row;
-            motion_range.cells[j].col = (u32)new_col;
-        }
+            _editor_continue_series(wb, motion_range, series_mode);
+        } break;
     }
-
-    _editor_cursor_set_row(editor, wb, motion_range.end.row);
-    _editor_cursor_set_col(editor, wb, motion_range.end.col);
 
 consume_motion:
     _editor_consume_motion(editor);

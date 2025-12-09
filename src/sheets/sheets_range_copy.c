@@ -8,8 +8,8 @@ sheet_range_copy* sheet_range_copy_create(
 
     range_copy->orig_pos = range.start;
 
-    range_copy->num_rows = range.end.row - range.start.row;
-    range_copy->num_cols = range.end.col - range.start.col;
+    range_copy->num_rows = range.end.row - range.start.row + 1;
+    range_copy->num_cols = range.end.col - range.start.col + 1;
 
     u32 last_resized_col = range.end.col;
     while (last_resized_col >= range.start.col) {
@@ -70,6 +70,8 @@ sheet_range_copy* sheet_range_copy_create(
     if (arrays_size < chunks_size) {
         // Creating array mode range copy
 
+        range_copy->mode = SHEET_RANGE_COPY_MODE_ARRAYS;
+
         u64 num_cells = (u64)range_copy->num_rows * (u64)range_copy->num_cols;
 
         range_copy->arrays.types = PUSH_ARRAY(arena, sheet_cell_type, num_cells);
@@ -103,8 +105,11 @@ sheet_range_copy* sheet_range_copy_create(
 
                 for (u32 l_col = l_start_col; l_col <= l_end_col; l_col++) {
                     for (u32 l_row = l_start_row; l_row <= l_end_row; l_row++) {
-                        u64 arrays_index = (u64)c_row * SHEET_CHUNK_ROWS + l_row + 
-                            (u64)(c_col * SHEET_CHUNK_COLS + l_col) * range_copy->num_rows;
+                        u64 arrays_index =
+                            (u64)c_row * SHEET_CHUNK_ROWS + l_row - range.start.row + 
+                            (u64)(c_col * SHEET_CHUNK_COLS + l_col -range.start.col) *
+                            range_copy->num_rows;
+
                         u32 chunk_index = l_row + l_col * SHEET_CHUNK_ROWS;
 
                         sheet_cell_type cell_type = chunk->types[chunk_index];

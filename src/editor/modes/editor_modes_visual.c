@@ -71,6 +71,13 @@ b32 _editor_do_visual(
                 _editor_move_win_multiple_horz(editor, wb, -(f32)count * 0.5f);
             } break;
 
+            case 'y': {
+                sheet_buffer* sheet = wb_get_active_sheet(wb, false);
+                wb_copy_range(wb, sheet, select_range);
+
+                enter_normal = true;
+            } break;
+
             case 'x': 
             case 'd': {
                 // TODO: x vs d behavior for entire row/column

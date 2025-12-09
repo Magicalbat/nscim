@@ -1,8 +1,9 @@
 
 workbook* wb_create(void) {
     mem_arena* arena = arena_create(
-        SHEETS_WORKBOOK_RESERVE_SIZE,
-        SHEETS_WORKBOOK_COMMIT_SIZE, true
+        SHEETS_WB_RESERVE_SIZE,
+        SHEETS_WB_COMMIT_SIZE,
+        ARENA_FLAG_GROWABLE
     );
 
     workbook* wb = PUSH_STRUCT(arena, workbook);
@@ -16,6 +17,11 @@ workbook* wb_create(void) {
     wb->root_win = root_win;
     wb->active_win = root_win;
 
+    u32 str_capacity = SHEET_MIN_STRLEN;
+    for (u32 i = 0; i < SHEET_NUM_STRLENS; i++, str_capacity *= 2) {
+        wb->free_strings[i].str_capacity = str_capacity;
+    }
+
     u64 page_size = plat_page_size();
     wb->scratch_chunks_reserve = ALIGN_UP_POW2(
         sizeof(sheet_chunk*) * SHEET_MAX_CHUNKS,
@@ -24,17 +30,16 @@ workbook* wb_create(void) {
     wb->scratch_chunks_commit = 0;
     wb->scratch_chunks = plat_mem_reserve(wb->scratch_chunks_reserve);
 
-    u32 str_capacity = SHEET_MIN_STRLEN;
-    for (u32 i = 0; i < SHEET_NUM_STRLENS; i++, str_capacity *= 2) {
-        wb->free_strings[i].str_capacity = str_capacity;
-    }
+    wb->clipboard_arena = arena_create(
+        SHEETS_WB_CLIPBOARD_RESERVE_SIZE,
+        SHEETS_WB_CLIPBOARD_COMMIT_SIZE,
+        ARENA_FLAG_GROWABLE | ARENA_FLAG_DECOMMIT
+    );
 
     return wb;
 }
 
 void wb_destroy(workbook* wb) {
-    plat_mem_release(wb->scratch_chunks, wb->scratch_chunks_reserve);
-
     sheet_buffer* next = NULL;
     for (
         sheet_buffer* sheet = wb->first_sheet;
@@ -52,6 +57,10 @@ void wb_destroy(workbook* wb) {
         next = sheet->next;
         _sheet_buffer_destroy(wb, sheet);
     }
+
+    plat_mem_release(wb->scratch_chunks, wb->scratch_chunks_reserve);
+
+    arena_destroy(wb->clipboard_arena);
 
     arena_destroy(wb->arena);
 }
@@ -223,5 +232,17 @@ void wb_free_string(workbook* wb, sheet_string* str) {
     MEM_ZERO(str->str, sizeof(u8) * str->capacity);
 
     SLL_PUSH_BACK(list->first, list->last, str);
+}
+
+void wb_copy_range(workbook* wb, sheet_buffer* sheet, sheet_range range) {
+    arena_clear(wb->clipboard_arena);
+
+    wb->clipboard = sheet_range_copy_create(wb->clipboard_arena, sheet, range);
+}
+
+void wb_paste_range(workbook* wb, sheet_buffer* sheet, sheet_pos pos) {
+    if (wb->clipboard == NULL) { return; }
+
+    sheet_range_copy_restore(wb->clipboard, wb, sheet, pos);
 }
 

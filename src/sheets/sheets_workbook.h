@@ -1,15 +1,18 @@
 
-#define SHEETS_WORKBOOK_RESERVE_SIZE MiB(256)
-#define SHEETS_WORKBOOK_COMMIT_SIZE MiB(16)
+#define SHEETS_WB_RESERVE_SIZE MiB(256)
+#define SHEETS_WB_COMMIT_SIZE MiB(16)
+
+#define SHEETS_WB_CLIPBOARD_RESERVE_SIZE MiB(64)
+#define SHEETS_WB_CLIPBOARD_COMMIT_SIZE MiB(1)
 
 // Workbooks store the state of all open sheets and windows
 // All allocations for sheets (besides buffers themselves)
 // are done on the workbook arena, so free-list can be shared
 // between open sheets and windows
 typedef struct workbook {
-    // This arena stores everything but the buffer allocations
-    // and the scratch chunks array (the empty buffer is stored
-    // on this arena)
+    // This is the main arena for most things in the workbook
+    // Certain items like sheet buffers and the clipboard
+    // are allocated individually
     mem_arena* arena;
 
     // Used when opening a new window or empty workbook
@@ -32,6 +35,11 @@ typedef struct workbook {
 
     sheet_buffer* first_free_sheet;
     sheet_buffer* last_free_sheet;
+    
+    sheet_chunk* first_free_chunk;
+    sheet_chunk* last_free_chunk;
+
+    sheet_string_list free_strings[SHEET_NUM_STRLENS];
 
     // Used when sheet_buffers need to rehash
     // Allocated on its own
@@ -40,12 +48,9 @@ typedef struct workbook {
     u64 scratch_chunks_reserve;
     u64 scratch_chunks_commit;
 
-    // TODO: copy/paste and undo/redo buffers
-
-    sheet_chunk* first_free_chunk;
-    sheet_chunk* last_free_chunk;
-
-    sheet_string_list free_strings[SHEET_NUM_STRLENS];
+    mem_arena* clipboard_arena;
+    // TODO: clipboard for text as well
+    sheet_range_copy* clipboard;
 } workbook;
 
 workbook* wb_create(void);
@@ -65,4 +70,7 @@ void wb_free_chunk(workbook* wb, sheet_chunk* chunk);
 // Invalid sizes will get rounded up and capped at SHEET_MAX_STRLEN
 sheet_string* wb_create_string(workbook* wb, u32 capacity);
 void wb_free_string(workbook* wb, sheet_string* str);
+
+void wb_copy_range(workbook* wb, sheet_buffer* sheet, sheet_range range);
+void wb_paste_range(workbook* wb, sheet_buffer* sheet, sheet_pos pos);
 

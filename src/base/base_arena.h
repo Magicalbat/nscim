@@ -6,13 +6,20 @@
 #define ARENA_SCRATCH_RESERVE MiB(64)
 #define ARENA_SCRATCH_COMMIT KiB(64)
 
+typedef enum {
+    ARENA_FLAG_NONE = 0,
+    ARENA_FLAG_GROWABLE = (1 << 0),
+    ARENA_FLAG_DECOMMIT = (1 << 1),
+} mem_arena_flag;
+
 typedef struct mem_arena {
     struct mem_arena* current;
     struct mem_arena* prev;
 
     u64 reserve_size;
     u64 commit_size;
-    b32 growable;
+
+    u32 flags;
 
     u64 base_pos;
     u64 pos;
@@ -29,7 +36,7 @@ typedef struct {
 #define PUSH_ARRAY(arena, T, n) (T*)arena_push((arena), sizeof(T) * (n), false)
 #define PUSH_ARRAY_NZ(arena, T, n) (T*)arena_push((arena), sizeof(T) * (n), true)
 
-mem_arena* arena_create(u64 reserve_size, u64 commit_size, b32 growable);
+mem_arena* arena_create(u64 reserve_size, u64 commit_size, u32 flags);
 void arena_destroy(mem_arena* arena);
 u64 arena_get_pos(mem_arena* arena);
 void* arena_push(mem_arena* arena, u64 size, b32 non_zero);

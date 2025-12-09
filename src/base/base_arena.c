@@ -1,5 +1,5 @@
 
-mem_arena* arena_create(u64 reserve_size, u64 commit_size, b32 growable) {
+mem_arena* arena_create(u64 reserve_size, u64 commit_size, u32 flags) {
     u32 page_size = plat_page_size();
 
     reserve_size = ALIGN_UP_POW2(reserve_size, page_size);
@@ -22,7 +22,8 @@ mem_arena* arena_create(u64 reserve_size, u64 commit_size, b32 growable) {
 
     arena->reserve_size = reserve_size;
     arena->commit_size = commit_size;
-    arena->growable = growable;
+
+    arena->flags = flags;
 
     arena->base_pos = 0;
     arena->pos = ARENA_HEADER_SIZE;
@@ -58,15 +59,19 @@ void* arena_push(mem_arena* arena, u64 size, b32 non_zero) {
     if (new_pos > current->reserve_size) {
         out = NULL;
 
-        if (arena->growable) {
+        if (arena->flags & ARENA_FLAG_GROWABLE) {
             u64 reserve_size = arena->reserve_size;
             u64 commit_size = arena->commit_size;
 
             if (size + ARENA_HEADER_SIZE > reserve_size) {
-                reserve_size = ALIGN_UP_POW2(size + ARENA_HEADER_SIZE, ARENA_ALIGN);
+                reserve_size = ALIGN_UP_POW2(
+                    size + ARENA_HEADER_SIZE, ARENA_ALIGN
+                );
             }
 
-            mem_arena* new_arena = arena_create(reserve_size, commit_size, true);
+            mem_arena* new_arena = arena_create(
+                reserve_size, commit_size, arena->flags
+            );
             new_arena->base_pos = current->base_pos + current->reserve_size;
 
             mem_arena* prev_cur = current;
@@ -90,7 +95,7 @@ void* arena_push(mem_arena* arena, u64 size, b32 non_zero) {
 
         u8* commit_pointer = (u8*)current + current->commit_pos;
 
-        if (plat_mem_commit(commit_pointer, commit_size) == false) {
+        if (!plat_mem_commit(commit_pointer, commit_size)) {
             out = NULL;
         } else {
             current->commit_pos = new_commit_pos;
@@ -124,8 +129,28 @@ void arena_pop(mem_arena* arena, u64 size) {
     }
 
     arena->current = current;
+
     size = MIN(current->pos - ARENA_HEADER_SIZE, size);
     current->pos -= size;
+
+    if (arena->flags & ARENA_FLAG_DECOMMIT) {
+        u64 required_commit_pos = current->pos + current->commit_size - 1;
+        required_commit_pos -= required_commit_pos % current->commit_size;
+
+        if (required_commit_pos < arena->commit_pos) {
+            u8* commit_pointer = (u8*)current + required_commit_pos;
+
+            if (!plat_mem_decommit(
+                commit_pointer, arena->commit_pos - required_commit_pos
+            )) {
+                plat_fatal_error(
+                    "Fatal error: failed to decommit arena memory", 1
+                );
+            }
+
+            arena->commit_pos = required_commit_pos;
+        }
+    }
 }
 
 void arena_pop_to(mem_arena* arena, u64 pos) {
@@ -180,7 +205,7 @@ mem_arena_temp arena_scratch_get(mem_arena** conflicts, u32 num_conflicts) {
         scratch_arenas[scratch_index] = arena_create(
             ARENA_SCRATCH_RESERVE,
             ARENA_SCRATCH_COMMIT,
-            false
+            0
         );
     }
 
