@@ -13,10 +13,10 @@ void _editor_draw_sheet_win(
 ) {
     win_buffer* buf = &user_win->back_buf;
 
-    u32 start_x = (u32)win->anim_start_x;
-    u32 start_y = (u32)win->anim_start_y;
-    u32 win_width = (u32)win->anim_width;
-    u32 win_height = (u32)win->anim_height;
+    u32 start_x = MIN((u32)win->anim_start_x, buf->width - 1);
+    u32 start_y = MIN((u32)win->anim_start_y, buf->height - 1);
+    u32 win_width = MIN((u32)win->anim_width, buf->width - start_x);
+    u32 win_height = MIN((u32)win->anim_height, buf->height - start_y);
 
     u32 y = EDITOR_STATUS_ROWS_TOP + start_y;
     u32 max_y = y + win_height - 1;
