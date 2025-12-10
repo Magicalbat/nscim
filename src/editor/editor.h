@@ -1,4 +1,6 @@
 
+#include "editor_register.h"
+
 // Maximum langth of command string (bytes)
 #define EDITOR_CMD_MAX_STRLEN 2048
 
@@ -9,6 +11,10 @@
 #define EDITOR_WIN_STATUS_ROWS_BOTTOM 0
 #define EDITOR_WIN_STATUS_ROWS \
     (EDITOR_WIN_STATUS_ROWS_TOP + EDITOR_WIN_STATUS_ROWS_BOTTOM)
+
+#define EDITOR_REGISTER_FIRST ((u8)'"')
+#define EDITOR_REGISTER_LAST ((u8)'z')
+#define EDITOR_REGISTER_COUNT (EDITOR_REGISTER_LAST - EDITOR_REGISTER_FIRST + 1)
 
 typedef enum {
     EDITOR_MODE_NULL = 0,
@@ -88,6 +94,8 @@ typedef struct {
     u32 pending_action_inputs_size;
 
     u32 flags;
+
+    editor_register registers[EDITOR_REGISTER_COUNT];
 
     win_input cur_inputs[EDITOR_INPUT_SEQ_MAX];
     win_input pending_action_inputs[EDITOR_INPUT_SEQ_MAX];
