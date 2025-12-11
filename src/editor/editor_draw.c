@@ -9,7 +9,7 @@
 
 void _editor_draw_sheet_win(
     window* user_win, editor_context* editor,
-    workbook* wb, sheet_window* win
+    workbook* wb, editor_window* win
 ) {
     win_buffer* buf = &user_win->back_buf;
 
@@ -22,8 +22,10 @@ void _editor_draw_sheet_win(
     u32 max_y = y + win_height - 1;
     u32 max_x = start_x + win_width - 1;
 
-    sheet_buffer* sheet = wb_win_get_sheet(wb, win, false);
-    b32 cur_active = win == wb->active_win && editor->mode != EDITOR_MODE_CMD;
+    sheet_buffer* sheet = editor_win_get_sheet(editor, wb, win, false);
+    b32 cur_active =
+        win == editor->active_win &&
+        editor->mode != EDITOR_MODE_CMD;
 
     if (win_height == 0 || win_width == 0) { return; }
 
@@ -180,7 +182,9 @@ void _editor_draw_sheet_win(
             u32 col = col_off + win->scroll_pos.col;
             u32 width = sheet_get_col_width(sheet, col);
 
-            num_col_chars = sheets_col_to_chars(col, col_chars, sizeof(col_chars));
+            num_col_chars = sheets_col_to_chars(
+                col, col_chars, sizeof(col_chars)
+            );
 
             u32 draw_start = num_col_chars < width ?
                 width / 2 - num_col_chars / 2 : 0;
@@ -239,7 +243,8 @@ void _editor_draw_sheet_win(
 
             num_row_chars = chars_from_u32(row, row_chars, SHEET_MAX_ROW_CHARS);
 
-            u32 draw_start = num_row_chars < max_row_chars ? max_row_chars - num_row_chars : 0;
+            u32 draw_start = num_row_chars < max_row_chars ?
+                max_row_chars - num_row_chars : 0;
 
             win_col fg, bg;
             if (
@@ -454,18 +459,22 @@ void editor_draw(window* user_win, editor_context* editor, workbook* wb) {
         } break;
     }
 
-    wb_win_compute_sizes(wb, buf->width, buf->height - EDITOR_STATUS_ROWS);
+    editor_win_compute_sizes(
+        editor, buf->width, buf->height - EDITOR_STATUS_ROWS
+    );
 
     _editor_draw_status(user_win, editor);
     
     mem_arena_temp scratch = arena_scratch_get(NULL, 0);
 
     u32 stack_size = 0;
-    sheet_window** stack = PUSH_ARRAY(scratch.arena, sheet_window*, wb->num_windows);
-    stack[stack_size++] = wb->root_win;
+    editor_window** stack = PUSH_ARRAY(
+        scratch.arena, editor_window*, editor->num_windows
+    );
+    stack[stack_size++] = editor->root_win;
 
     while (stack_size) {
-        sheet_window* cur = stack[--stack_size];
+        editor_window* cur = stack[--stack_size];
 
         if (cur->internal) {
             if (cur->child0 != NULL) stack[stack_size++] = cur->child0;

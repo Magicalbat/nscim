@@ -69,8 +69,9 @@ int main(void) {
     #else
 
     workbook* wb = wb_create();
+    editor_context* editor = editor_create();
 
-    sheet_buffer* sheet = wb_get_active_sheet(wb, true);
+    sheet_buffer* sheet = editor_get_active_sheet(editor, wb, true);
     sheet->name = STR8_LIT("Test Sheet");
 
     u8 test_str_data[6] = { 'T', 'e', 's', 't', ' ', '0' };
@@ -113,7 +114,6 @@ int main(void) {
         sheet_set_cell_num(wb, sheet, (sheet_pos){ i, 4 }, i % 1000);
     }
 
-    editor_context* editor = editor_init(perm_arena);
 
     mem_arena* frame_arena = arena_create(MiB(64), MiB(1), 0);
     mem_arena* prev_frame_arena = arena_create(MiB(64), MiB(1), 0);
@@ -154,6 +154,7 @@ int main(void) {
     arena_destroy(frame_arena);
     arena_destroy(prev_frame_arena);
 
+    editor_destroy(editor);
     wb_destroy(wb);
     
     #endif

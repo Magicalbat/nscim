@@ -1,17 +1,20 @@
 
-sheet_buffer* wb_win_get_sheet(workbook* wb, sheet_window* win, b32 create_if_empty) {
+sheet_buffer* editor_win_get_sheet(
+    editor_context* editor, workbook* wb,
+    editor_window* win, b32 create_if_empty
+) {
     if (win->internal) {
-        return wb->empty_buffer;
+        return editor->empty_sheet;
     }
 
-    if (create_if_empty && win->_sheet == wb->empty_buffer) {
+    if (create_if_empty && win->_sheet == editor->empty_sheet) {
         win->_sheet = wb_create_sheet_buffer(wb);
     }
 
     return win->_sheet;
 }
 
-void _wb_win_compute_size(sheet_window* cur, sheet_window* parent) {
+void _editor_win_compute_size(editor_window* cur, editor_window* parent) {
     b32 is_child1 = parent->child1 == cur;
 
     u32 child_case = ((u32)parent->split_dir << 1) | (u32)is_child1;
@@ -51,15 +54,17 @@ void _wb_win_compute_size(sheet_window* cur, sheet_window* parent) {
     }
 }
 
-void wb_win_split(workbook* wb, sheet_window_split split, b32 open_in_both) {
-    sheet_window* parent = wb->active_win;
+void editor_win_split(
+    editor_context* editor, editor_window_split split, b32 open_in_both
+) {
+    editor_window* parent = editor->active_win;
 
     parent->split_dir = split;
 
     for (u32 i = 0; i < 2; i++) {
-        parent->children[i] = _wb_create_win(wb);
+        parent->children[i] = _editor_create_win(editor);
 
-        sheet_window* cur = parent->children[i];
+        editor_window* cur = parent->children[i];
 
         cur->parent = parent;
         cur->parent_fraction = 0.5;
@@ -70,7 +75,7 @@ void wb_win_split(workbook* wb, sheet_window_split split, b32 open_in_both) {
             cur->cursor_pos = parent->cursor_pos;
         }
 
-        _wb_win_compute_size(cur, parent);
+        _editor_win_compute_size(cur, parent);
 
         u32 child_case = ((u32)split << 1) | (u32)(i == 1);
         switch (child_case) {
@@ -109,32 +114,32 @@ void wb_win_split(workbook* wb, sheet_window_split split, b32 open_in_both) {
     }
 
     parent->internal = true;
-    parent->_sheet = wb->empty_buffer;
+    parent->_sheet = editor->empty_sheet;
 
-    wb->active_win = parent->child1;
+    editor->active_win = parent->child1;
 }
 
-void wb_win_close(workbook* wb) {
-    if (wb->active_win == wb->root_win) {
+void editor_win_close(editor_context* editor) {
+    if (editor->active_win == editor->root_win) {
         // TODO: error handling of some sort
         return;
     }
 
-    sheet_window* win = wb->active_win;
+    editor_window* win = editor->active_win;
 
     if (win->internal) {
         // TODO: error handling
         return;
     }
 
-    sheet_window* parent = win->parent;
-    sheet_window* other_child = win->parent->child0 == win ?
+    editor_window* parent = win->parent;
+    editor_window* other_child = win->parent->child0 == win ?
         win->parent->child1 : win->parent->child0;
 
-    sheet_window* grandparent = parent->parent;
+    editor_window* grandparent = parent->parent;
 
     if (grandparent == NULL) {
-        wb->root_win = other_child;
+        editor->root_win = other_child;
         other_child->parent = NULL;
     } else {
         other_child->parent = grandparent;
@@ -146,17 +151,19 @@ void wb_win_close(workbook* wb) {
         }
     }
 
-    wb->active_win = other_child;
-    while (wb->active_win->internal && wb->active_win->child0 != NULL) {
-        wb->active_win = wb->active_win->child0;
+    editor->active_win = other_child;
+    while (editor->active_win->internal && editor->active_win->child0 != NULL) {
+        editor->active_win = editor->active_win->child0;
     }
 
-    _wb_free_win(wb, parent);
-    _wb_free_win(wb, win);
+    _editor_free_win(editor, parent);
+    _editor_free_win(editor, win);
 }
 
-void wb_win_compute_sizes(workbook* wb, u32 total_width, u32 total_height) {
-    sheet_window* root = wb->root_win;
+void editor_win_compute_sizes(
+    editor_context* editor, u32 total_width, u32 total_height
+) {
+    editor_window* root = editor->root_win;
 
     root->width = total_width;
     root->height = total_height;
@@ -164,27 +171,29 @@ void wb_win_compute_sizes(workbook* wb, u32 total_width, u32 total_height) {
     root->start_y = 0;
 
     if (!root->internal) {
-        wb_win_update_num_rows(root);
-        wb_win_update_num_cols(root);
+        editor_win_update_num_rows(root);
+        editor_win_update_num_cols(root);
     }
 
     mem_arena_temp scratch = arena_scratch_get(NULL, 0);
     u32 stack_size = 0;
-    sheet_window** stack = PUSH_ARRAY(scratch.arena, sheet_window*, wb->num_windows);
+    editor_window** stack = PUSH_ARRAY(
+        scratch.arena, editor_window*, editor->num_windows
+    );
 
     // Ensure that child0 is processed first
     if (root->child1 != NULL) { stack[stack_size++] = root->child1; }
     if (root->child0 != NULL) { stack[stack_size++] = root->child0; }
 
     while (stack_size != 0) {
-        sheet_window* cur = stack[--stack_size];
-        sheet_window* parent = cur->parent;
+        editor_window* cur = stack[--stack_size];
+        editor_window* parent = cur->parent;
 
-        _wb_win_compute_size(cur, parent);
+        _editor_win_compute_size(cur, parent);
 
         if (!cur->internal) {
-            wb_win_update_num_rows(cur);
-            wb_win_update_num_cols(cur);
+            editor_win_update_num_rows(cur);
+            editor_win_update_num_cols(cur);
         }
 
         // Ensure that child0 is processed first
@@ -195,7 +204,7 @@ void wb_win_compute_sizes(workbook* wb, u32 total_width, u32 total_height) {
     arena_scratch_release(scratch);
 }
 
-void wb_win_update_num_rows(sheet_window* win) {
+void editor_win_update_num_rows(editor_window* win) {
     win->num_rows = 0;
 
     sheet_buffer* sheet = win->_sheet;
@@ -217,7 +226,7 @@ void wb_win_update_num_rows(sheet_window* win) {
     win->cutoff_height = win_height > y ? 0 : y - win_height;
 }
 
-void wb_win_update_num_cols(sheet_window* win) {
+void editor_win_update_num_cols(editor_window* win) {
     win->num_cols = 0;
 
     sheet_buffer* sheet = win->_sheet;
@@ -239,8 +248,10 @@ void wb_win_update_num_cols(sheet_window* win) {
 
 // Expands in the direction opposite the split
 // e.g. Expands width when split == SHEET_WIN_SPLIT_VERT
-void _wb_win_expand(workbook* wb, i32 amount, sheet_window_split split) {
-    sheet_window* cur = wb->active_win;
+void _editor_win_expand(
+    editor_context* editor, i32 amount, editor_window_split split
+) {
+    editor_window* cur = editor->active_win;
 
     while (
         cur->parent != NULL &&
@@ -253,12 +264,12 @@ void _wb_win_expand(workbook* wb, i32 amount, sheet_window_split split) {
         return;
     }
 
-    sheet_window* parent = cur->parent;
+    editor_window* parent = cur->parent;
 
     u32 parent_dim = 1;
     u32 child_dim = 1;
 
-    if (split == SHEETS_WIN_SPLIT_VERT) {
+    if (split == EDITOR_WIN_SPLIT_VERT) {
         parent_dim = cur->parent->width;
         child_dim = cur->width;
     } else {
@@ -273,24 +284,31 @@ void _wb_win_expand(workbook* wb, i32 amount, sheet_window_split split) {
 
     cur->parent_fraction = new_fraction;
 
-    sheet_window* other = parent->child0 == cur ?
+    editor_window* other = parent->child0 == cur ?
         parent->child1 : parent->child0;
 
     other->parent_fraction = 1.0 - cur->parent_fraction;
 }
 
-void wb_win_inc_width(workbook* wb, i32 amount) {
-    _wb_win_expand(wb, amount, (sheet_window_split){ SHEETS_WIN_SPLIT_VERT });
+void editor_win_inc_width(editor_context* editor, i32 amount) {
+    _editor_win_expand(
+        editor, amount, (editor_window_split){ EDITOR_WIN_SPLIT_VERT }
+    );
 }
 
-void wb_win_inc_height(workbook* wb, i32 amount) {
-    _wb_win_expand(wb, amount, (sheet_window_split){ SHEETS_WIN_SPLIT_HORZ });
+void editor_win_inc_height(editor_context* editor, i32 amount) {
+    _editor_win_expand(
+        editor, amount, (editor_window_split){ EDITOR_WIN_SPLIT_HORZ }
+    );
 }
 
 // Moves in the direction opposite the split
 // e.g. moves up/down when split == SHEET_WIN_SPLIT_HORZ
 // TODO: make 4 quadrant windows work better (i.e. go from child1 -> child1)
-void _wb_win_change_active(workbook* wb, sheet_window* cur, i32 dir, sheet_window_split split) {
+void _editor_win_change_active(
+    editor_context* editor, editor_window* cur,
+    i32 dir, editor_window_split split
+) {
     if (cur == NULL) {
         return;
     }
@@ -310,7 +328,7 @@ void _wb_win_change_active(workbook* wb, sheet_window* cur, i32 dir, sheet_windo
     i32 new_child = cur_child + dir;
 
     if (new_child < 0 || new_child > 1) {
-        _wb_win_change_active(wb, cur->parent, dir, split);
+        _editor_win_change_active(editor, cur->parent, dir, split);
         return;
     }
 
@@ -323,18 +341,22 @@ void _wb_win_change_active(workbook* wb, sheet_window* cur, i32 dir, sheet_windo
         return;
     }
 
-    wb->active_win = cur;
+    editor->active_win = cur;
 }
 
-void wb_win_update_anims(workbook* wb, f32 anim_speed, f32 delta) {
+void editor_win_update_anims(editor_context* editor, f32 delta) {
+    f32 anim_speed = editor->settings.anim_speed;
+
     mem_arena_temp scratch = arena_scratch_get(NULL, 0);
     u32 stack_size = 0;
-    sheet_window** stack = PUSH_ARRAY(scratch.arena, sheet_window*, wb->num_windows);
+    editor_window** stack = PUSH_ARRAY(
+        scratch.arena, editor_window*, editor->num_windows
+    );
 
-    stack[stack_size++] = wb->root_win;
+    stack[stack_size++] = editor->root_win;
 
     while (stack_size != 0) {
-        sheet_window* cur = stack[--stack_size];
+        editor_window* cur = stack[--stack_size];
 
         cur->anim_start_x = exp_anim(
             cur->anim_start_x, (f32)cur->start_x, anim_speed, delta, 1.0f
@@ -357,17 +379,17 @@ void wb_win_update_anims(workbook* wb, f32 anim_speed, f32 delta) {
     arena_scratch_release(scratch);
 }
 
-void wb_win_change_active_horz(workbook* wb, i32 dir) {
-    _wb_win_change_active(
-        wb, wb->active_win, dir,
-        (sheet_window_split){ SHEETS_WIN_SPLIT_VERT }
+void editor_win_change_active_horz(editor_context* editor, i32 dir) {
+    _editor_win_change_active(
+        editor, editor->active_win, dir,
+        (editor_window_split){ EDITOR_WIN_SPLIT_VERT }
     );
 }
 
-void wb_win_change_active_vert(workbook* wb, i32 dir) {
-    _wb_win_change_active(
-        wb, wb->active_win, dir,
-        (sheet_window_split){ SHEETS_WIN_SPLIT_HORZ }
+void editor_win_change_active_vert(editor_context* editor, i32 dir) {
+    _editor_win_change_active(
+        editor, editor->active_win, dir,
+        (editor_window_split){ EDITOR_WIN_SPLIT_HORZ }
     );
 }
 

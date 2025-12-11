@@ -23,7 +23,7 @@ void editor_update(
     if (true || win_needs_resize(win)) {
         editor->flags |= EDITOR_FLAG_SHOULD_DRAW;
 
-        wb_win_update_anims(wb, editor->settings.anim_speed, delta);
+        editor_win_update_anims(editor, delta);
     }
 }
 

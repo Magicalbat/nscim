@@ -21,10 +21,14 @@ void _editor_consume_motion(editor_context* editor);
 
 // These functions perform bounds checking and make sure that
 // the cursor remains within the window's scroll range
-void _editor_cursor_up(editor_context* editor, workbook* wb, u32 n);
-void _editor_cursor_down(editor_context* editor, workbook* wb, u32 n);
-void _editor_cursor_left(editor_context* editor, workbook* wb, u32 n);
-void _editor_cursor_right(editor_context* editor, workbook* wb, u32 n);
+void _editor_cursor_up(editor_context* editor, u32 n, b32 scroll);
+void _editor_cursor_down(
+    editor_context* editor, workbook* wb, u32 n, b32 scroll
+);
+void _editor_cursor_left(editor_context* editor, u32 n, b32 scroll);
+void _editor_cursor_right(
+    editor_context* editor, workbook* wb, u32 n, b32 scroll
+);
 
 // These functions perform bounds checking and make sure that
 // the cursor remains within the window's scroll range
@@ -53,19 +57,24 @@ void _editor_move_win_multiple_horz(
 
 // These functions perform bounds checking and make sure that
 // the cursor remains on screen when scrolling
-void _editor_scroll_up(editor_context* editor, workbook* wb, u32 n);
-void _editor_scroll_down(editor_context* editor, workbook* wb, u32 n);
-void _editor_scroll_left(editor_context* editor, workbook* wb, u32 n);
-void _editor_scroll_right(editor_context* editor, workbook* wb, u32 n);
+void _editor_scroll_up(editor_context* editor, u32 n);
+void _editor_scroll_down(editor_context* editor, u32 n);
+void _editor_scroll_left(editor_context* editor, u32 n);
+void _editor_scroll_right(editor_context* editor, u32 n);
 
 // Centers the scroll at the cursor
-void _editor_scroll_center(workbook* wb);
+void _editor_scroll_center(editor_context* editor);
 
-void _editor_resize_col_width(workbook* wb, u32 col, i32 change);
-void _editor_resize_row_height(workbook* wb, u32 row, i32 change);
+void _editor_resize_col_width(
+    editor_context* editor, workbook* wb, u32 col, i32 change
+);
+void _editor_resize_row_height(
+    editor_context* editor, workbook* wb, u32 row, i32 change
+);
 
 void _editor_continue_series(
-    workbook* wb, sheet_range range, _editor_series_mode series_mdoe
+    editor_context* editor, workbook* wb, sheet_range range,
+    _editor_series_mode series_mdoe
 );
 
 void _editor_load_cell_to_input(

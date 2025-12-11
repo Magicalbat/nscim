@@ -3,8 +3,10 @@ b32 _editor_do_normal(
     editor_context* editor, workbook* wb,
     win_input input, u32 count
 ) {
+    editor_window* active_win = editor->active_win;
+
     u32 act_on_motion = false;
-    sheet_pos init_cursor = wb->active_win->cursor_pos;
+    sheet_pos init_cursor = active_win->cursor_pos;
 
     // Checking if the same inputs were pressed twice, execute action if so
     // This allows for dd to delete the current cell or
@@ -48,7 +50,7 @@ b32 _editor_do_normal(
     if (editor->cur_inputs_size == 0) {
         switch (input) {
             case 'v': {
-                sheet_window* win = wb->active_win;
+                editor_window* win = active_win;
 
                 win->select_start = win->cursor_pos;
                 editor->mode = EDITOR_MODE_VISUAL;
@@ -60,7 +62,7 @@ b32 _editor_do_normal(
             } break;
 
             case 'I': {
-                sheet_pos prev_pos = wb->active_win->prev_edit_pos;
+                sheet_pos prev_pos = active_win->prev_edit_pos;
                 _editor_cursor_set_row(editor, wb, prev_pos.row);
                 _editor_cursor_set_col(editor, wb, prev_pos.col);
 
@@ -74,7 +76,7 @@ b32 _editor_do_normal(
             } break;
 
             case 'E': {
-                sheet_pos prev_pos = wb->active_win->prev_edit_pos;
+                sheet_pos prev_pos = active_win->prev_edit_pos;
                 _editor_cursor_set_row(editor, wb, prev_pos.row);
                 _editor_cursor_set_col(editor, wb, prev_pos.col);
 
@@ -83,20 +85,24 @@ b32 _editor_do_normal(
             } break;
 
             case 's': {
-                sheet_buffer* sheet = wb_get_active_sheet(wb, false);
-                sheet_clear_cell(wb, sheet, wb->active_win->cursor_pos);
+                sheet_buffer* sheet = editor_get_active_sheet(
+                    editor, wb, false
+                );
+                sheet_clear_cell(wb, sheet, active_win->cursor_pos);
 
                 _editor_load_cell_to_input(editor, wb, 0);
                 editor->mode = EDITOR_MODE_CELL_INSERT;
             } break;
 
             case 'S': {
-                sheet_pos prev_pos = wb->active_win->prev_edit_pos;
+                sheet_pos prev_pos = active_win->prev_edit_pos;
                 _editor_cursor_set_row(editor, wb, prev_pos.row);
                 _editor_cursor_set_col(editor, wb, prev_pos.col);
 
-                sheet_buffer* sheet = wb_get_active_sheet(wb, false);
-                sheet_clear_cell(wb, sheet, wb->active_win->cursor_pos);
+                sheet_buffer* sheet = editor_get_active_sheet(
+                    editor, wb, false
+                );
+                sheet_clear_cell(wb, sheet, active_win->cursor_pos);
 
                 _editor_load_cell_to_input(editor, wb, 0);
                 editor->mode = EDITOR_MODE_CELL_INSERT;
@@ -109,13 +115,13 @@ b32 _editor_do_normal(
             } break;
 
             case WIN_INPUT_ARROW_LEFT:
-            case 'h': { _editor_cursor_left(editor, wb, count); } break;
+            case 'h': { _editor_cursor_left(editor, count, true); } break;
             case WIN_INPUT_ARROW_DOWN:
-            case 'j': { _editor_cursor_down(editor, wb, count); } break;
+            case 'j': { _editor_cursor_down(editor, wb, count, true); } break;
             case WIN_INPUT_ARROW_UP:
-            case 'k': { _editor_cursor_up(editor, wb, count); } break;
+            case 'k': { _editor_cursor_up(editor, count, true); } break;
             case WIN_INPUT_ARROW_RIGHT:
-            case 'l': { _editor_cursor_right(editor, wb, count); } break;
+            case 'l': { _editor_cursor_right(editor, wb, count, true); } break;
 
             case WIN_INPUT_CTRL_ARROW_LEFT:
             case 'H': {
@@ -136,15 +142,15 @@ b32 _editor_do_normal(
 
             case '0': {
                 _editor_cursor_left(
-                    editor, wb, wb->active_win->cursor_pos.col
+                    editor, active_win->cursor_pos.col, true
                 );
             } break;
             
             case WIN_INPUT_CTRL('e'): {
-                _editor_scroll_down(editor, wb, count); 
+                _editor_scroll_down(editor, count); 
             } break;
             case WIN_INPUT_CTRL('y'): {
-                _editor_scroll_up(editor, wb, count); 
+                _editor_scroll_up(editor, count); 
             } break;
 
             case WIN_INPUT_CTRL('b'): {
@@ -168,9 +174,9 @@ b32 _editor_do_normal(
             } break;
 
             case 'x': {
-                sheet_buffer* sheet = wb_get_active_sheet(wb, false);
+                sheet_buffer* sheet = editor_get_active_sheet(editor, wb, false);
                 // Clear cell will do nothing on an empty sheet
-                sheet_clear_cell(wb, sheet, wb->active_win->cursor_pos);
+                sheet_clear_cell(wb, sheet, active_win->cursor_pos);
             } break;
             
             case 'X':
@@ -194,16 +200,16 @@ b32 _editor_do_normal(
             case 'z': {
                 switch (input) {
                     case WIN_INPUT_ARROW_LEFT:
-                    case 'h': { _editor_scroll_left(editor, wb, count); } break;
+                    case 'h': { _editor_scroll_left(editor, count); } break;
                     case WIN_INPUT_ARROW_DOWN:
-                    case 'j': { _editor_scroll_down(editor, wb, count); } break;
+                    case 'j': { _editor_scroll_down(editor, count); } break;
                     case WIN_INPUT_ARROW_UP:
-                    case 'k': { _editor_scroll_up(editor, wb, count); } break;
+                    case 'k': { _editor_scroll_up(editor, count); } break;
                     case WIN_INPUT_ARROW_RIGHT:
-                    case 'l': { _editor_scroll_right(editor, wb, count); } break;
+                    case 'l': { _editor_scroll_right(editor, count); } break;
 
                     case 'z': {
-                        _editor_scroll_center(wb);
+                        _editor_scroll_center(editor);
                     } break;
                 }
             } break;
@@ -213,28 +219,28 @@ b32 _editor_do_normal(
                     case WIN_INPUT_ARROW_LEFT:
                     case 'h': {
                         _editor_resize_col_width(
-                            wb, wb->active_win->cursor_pos.col, -(i32)count
+                            editor, wb, active_win->cursor_pos.col, -(i32)count
                         );
                     } break;
 
                     case WIN_INPUT_ARROW_DOWN:
                     case 'j': {
                         _editor_resize_row_height(
-                            wb, wb->active_win->cursor_pos.row, (i32)count
+                            editor, wb, active_win->cursor_pos.row, (i32)count
                         );
                     } break;
 
                     case WIN_INPUT_ARROW_UP:
                     case 'k': {
                         _editor_resize_row_height(
-                            wb, wb->active_win->cursor_pos.row, -(i32)count
+                            editor, wb, active_win->cursor_pos.row, -(i32)count
                         );
                     } break;
                         
                     case WIN_INPUT_ARROW_RIGHT:
                     case 'l': {
                         _editor_resize_col_width(
-                            wb, wb->active_win->cursor_pos.col, (i32)count
+                            editor, wb, active_win->cursor_pos.col, (i32)count
                         );
                     } break;
                 }
@@ -279,31 +285,39 @@ b32 _editor_do_normal(
             case WIN_INPUT_CTRL('w'): {
                 switch (input) {
                     case 'h': {
-                        while (count--) { wb_win_change_active_horz(wb, -1); }
+                        while (count--) {
+                            editor_win_change_active_horz(editor, -1); 
+                        }
                     } break;
                     case 'j': {
-                        while (count--) { wb_win_change_active_vert(wb, +1); }
+                        while (count--) {
+                            editor_win_change_active_vert(editor, +1); 
+                        }
                     } break;
                     case 'k': {
-                        while (count--) { wb_win_change_active_vert(wb, -1); }
+                        while (count--) {
+                            editor_win_change_active_vert(editor, -1); 
+                        }
                     } break;
                     case 'l': {
-                        while (count--) { wb_win_change_active_horz(wb, +1); }
+                        while (count--) {
+                            editor_win_change_active_horz(editor, +1); 
+                        }
                     } break;
 
-                    case 'c': { wb_win_close(wb); } break;
+                    case 'c': { editor_win_close(editor); } break;
 
                     // TODO: deal with count for these
                     case 'v': {
-                        wb_win_split(wb, SHEETS_WIN_SPLIT_VERT, true);
+                        editor_win_split(editor, EDITOR_WIN_SPLIT_VERT, true);
                     } break;
 
                     case 's': {
-                        wb_win_split(wb, SHEETS_WIN_SPLIT_HORZ, true);
+                        editor_win_split(editor, EDITOR_WIN_SPLIT_HORZ, true);
                     } break;
 
                     case 'n': {
-                        wb_win_split(wb, SHEETS_WIN_SPLIT_HORZ, false);
+                        editor_win_split(editor, EDITOR_WIN_SPLIT_HORZ, false);
                     } break;
                 }
             } break;
@@ -319,7 +333,7 @@ b32 _editor_do_normal(
 
 execute_motion_action:
 
-    sheet_pos cur_cursor = wb->active_win->cursor_pos;
+    sheet_pos cur_cursor = active_win->cursor_pos;
 
     if (
         init_cursor.row != cur_cursor.row ||
@@ -342,7 +356,8 @@ execute_motion_action:
             // TODO: x vs d behavior for entire row/column
 
             sheet_clear_range(
-                wb, wb_get_active_sheet(wb, false), motion_range
+                wb, editor_get_active_sheet(editor, wb, false),
+                motion_range
             );
         } break;
 
@@ -361,7 +376,7 @@ execute_motion_action:
                 }
             }
 
-            _editor_continue_series(wb, motion_range, series_mode);
+            _editor_continue_series(editor, wb, motion_range, series_mode);
         } break;
     }
 

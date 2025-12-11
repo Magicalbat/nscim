@@ -1,27 +1,36 @@
 
 typedef enum {
-    SHEETS_WIN_SPLIT_VERT = 0b0,
-    SHEETS_WIN_SPLIT_HORZ = 0b1,
-} sheet_window_split;
+    EDITOR_WIN_MODE_EMPTY = 0,
+
+    EDITOR_WIN_MODE_SHEET = 1,
+    EDITOR_WIN_MODE_TEXT_VIEW = 2,
+} editor_window_mode;
+
+typedef enum {
+    EDITOR_WIN_SPLIT_VERT = 0b0,
+    EDITOR_WIN_SPLIT_HORZ = 0b1,
+} editor_window_split;
 
 // Stores information about how the user is editing a sheet
 // Akin to vim windows
-typedef struct sheet_window {
-    struct sheet_window* parent;
+typedef struct editor_window {
+    editor_window_mode mode;
+
+    struct editor_window* parent;
 
     // For free-list
-    struct sheet_window* next;
+    struct editor_window* next;
 
     // Union to make operations on both children easier
     union {
         struct {
             // Left or top child
-            struct sheet_window* child0;
+            struct editor_window* child0;
             // Right or bottom child
-            struct sheet_window* child1;
+            struct editor_window* child1;
         };
 
-        struct sheet_window* children[2];
+        struct editor_window* children[2];
     };
 
     // Fraction of parent's size the window takes up
@@ -51,7 +60,7 @@ typedef struct sheet_window {
     // Amount of height cutoff of the last row on screen
     u32 cutoff_height;
 
-    sheet_window_split split_dir;
+    editor_window_split split_dir;
 
     // If the window is internal, it only exists to hold its 
     // children and should not reference a buffer 
@@ -71,45 +80,52 @@ typedef struct sheet_window {
     sheet_pos select_start;
     // Previously edited cell
     sheet_pos prev_edit_pos;
-} sheet_window;
+} editor_window;
 
-sheet_buffer* wb_win_get_sheet(workbook* wb, sheet_window* win, b32 create_if_empty);
+sheet_buffer* editor_win_get_sheet(
+    editor_context* editor, workbook* wb,
+    editor_window* win, b32 create_if_empty
+);
 
 // Operates on the active win
 // If `open_in_both` is true, both children windows will have the same
 // buffer open. Otherwise, only the first child will
-void wb_win_split(workbook* wb, sheet_window_split split, b32 open_in_both);
+void editor_win_split(
+    editor_context* editor, editor_window_split split, b32 open_in_both
+);
 
 // Operates on the active win
-void wb_win_close(workbook* wb);
+void editor_win_close(editor_context* editor);
 
-void wb_win_compute_sizes(workbook* wb, u32 total_width, u32 total_height);
+void editor_win_compute_sizes(
+    editor_context* editor, u32 total_width, u32 total_height
+);
 
-void wb_win_update_anims(workbook* wb, f32 anim_speed, f32 delta);
+void editor_win_update_anims(editor_context* editor, f32 delta);
 
 // Given the current height of the window,
 // this function updates the number of visible rows
 // Called automatically by wb_win_compute_sizes
-void wb_win_update_num_rows(sheet_window* win);
+void editor_win_update_num_rows(editor_window* win);
 
 // Given the current width of the window,
 // this function updates the number of visible columns
 // Called automatically by wb_win_compute_sizes
-void wb_win_update_num_cols(sheet_window* win);
+void editor_win_update_num_cols(editor_window* win);
 
 // Operates on the active win
 // Will attempt to increment the current win's width
 // Must call after calling `wb_win_compute_sizes`
-void wb_win_inc_width(workbook* wb, i32 amount);
+void editor_win_inc_width(editor_context* editor, i32 amount);
 
 // Operates on the active win
 // Will attempt to increment the current win's height
 // Must call after calling `wb_win_compute_sizes`
-void wb_win_inc_height(workbook* wb, i32 amount);
+void editor_win_inc_height(editor_context* editor, i32 amount);
 
 // Moves cursor to the window to the left (-1) or right (+1)
-void wb_win_change_active_horz(workbook* wb, i32 dir);
+void editor_win_change_active_horz(editor_context* editor, i32 dir);
 
 // Moves cursor to the window above (-1) or below (+1)
-void wb_win_change_active_vert(workbook* wb, i32 dir);
+void editor_win_change_active_vert(editor_context* editor, i32 dir);
 

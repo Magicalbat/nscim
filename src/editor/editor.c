@@ -1,4 +1,6 @@
 
+editor_window* _editor_create_win(editor_context* editor);
+void _editor_free_win(editor_context* editor, editor_window* win);
 
 void _editor_push_input_raw(
     editor_context* editor, workbook* wb, win_input input
@@ -12,7 +14,9 @@ b32 _editor_do_cell_visual(editor_context*, workbook*, win_input, u32) {
 
 #include "modes/editor_modes_internal.h"
 
-#include "editor_init.c"
+#include "editor_window.c"
+#include "editor_register.c"
+
 #include "editor_update.c"
 #include "editor_draw.c"
 #include "editor_input.c"
@@ -26,4 +30,86 @@ b32 _editor_do_cell_visual(editor_context*, workbook*, win_input, u32) {
 #include "modes/editor_modes_cell_insert.c"
 #include "modes/editor_modes_cell_edit.c"
 #include "modes/editor_modes_cmd.c"
+
+editor_context* editor_create(void) {
+    mem_arena* arena = arena_create(
+        EDITOR_ARENA_RESERVE_SIZE,
+        EDITOR_ARENA_COMMIT_SIZE,
+        0
+    );
+
+    editor_context* editor = PUSH_STRUCT(arena, editor_context);
+    editor->arena = arena;
+
+    editor->mode = EDITOR_MODE_NORMAL;
+
+    editor->colors = (editor_colors) {
+        .status_fg          = { { 255, 255, 255 } },
+        .status_bg          = { {  25,  30,  40 } },
+        .cell_fg            = { { 255, 255, 255 } },
+        .cell_bg            = { {  15,  18,  20 } },
+        .inactive_cursor_fg = { {  15,  18,  20 } },
+        .inactive_cursor_bg = { { 150, 150, 150 } },
+        .selection_fg       = { {  15,  18,  20 } },
+        .selection_bg       = { { 200, 200, 200 } },
+        .rc_fg              = { { 131,  27,  88 } },
+        .rc_bg              = { { 214, 212, 243 } },
+    };
+
+    editor->settings = (editor_settings) {
+        .cursor_row_pad = 2,
+        .cursor_col_pad = 1,
+        .anim_speed = 25.0f,
+    };
+
+    editor->empty_sheet = PUSH_STRUCT(arena, sheet_buffer);
+
+    editor_window* root_win = PUSH_STRUCT(arena, editor_window);
+    root_win->_sheet = editor->empty_sheet;
+
+    editor->root_win = root_win;
+    editor->active_win = root_win;
+
+    editor->count = 1;
+
+    return editor;
+}
+
+void editor_destroy(editor_context* editor) {
+    arena_destroy(editor->arena);
+}
+
+sheet_buffer* editor_get_active_sheet(
+    editor_context* editor, workbook* wb, b32 create_if_empty
+) {
+    return editor_win_get_sheet(
+        editor, wb, editor->active_win, create_if_empty
+    );
+}
+
+editor_window* _editor_create_win(editor_context* editor) {
+    editor->num_windows++;
+
+    if (editor->first_free_win != NULL) {
+        editor_window* win = editor->first_free_win;
+        SLL_POP_FRONT(editor->first_free_win, editor->last_free_win);
+
+        return win;
+    }
+
+    editor_window* win = PUSH_STRUCT(editor->arena, editor_window);
+    win->_sheet = editor->empty_sheet;
+
+    return win;
+}
+
+void _editor_free_win(editor_context* editor, editor_window* win) {
+    if (editor->num_windows) { editor->num_windows--; }
+
+    MEM_ZERO(win, sizeof(editor_window));
+    win->_sheet = editor->empty_sheet;
+
+    SLL_PUSH_BACK(editor->first_free_win, editor->last_free_win, win);
+}
+
 

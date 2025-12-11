@@ -2,8 +2,8 @@
 void _editor_load_cell_to_input(
     editor_context* editor, workbook* wb, u32 max_cursor_off
 ) {
-    sheet_window* win = wb->active_win;
-    sheet_buffer* sheet = wb_get_active_sheet(wb, false);
+    editor_window* win = editor->active_win;
+    sheet_buffer* sheet = editor_get_active_sheet(editor, wb, false);
 
     sheet_cell_view cell = sheet_get_cell_view(wb, sheet, win->cursor_pos);
 
@@ -22,7 +22,7 @@ void _editor_load_cell_to_input(
 }
 
 void _editor_store_cell_from_input(editor_context* editor, workbook* wb) {
-    sheet_window* win = wb->active_win;
+    editor_window* win = editor->active_win;
 
     win->prev_edit_pos = win->cursor_pos;
 
@@ -32,12 +32,12 @@ void _editor_store_cell_from_input(editor_context* editor, workbook* wb) {
         // Fetching the sheet separately in case it is empty
         // It is not necessary to create the sheet just to clear a
         // cell that must already be empty
-        sheet_buffer* tmp_sheet = wb_get_active_sheet(wb, false);
+        sheet_buffer* tmp_sheet = editor_get_active_sheet(editor, wb, false);
         sheet_clear_cell(wb, tmp_sheet, win->cursor_pos);
         return;
     }
 
-    sheet_buffer* sheet = wb_get_active_sheet(wb, true);
+    sheet_buffer* sheet = editor_get_active_sheet(editor, wb, true);
 
     sheets_parse_store_str(wb, sheet, str, win->cursor_pos);
 }
@@ -73,7 +73,7 @@ void _editor_input_delete(editor_context* editor, u32 start, u32 n) {
 void _editor_input_active_up(
     editor_context* editor, workbook* wb, u32 n, u32 max_cursor_off
 ) {
-    sheet_window* win = wb->active_win;
+    editor_window* win = editor->active_win;
 
     if (win->cursor_pos.row == 0) { return; }
 
@@ -87,7 +87,7 @@ void _editor_input_active_up(
 void _editor_input_active_down(
     editor_context* editor, workbook* wb, u32 n, u32 max_cursor_off
 ) {
-    sheet_window* win = wb->active_win;
+    editor_window* win = editor->active_win;
 
     if (win->cursor_pos.row == SHEET_MAX_ROWS - 1) { return; }
 
@@ -101,7 +101,7 @@ void _editor_input_active_down(
 void _editor_input_active_left(
     editor_context* editor, workbook* wb, u32 n, u32 max_cursor_off
 ) {
-    sheet_window* win = wb->active_win;
+    editor_window* win = editor->active_win;
 
     if (win->cursor_pos.col == 0) { return; }
 
@@ -115,7 +115,7 @@ void _editor_input_active_left(
 void _editor_input_active_right(
     editor_context* editor, workbook* wb, u32 n, u32 max_cursor_off
 ) {
-    sheet_window* win = wb->active_win;
+    editor_window* win = editor->active_win;
 
     if (win->cursor_pos.col == SHEET_MAX_COLS - 1) { return; }
 

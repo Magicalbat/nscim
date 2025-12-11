@@ -4,8 +4,10 @@ b32 _editor_do_visual(
 ) {
     b32 enter_normal = false;
 
+    editor_window* active_win = editor->active_win;
+
     sheet_range select_range = (sheet_range){ {
-        wb->active_win->select_start, wb->active_win->cursor_pos 
+        active_win->select_start, active_win->cursor_pos 
     }};
 
     if (editor->cur_inputs_size == 0) {
@@ -13,13 +15,13 @@ b32 _editor_do_visual(
             case '\x1b': { enter_normal = true; } break;
 
             case WIN_INPUT_ARROW_LEFT:
-            case 'h': { _editor_cursor_left(editor, wb, count); } break;
+            case 'h': { _editor_cursor_left(editor, count, true); } break;
             case WIN_INPUT_ARROW_DOWN:
-            case 'j': { _editor_cursor_down(editor, wb, count); } break;
+            case 'j': { _editor_cursor_down(editor, wb, count, true); } break;
             case WIN_INPUT_ARROW_UP:
-            case 'k': { _editor_cursor_up(editor, wb, count); } break;
+            case 'k': { _editor_cursor_up(editor, count, true); } break;
             case WIN_INPUT_ARROW_RIGHT:
-            case 'l': { _editor_cursor_right(editor, wb, count); } break;
+            case 'l': { _editor_cursor_right(editor, wb, count, true); } break;
 
             case WIN_INPUT_CTRL_ARROW_LEFT:
             case 'H': {
@@ -40,15 +42,15 @@ b32 _editor_do_visual(
 
             case '0': {
                 _editor_cursor_left(
-                    editor, wb, wb->active_win->cursor_pos.col
+                    editor, active_win->cursor_pos.col, true
                 );
             } break;
             
             case WIN_INPUT_CTRL('e'): {
-                _editor_scroll_down(editor, wb, count); 
+                _editor_scroll_down(editor, count); 
             } break;
             case WIN_INPUT_CTRL('y'): {
-                _editor_scroll_up(editor, wb, count); 
+                _editor_scroll_up(editor, count); 
             } break;
 
             case WIN_INPUT_CTRL('b'): {
@@ -75,7 +77,9 @@ b32 _editor_do_visual(
             case 'd': {
                 // TODO: x vs d behavior for entire row/column
 
-                sheet_buffer* sheet = wb_get_active_sheet(wb, false);
+                sheet_buffer* sheet = editor_get_active_sheet(
+                    editor, wb, false
+                );
                 // Clear cell will do nothing on an empty sheet
                 sheet_clear_range(wb, sheet, select_range);
 
@@ -91,7 +95,9 @@ b32 _editor_do_visual(
             } break;
 
             case 'm': {
-                _editor_continue_series(wb, select_range, _EDITOR_SERIES_INFER);
+                _editor_continue_series(
+                    editor, wb, select_range, _EDITOR_SERIES_INFER
+                );
                 enter_normal = true;
             } break;
 
@@ -109,16 +115,16 @@ b32 _editor_do_visual(
             case 'z': {
                 switch (input) {
                     case WIN_INPUT_ARROW_LEFT:
-                    case 'h': { _editor_scroll_left(editor, wb, count); } break;
+                    case 'h': { _editor_scroll_left(editor, count); } break;
                     case WIN_INPUT_ARROW_DOWN:
-                    case 'j': { _editor_scroll_down(editor, wb, count); } break;
+                    case 'j': { _editor_scroll_down(editor, count); } break;
                     case WIN_INPUT_ARROW_UP:
-                    case 'k': { _editor_scroll_up(editor, wb, count); } break;
+                    case 'k': { _editor_scroll_up(editor, count); } break;
                     case WIN_INPUT_ARROW_RIGHT:
-                    case 'l': { _editor_scroll_right(editor, wb, count); } break;
+                    case 'l': { _editor_scroll_right(editor, count); } break;
 
                     case 'z': {
-                        _editor_scroll_center(wb);
+                        _editor_scroll_center(editor);
                     } break;
                 }
             } break;
@@ -133,7 +139,9 @@ b32 _editor_do_visual(
                             u32 col = fixed_range.start.col;
                             col <= fixed_range.end.col; col++
                         ) {
-                            _editor_resize_col_width(wb, col, -(i32)count);
+                            _editor_resize_col_width(
+                                editor, wb, col, -(i32)count
+                            );
                         }
                     } break;
 
@@ -143,7 +151,9 @@ b32 _editor_do_visual(
                             u32 row = fixed_range.start.row;
                             row <= fixed_range.end.row; row++
                         ) {
-                            _editor_resize_row_height(wb, row, (i32)count);
+                            _editor_resize_row_height(
+                                editor, wb, row, (i32)count
+                            );
                         }
                     } break;
 
@@ -153,7 +163,9 @@ b32 _editor_do_visual(
                             u32 row = fixed_range.start.row;
                             row <= fixed_range.end.row; row++
                         ) {
-                            _editor_resize_row_height(wb, row, -(i32)count);
+                            _editor_resize_row_height(
+                                editor, wb, row, -(i32)count
+                            );
                         }
                     } break;
                         
@@ -163,7 +175,9 @@ b32 _editor_do_visual(
                             u32 col = fixed_range.start.col;
                             col <= fixed_range.end.col; col++
                         ) {
-                            _editor_resize_col_width(wb, col, (i32)count);
+                            _editor_resize_col_width(
+                                editor, wb, col, (i32)count
+                            );
                         }
                     } break;
                 }
@@ -197,21 +211,22 @@ b32 _editor_do_visual(
                 switch (input) {
                     case 'i': {
                         _editor_continue_series(
-                            wb, select_range, _EDITOR_SERIES_INFER
+                            editor, wb, select_range, _EDITOR_SERIES_INFER
                         );
                         enter_normal = true;
                     } break;
 
                     case 'l': {
                         _editor_continue_series(
-                            wb, select_range, _EDITOR_SERIES_LINEAR
+                            editor, wb, select_range, _EDITOR_SERIES_LINEAR
                         );
                         enter_normal = true;
                     } break;
 
                     case 'e': {
                         _editor_continue_series(
-                            wb, select_range, _EDITOR_SERIES_EXPONENTIAL
+                            editor, wb, select_range,
+                            _EDITOR_SERIES_EXPONENTIAL
                         );
                         enter_normal = true;
                     } break;
@@ -224,31 +239,39 @@ b32 _editor_do_visual(
 
                 switch (input) {
                     case 'h': {
-                        while (count--) { wb_win_change_active_horz(wb, -1); }
+                        while (count--) { 
+                            editor_win_change_active_horz(editor, -1);
+                        }
                     } break;
                     case 'j': {
-                        while (count--) { wb_win_change_active_vert(wb, +1); }
+                        while (count--) { 
+                            editor_win_change_active_vert(editor, +1);
+                        }
                     } break;
                     case 'k': {
-                        while (count--) { wb_win_change_active_vert(wb, -1); }
+                        while (count--) { 
+                            editor_win_change_active_vert(editor, -1);
+                        }
                     } break;
                     case 'l': {
-                        while (count--) { wb_win_change_active_horz(wb, +1); }
+                        while (count--) { 
+                            editor_win_change_active_horz(editor, +1);
+                        }
                     } break;
 
-                    case 'c': { wb_win_close(wb); } break;
+                    case 'c': { editor_win_close(editor); } break;
 
                     // TODO: deal with count for these
                     case 'v': {
-                        wb_win_split(wb, SHEETS_WIN_SPLIT_VERT, true);
+                        editor_win_split(editor, EDITOR_WIN_SPLIT_VERT, true);
                     } break;
 
                     case 's': {
-                        wb_win_split(wb, SHEETS_WIN_SPLIT_HORZ, true);
+                        editor_win_split(editor, EDITOR_WIN_SPLIT_HORZ, true);
                     } break;
 
                     case 'n': {
-                        wb_win_split(wb, SHEETS_WIN_SPLIT_HORZ, false);
+                        editor_win_split(editor, EDITOR_WIN_SPLIT_HORZ, false);
                     } break;
 
                     default: {
