@@ -20,7 +20,7 @@ typedef struct {
 
     // These two pointers point to the same memory
     f64* nums;
-    string8* strings;
+    string8** strings;
 } _editor_register_cells;
 
 typedef struct {
@@ -53,10 +53,14 @@ typedef struct editor_register {
         _editor_register_str string;
         _editor_register_cells cells;
         _editor_register_chunks chunks;
-    } contents;
+    } content;
 } editor_register;
 
 void editor_reg_create(editor_register* reg, editor_register_type reg_type);
 
 void editor_reg_destroy(editor_register* reg);
+
+void editor_reg_set_cells(
+    editor_register* reg, sheet_buffer* sheet, sheet_range range
+);
 
