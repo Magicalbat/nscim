@@ -5,13 +5,13 @@ void editor_update(
 ) {
     win_input input = 0;
 
-    editor->flags &= ~(u32)EDITOR_FLAG_SHOULD_DRAW;
+    CLEAR_FLAG_U32(editor->flags, EDITOR_FLAG_SHOULD_DRAW);
 
     while ((input = win_next_input(win)) != 0) {
-        editor->flags |= EDITOR_FLAG_SHOULD_DRAW;
+        SET_FLAG_U32(editor->flags, EDITOR_FLAG_SHOULD_DRAW);
 
         if (input == 'q') {
-            editor->flags |= EDITOR_FLAG_SHOULD_QUIT;
+            SET_FLAG_U32(editor->flags, EDITOR_FLAG_SHOULD_QUIT);
             return;
         }
 
@@ -20,8 +20,9 @@ void editor_update(
 
     _editor_process_inputs_raw(editor, wb);
 
+    // TODO: keep track of animations for drawing
     if (true || win_needs_resize(win)) {
-        editor->flags |= EDITOR_FLAG_SHOULD_DRAW;
+        SET_FLAG_U32(editor->flags, EDITOR_FLAG_SHOULD_DRAW);
 
         editor_win_update_anims(editor, delta);
     }

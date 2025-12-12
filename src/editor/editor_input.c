@@ -44,13 +44,12 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb) {
             )
         ) {
             if (
-                (editor->flags & _EDITOR_FLAG_READING_NUM) !=
-                _EDITOR_FLAG_READING_NUM
+                !IS_FLAG_SET_U32(editor->flags, _EDITOR_FLAG_READING_NUM)
             ) {
                 editor->count = 0;
             }
 
-            editor->flags |= _EDITOR_FLAG_READING_NUM;
+            SET_FLAG_U32(editor->flags, _EDITOR_FLAG_READING_NUM);
 
             // Ignore any counts over ten million
             if (editor->count >= 1e7) { goto ignore_input; }
@@ -58,7 +57,7 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb) {
             editor->count *= 10;
             editor->count += cur_input - '0';
         } else {
-            editor->flags &= ~(u32)_EDITOR_FLAG_READING_NUM;
+            CLEAR_FLAG_U32(editor->flags, _EDITOR_FLAG_READING_NUM);
 
             if (
                 editor->mode == EDITOR_MODE_NULL ||
@@ -67,6 +66,8 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb) {
                 editor->mode = EDITOR_MODE_NORMAL;
             }
 
+            // Actually executing whatever editor mode we are in
+            // This is where the bulk of the editor logic lies
             b32 consumed_input = _mode_funcs[editor->mode](
                 editor, wb, cur_input, editor->count
             );
@@ -75,10 +76,9 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb) {
                 editor->cur_inputs_size = 0;
                 editor->count = 1;
 
-                if (
-                    (editor->flags & _EDITOR_FLAG_PENDING_MOTION) !=
-                    _EDITOR_FLAG_PENDING_MOTION
-                ) {
+                if (!IS_FLAG_SET_U32(
+                    editor->flags, _EDITOR_FLAG_CONTINUE_ACTION
+                )) {
                     editor->action_start_input = editor->input_queue_end;
                 }
             } else if (editor->cur_inputs_size < EDITOR_INPUT_SEQ_MAX) {
@@ -90,14 +90,21 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb) {
         continue;
 
     ignore_input:
-        if (editor->input_queue_size == 0) {
-            u32 pos = editor->input_queue_start;
-            pos = pos == 0 ? EDITOR_INPUT_QUEUE_MAX - 1 : pos - 1;
+        u32 start = editor->input_queue_start;
+        start = start == 0 ? EDITOR_INPUT_QUEUE_MAX - 1 : start - 1;
+        u32 end = start;
 
-            editor->input_queue_start = pos;
-            editor->input_queue_end = pos;
-        } else {
+        if (editor->input_queue_size > 0) {
+            end = editor->input_queue_end;
+            end = end == 0 ? EDITOR_INPUT_QUEUE_MAX - 1 : end - 1;
+
+            for (u32 i = start; i < end; i++) {
+                editor->input_queue[i] = editor->input_queue[i + 1];
+            }
         }
+
+        editor->input_queue_start = start;
+        editor->input_queue_end = end;
     }
 }
 

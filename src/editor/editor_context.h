@@ -14,7 +14,7 @@
     (EDITOR_WIN_STATUS_ROWS_TOP + EDITOR_WIN_STATUS_ROWS_BOTTOM)
 
 #define EDITOR_REGISTER_FIRST ((u8)'"')
-#define EDITOR_REGISTER_LAST ((u8)'z')
+#define EDITOR_REGISTER_LAST ((u8)'Z')
 #define EDITOR_REGISTER_COUNT (EDITOR_REGISTER_LAST - EDITOR_REGISTER_FIRST + 1)
 
 typedef enum {
@@ -35,10 +35,11 @@ typedef enum {
 typedef enum {
     EDITOR_FLAG_NONE = 0,
 
-     EDITOR_FLAG_SHOULD_QUIT    = (1 << 0),
-     EDITOR_FLAG_SHOULD_DRAW    = (1 << 1),
-    _EDITOR_FLAG_READING_NUM    = (1 << 2),
-    _EDITOR_FLAG_PENDING_MOTION = (1 << 3),
+     EDITOR_FLAG_SHOULD_QUIT     = (1 << 0),
+     EDITOR_FLAG_SHOULD_DRAW     = (1 << 1),
+    _EDITOR_FLAG_READING_NUM     = (1 << 2),
+    _EDITOR_FLAG_CONTINUE_ACTION = (1 << 3),
+    _EDITOR_FLAG_PENDING_MOTION  = (1 << 4),
 } editor_flags;
 
 typedef struct {
@@ -106,7 +107,8 @@ typedef struct editor_context {
 
     u32 flags;
 
-    editor_register registers[EDITOR_REGISTER_COUNT];
+    u8 selected_register;
+    editor_register* registers[EDITOR_REGISTER_COUNT];
 
     win_input cur_inputs[EDITOR_INPUT_SEQ_MAX];
     win_input pending_action_inputs[EDITOR_INPUT_SEQ_MAX];
@@ -116,4 +118,23 @@ typedef struct editor_context {
 
     win_input input_queue[EDITOR_INPUT_QUEUE_MAX];
 } editor_context;
+
+editor_context* editor_create(void);
+void editor_destroy(editor_context* editor);
+
+sheet_buffer* editor_get_active_sheet(
+    editor_context* editor, workbook* wb, b32 create_if_empty
+);
+
+void editor_push_inputs(
+    editor_context* editor, workbook* wb,
+    win_input* inputs, u32 num_inputs
+);
+
+void editor_update(
+    window* win, editor_context* editor,
+    workbook* wb, f32 delta
+);
+
+void editor_draw(window* win, editor_context* editor, workbook* wb);
 

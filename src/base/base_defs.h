@@ -88,6 +88,10 @@ STATIC_ASSERT(sizeof(f64) == 8, f64_size);
 #define ABS(n) ((n) < 0 ? -(n) : (n))
 #define SIGN(n) ((n) < 0 ? -1 : 1)
 
+#define SET_FLAG_U32(bitfield, flag) ((bitfield) |= (u32)(flag))
+#define CLEAR_FLAG_U32(bitfield, flag) ((bitfield) &= ~(u32)(flag))
+#define IS_FLAG_SET_U32(bitfield, flag) (((bitfield) & (u32)(flag)) == (u32)(flag))
+
 #define MEM_ZERO(p, size) memset((p), 0, (size))
 
 #define SLL_PUSH_FRONT(f, l, n) ((f) == NULL ? \

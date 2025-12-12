@@ -72,10 +72,43 @@ editor_context* editor_create(void) {
 
     editor->count = 1;
 
+    for (u32 i = 0; i < EDITOR_REGISTER_COUNT; i++) {
+        u8 c = (u8)(i + EDITOR_REGISTER_FIRST); 
+
+        editor_register_type reg_type = EDITOR_REGISTER_TYPE_INVALID;
+        
+        if (
+            (c == '"') ||
+            (c >= 'A' && c <= 'Z') ||
+            (c >= '0' && c <+ '9')
+        ) {
+            reg_type = EDITOR_REGISTER_TYPE_EMPTY;
+        }
+
+        if (c == '_') {
+            reg_type = EDITOR_REGISTER_TYPE_BLACKHOLE;
+        }
+
+        editor_register* reg = NULL;
+
+        if (reg_type != EDITOR_REGISTER_TYPE_INVALID) {
+            reg = PUSH_STRUCT(arena, editor_register);
+            editor_reg_create(reg, reg_type);
+        }
+
+        editor->registers[i] = reg;
+    }
+
     return editor;
 }
 
 void editor_destroy(editor_context* editor) {
+    for (u32 i = 0; i < EDITOR_REGISTER_COUNT; i++) {
+        if (editor->registers[i] != NULL) {
+            editor_reg_destroy(editor->registers[i]);
+        }
+    }
+
     arena_destroy(editor->arena);
 }
 

@@ -1,4 +1,7 @@
 
+#define EDITOR_REGISTER_ARENA_RESERVE KiB(256)
+#define EDITOR_REGISTER_ARENA_COMMIT KiB(16)
+
 typedef enum {
     EDITOR_REGISTER_TYPE_INVALID = 0,
 
@@ -30,7 +33,7 @@ typedef struct {
     sheet_chunk** chunk_map;
 } _editor_register_chunks;
 
-typedef struct {
+typedef struct editor_register {
     mem_arena* arena;
 
     editor_register_type reg_type;
@@ -52,4 +55,8 @@ typedef struct {
         _editor_register_chunks chunks;
     } contents;
 } editor_register;
+
+void editor_reg_create(editor_register* reg, editor_register_type reg_type);
+
+void editor_reg_destroy(editor_register* reg);
 

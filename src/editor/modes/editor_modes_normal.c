@@ -15,7 +15,7 @@ b32 _editor_do_normal(
     if (next_inputs_size < EDITOR_INPUT_SEQ_MAX) { next_inputs_size++; };
 
     if (
-        editor->flags & _EDITOR_FLAG_PENDING_MOTION && 
+        IS_FLAG_SET_U32(editor->flags, _EDITOR_FLAG_PENDING_MOTION) && 
         next_inputs_size == editor->pending_action_inputs_size
     ) {
         b32 same_input = true;
@@ -43,7 +43,7 @@ b32 _editor_do_normal(
         }
     }
 
-    if (editor->flags & _EDITOR_FLAG_PENDING_MOTION) {
+    if (IS_FLAG_SET_U32(editor->flags, _EDITOR_FLAG_PENDING_MOTION)) {
         count *= editor->pending_action_count;
     }
     

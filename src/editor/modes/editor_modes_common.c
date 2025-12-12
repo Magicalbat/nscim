@@ -1,6 +1,7 @@
 
 void _editor_await_motion(editor_context* editor, win_input cur_input) {
-    editor->flags |= _EDITOR_FLAG_PENDING_MOTION;
+    SET_FLAG_U32(editor->flags, _EDITOR_FLAG_PENDING_MOTION);
+    SET_FLAG_U32(editor->flags, _EDITOR_FLAG_CONTINUE_ACTION);
 
     if (editor->cur_inputs_size < EDITOR_INPUT_SEQ_MAX) {
         editor->cur_inputs[editor->cur_inputs_size++] = cur_input;
@@ -18,7 +19,8 @@ void _editor_await_motion(editor_context* editor, win_input cur_input) {
 }
 
 void _editor_consume_motion(editor_context* editor) {
-    editor->flags &= ~(u32)_EDITOR_FLAG_PENDING_MOTION;
+    CLEAR_FLAG_U32(editor->flags, _EDITOR_FLAG_PENDING_MOTION);
+    CLEAR_FLAG_U32(editor->flags, _EDITOR_FLAG_CONTINUE_ACTION);
     editor->pending_action_count = 1;
     editor->pending_action_inputs_size = 0;
 }

@@ -122,16 +122,16 @@ int main(void) {
     
     draw(win, wb, editor, frame_arena);
 
-    u64 prev_frame_time = plat_now_usec();
+    u64 prev_frame_start = plat_now_usec();
     
     while (
         (editor->flags & EDITOR_FLAG_SHOULD_QUIT) !=
         EDITOR_FLAG_SHOULD_QUIT
     ) {
-        u64 cur_frame_time = plat_now_usec();
-        f32 delta = (f32)(cur_frame_time - prev_frame_time) * 1e-6f;
+        u64 cur_frame_start = plat_now_usec();
+        f32 delta = (f32)(cur_frame_start - prev_frame_start) * 1e-6f;
 
-        prev_frame_time = cur_frame_time;
+        prev_frame_start = cur_frame_start;
 
         editor_update(win, editor, wb, delta);
 
@@ -146,7 +146,11 @@ int main(void) {
             }
         }
 
-        plat_sleep_ms(15);
+        u64 frame_end = plat_now_usec();
+        u32 frame_time_ms = (u32)((frame_end - cur_frame_start) / 1000);
+        if (frame_time_ms < 16) {
+            plat_sleep_ms(16 - frame_time_ms);
+        }
     }
 
     win_destroy(win);
