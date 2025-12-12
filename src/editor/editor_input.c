@@ -58,6 +58,7 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb) {
             editor->count += cur_input - '0';
         } else {
             CLEAR_FLAG_U32(editor->flags, _EDITOR_FLAG_READING_NUM);
+            CLEAR_FLAG_U32(editor->flags, _EDITOR_FLAG_CONTINUE_ACTION);
 
             if (
                 editor->mode == EDITOR_MODE_NULL ||
@@ -80,6 +81,8 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb) {
                     editor->flags, _EDITOR_FLAG_CONTINUE_ACTION
                 )) {
                     editor->action_start_input = editor->input_queue_end;
+                    
+                    editor->selected_register = EDITOR_REGISTER_DEFAULT;
                 }
             } else if (editor->cur_inputs_size < EDITOR_INPUT_SEQ_MAX) {
                 editor->cur_inputs[editor->cur_inputs_size++] = cur_input;

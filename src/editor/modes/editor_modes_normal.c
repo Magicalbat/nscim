@@ -191,6 +191,7 @@ b32 _editor_do_normal(
             case 'f':
             case 'a':
             case 'M':
+            case '"':
             case WIN_INPUT_CTRL('w'): {
                 return false;
             } break;
@@ -279,6 +280,39 @@ b32 _editor_do_normal(
                         return true;
                     } break;
                 }
+            } break;
+
+            case '"': {
+                b32 lowercase = false;
+
+                if (input >= 'a' && input <= 'z') {
+                    input -= 'a' - 'A';
+                    lowercase = true;
+                }
+
+                if (
+                    input < EDITOR_REGISTER_FIRST ||
+                    input > EDITOR_REGISTER_LAST
+                ) {
+                    return true;
+                }
+
+                u32 index = input - EDITOR_REGISTER_FIRST;
+                if (
+                    editor->registers[index] == NULL ||
+                    editor->registers[index]->reg_type ==
+                        EDITOR_REGISTER_TYPE_INVALID
+                ) {
+                    return true;
+                }
+
+                editor->append_to_register = false;
+                if (!lowercase && input >= 'A' && input <= 'Z') {
+                    editor->append_to_register = true;
+                }
+
+                editor->selected_register = input;
+                SET_FLAG_U32(editor->flags, _EDITOR_FLAG_CONTINUE_ACTION);
             } break;
 
             // Window Commands 

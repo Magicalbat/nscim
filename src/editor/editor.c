@@ -72,6 +72,7 @@ editor_context* editor_create(void) {
 
     editor->count = 1;
 
+    editor->selected_register = EDITOR_REGISTER_DEFAULT;
     for (u32 i = 0; i < EDITOR_REGISTER_COUNT; i++) {
         u8 c = (u8)(i + EDITOR_REGISTER_FIRST); 
 

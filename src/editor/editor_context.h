@@ -14,8 +14,9 @@
     (EDITOR_WIN_STATUS_ROWS_TOP + EDITOR_WIN_STATUS_ROWS_BOTTOM)
 
 #define EDITOR_REGISTER_FIRST ((u8)'"')
-#define EDITOR_REGISTER_LAST ((u8)'Z')
+#define EDITOR_REGISTER_LAST ((u8)'_')
 #define EDITOR_REGISTER_COUNT (EDITOR_REGISTER_LAST - EDITOR_REGISTER_FIRST + 1)
+#define EDITOR_REGISTER_DEFAULT '"'
 
 typedef enum {
     EDITOR_MODE_NULL = 0,
@@ -108,6 +109,7 @@ typedef struct editor_context {
     u32 flags;
 
     u8 selected_register;
+    b8 append_to_register;
     editor_register* registers[EDITOR_REGISTER_COUNT];
 
     win_input cur_inputs[EDITOR_INPUT_SEQ_MAX];
