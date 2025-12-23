@@ -19,6 +19,8 @@ b32 _editor_do_cmd(editor_context*, workbook*, win_input, u32);
 void _editor_await_motion(editor_context* editor, win_input cur_input);
 void _editor_consume_motion(editor_context* editor);
 
+void _editor_try_select_register(editor_context* editor, win_input input);
+
 // These functions perform bounds checking and make sure that
 // the cursor remains within the window's scroll range
 void _editor_cursor_up(editor_context* editor, u32 n, b32 scroll);

@@ -124,10 +124,6 @@ typedef struct editor_context {
 editor_context* editor_create(void);
 void editor_destroy(editor_context* editor);
 
-sheet_buffer* editor_get_active_sheet(
-    editor_context* editor, workbook* wb, b32 create_if_empty
-);
-
 void editor_push_inputs(
     editor_context* editor, workbook* wb,
     win_input* inputs, u32 num_inputs
@@ -139,4 +135,10 @@ void editor_update(
 );
 
 void editor_draw(window* win, editor_context* editor, workbook* wb);
+
+sheet_buffer* editor_get_active_sheet(
+    editor_context* editor, workbook* wb, b32 create_if_empty
+);
+
+editor_register* editor_get_reg(editor_context* editor, u8 reg);
 

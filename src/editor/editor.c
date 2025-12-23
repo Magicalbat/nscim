@@ -94,7 +94,7 @@ editor_context* editor_create(void) {
 
         if (reg_type != EDITOR_REGISTER_TYPE_INVALID) {
             reg = PUSH_STRUCT(arena, editor_register);
-            editor_reg_create(reg, reg_type);
+            editor_reg_create(reg, reg_type, true);
         }
 
         editor->registers[i] = reg;
@@ -119,6 +119,14 @@ sheet_buffer* editor_get_active_sheet(
     return editor_win_get_sheet(
         editor, wb, editor->active_win, create_if_empty
     );
+}
+
+editor_register* editor_get_reg(editor_context* editor, u8 reg) {
+    if (reg < EDITOR_REGISTER_FIRST || reg > EDITOR_REGISTER_LAST) {
+        return NULL;
+    }
+
+    return editor->registers[reg - EDITOR_REGISTER_FIRST];
 }
 
 editor_window* _editor_create_win(editor_context* editor) {

@@ -56,11 +56,20 @@ typedef struct editor_register {
     } content;
 } editor_register;
 
-void editor_reg_create(editor_register* reg, editor_register_type reg_type);
+void editor_reg_create(
+    editor_register* reg, editor_register_type reg_type, b32 create_arena
+);
 
 void editor_reg_destroy(editor_register* reg);
 
+// `arena` can be NULL if the register was created with `create_arena` == false
 void editor_reg_set_cells(
-    editor_register* reg, sheet_buffer* sheet, sheet_range range
+    mem_arena* arena, editor_register* reg,
+    sheet_buffer* sheet, sheet_range range
+);
+
+void editor_reg_put_cells(
+    editor_register* reg, workbook* wb,
+    sheet_buffer* sheet, sheet_pos start_pos
 );
 

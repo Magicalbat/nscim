@@ -25,3 +25,36 @@ void _editor_consume_motion(editor_context* editor) {
     editor->pending_action_inputs_size = 0;
 }
 
+void _editor_try_select_register(editor_context* editor, win_input input) {
+    b32 lowercase = false;
+
+    if (input >= 'a' && input <= 'z') {
+        input -= 'a' - 'A';
+        lowercase = true;
+    }
+
+    if (
+        input < EDITOR_REGISTER_FIRST ||
+        input > EDITOR_REGISTER_LAST
+    ) {
+        return;
+    }
+
+    u32 index = input - EDITOR_REGISTER_FIRST;
+    if (
+        editor->registers[index] == NULL ||
+        editor->registers[index]->reg_type ==
+            EDITOR_REGISTER_TYPE_INVALID
+    ) {
+        return;
+    }
+
+    editor->append_to_register = false;
+    if (!lowercase && input >= 'A' && input <= 'Z') {
+        editor->append_to_register = true;
+    }
+
+    editor->selected_register = input;
+    SET_FLAG_U32(editor->flags, _EDITOR_FLAG_CONTINUE_ACTION);
+}
+

@@ -73,6 +73,19 @@ b32 _editor_do_visual(
                 _editor_move_win_multiple_horz(editor, wb, -(f32)count * 0.5f);
             } break;
 
+            case 'y': {
+                sheet_buffer* sheet = editor_get_active_sheet(
+                    editor, wb, false
+                );
+                editor_register* reg = editor_get_reg(
+                    editor, editor->selected_register
+                );
+
+                editor_reg_set_cells(NULL, reg, sheet, select_range);
+
+                enter_normal = true;
+            } break;
+
             case 'x': 
             case 'd': {
                 // TODO: x vs d behavior for entire row/column
@@ -106,6 +119,7 @@ b32 _editor_do_visual(
             case 'f':
             case 'a':
             case 'M':
+            case '"':
             case WIN_INPUT_CTRL('w'): {
                 return false;
             } break;
@@ -231,6 +245,10 @@ b32 _editor_do_visual(
                         enter_normal = true;
                     } break;
                 }
+            } break;
+
+            case '"': {
+                _editor_try_select_register(editor, input);
             } break;
 
             // Window Commands 

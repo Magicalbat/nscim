@@ -173,6 +173,15 @@ b32 _editor_do_normal(
                 _editor_move_win_multiple_horz(editor, wb, -(f32)count * 0.5f);
             } break;
 
+            case 'p': {
+                editor_register* reg = editor_get_reg(
+                    editor, editor->selected_register
+                );
+
+                sheet_buffer* sheet = editor_get_active_sheet(editor, wb, true);
+                editor_reg_put_cells(reg, wb, sheet, active_win->cursor_pos);
+            } break;
+
             case 'x': {
                 sheet_buffer* sheet = editor_get_active_sheet(editor, wb, false);
                 // Clear cell will do nothing on an empty sheet
@@ -283,36 +292,7 @@ b32 _editor_do_normal(
             } break;
 
             case '"': {
-                b32 lowercase = false;
-
-                if (input >= 'a' && input <= 'z') {
-                    input -= 'a' - 'A';
-                    lowercase = true;
-                }
-
-                if (
-                    input < EDITOR_REGISTER_FIRST ||
-                    input > EDITOR_REGISTER_LAST
-                ) {
-                    return true;
-                }
-
-                u32 index = input - EDITOR_REGISTER_FIRST;
-                if (
-                    editor->registers[index] == NULL ||
-                    editor->registers[index]->reg_type ==
-                        EDITOR_REGISTER_TYPE_INVALID
-                ) {
-                    return true;
-                }
-
-                editor->append_to_register = false;
-                if (!lowercase && input >= 'A' && input <= 'Z') {
-                    editor->append_to_register = true;
-                }
-
-                editor->selected_register = input;
-                SET_FLAG_U32(editor->flags, _EDITOR_FLAG_CONTINUE_ACTION);
+                _editor_try_select_register(editor, input);
             } break;
 
             // Window Commands 
