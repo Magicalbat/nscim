@@ -65,11 +65,9 @@ static void _sb_init_info(void) {
         _sb_info.width_bitfield_u64s + _sb_info.height_bitfield_u64s
     ) * sizeof(u64);
 
-#ifndef NDEBUG
     if (total_sb_size > _sb_info.page_size) {
         plat_fatal_error("sheet_buffer cannot fit in memory page", 1);
     }
-#endif
 
     _sb_info.chunk_map_off = _sb_info.page_size;
     _sb_info.column_widths_off = ALIGN_UP_POW2(

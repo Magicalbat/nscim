@@ -19,11 +19,11 @@ typedef struct mem_arena {
     u64 reserve_size;
     u64 commit_size;
 
-    u32 flags;
-
     u64 base_pos;
     u64 pos;
     u64 commit_pos;
+
+    u32 flags;
 } mem_arena;
 
 typedef struct {

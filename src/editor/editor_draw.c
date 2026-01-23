@@ -391,6 +391,24 @@ void _editor_draw_status(window* user_win, editor_context* editor) {
         user_win->cursor_row = buf->height - 1;
         user_win->cursor_col = MIN(buf->width - 1, editor->cmd_cursor + 1);
     } else {
+        u8 time_chars[256] = { 0 };
+        f32 action_time = editor->last_action_time_us;
+        i32 time_size = snprintf(
+            (char*)time_chars, sizeof(time_chars),
+            "Action took %.3fs (%.3fms or %.0fus)",
+            action_time * 1e-6f, action_time * 1e-3f, action_time
+        );
+
+        if (time_size > 0) {
+            for (
+                u32 i = 0; i < (u32)time_size &&
+                i + EDITOR_STATUS_PAD < buf->width; i++
+            ) {
+                buf->tiles[i + EDITOR_STATUS_PAD + status_offset].c =
+                    time_chars[i];
+            }
+        }
+
         string8 mode_str = _editor_mode_names[editor->mode];
 
         u32 mode_draw_offset = EDITOR_STATUS_PAD + (u32)mode_str.size;

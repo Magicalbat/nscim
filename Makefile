@@ -42,9 +42,6 @@ nscim:
 	@$(MKDIR_BIN)
 	$(CC) $(SRC_DIR)/main.c $(CFLAGS) $(LFLAGS) -o $(BIN)$(BIN_EXT)
 
-gen_cmds:
-	$(CC) $(SRC_DIR)/editor/gen_editor_cmds.c $(CFLAGS) $(LFLAGS) -DGEN_CMDS
-
 clean:
 	$(RM_BIN)
 

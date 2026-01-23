@@ -86,6 +86,8 @@ typedef struct editor_context {
 
     sheet_pos motion_start;
 
+    f32 last_action_time_us;
+
     // Index into input queue, where the action began
     u32 action_start_input;
     u32 pending_action_count;

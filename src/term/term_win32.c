@@ -82,8 +82,8 @@ u32 term_read(term_context* context, u8* chars, u32 capacity) {
         context->backend->stdin_handle,
         records, num_events, (DWORD*)&num_read 
     ) == 0 || num_read != num_events) {
-        return 0;
         arena_scratch_release(scratch);
+        return 0;
     }
 
     u32 num_written = 0;

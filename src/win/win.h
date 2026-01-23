@@ -45,6 +45,7 @@ STATIC_ASSERT(
 typedef struct {
     u32 width, height;
     // Stored row-major
+    // TODO: convert to SoA?
     win_tile* tiles;
 } win_buffer;
 

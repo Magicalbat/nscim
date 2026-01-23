@@ -21,9 +21,9 @@
 #define SHEET_MAX_ROW_HEIGHT 255
 
 // Minimum allocation for strings
-// This applies to strings and formulas
+// This applies to strings
 #define SHEET_MIN_STRLEN_EXP 4
-#define SHEET_MAX_STRLEN_EXP 11
+#define SHEET_MAX_STRLEN_EXP 16
 #define SHEET_MIN_STRLEN (1 << SHEET_MIN_STRLEN_EXP)
 #define SHEET_MAX_STRLEN (1 << SHEET_MAX_STRLEN_EXP)
 // Valid strlens are at each power of two between min and max (inclusive)
@@ -62,7 +62,7 @@ typedef enum {
 
 typedef u8 sheet_cell_type;
 
-STATIC_ASSERT(_SHEET_CELL_TYPE_COUNT < sizeof(sheet_cell_type) * 8, cell_type_count);
+STATIC_ASSERT(_SHEET_CELL_TYPE_COUNT < (1 << (sizeof(sheet_cell_type) * 8)), cell_type_count);
 
 typedef struct sheet_string {
     u32 size;
@@ -101,15 +101,18 @@ typedef struct sheet_chunk {
     // Used for hash collisions and free lists
     struct sheet_chunk* next;
 
+    // Number of non-empty cells
     u32 set_cell_count;
 
     // Cell data, all stored column major
+
     sheet_cell_type types[SHEET_CHUNK_SIZE];
 
     union {
         f64 nums[SHEET_CHUNK_SIZE];
         sheet_string* strings[SHEET_CHUNK_SIZE];
     };
+
 } sheet_chunk;
 
 typedef struct {
@@ -132,7 +135,7 @@ typedef struct sheet_buffer {
     // Mapping chunk positions -> chunk pointers
     sheet_chunk** chunk_map;
 
-    // Used to speed up repeated `sheet_get_cell` calls
+    // Used to speed up repeated cell function calls
     sheet_chunk* last_chunk;
 
     u32 num_column_widths;
