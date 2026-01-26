@@ -64,8 +64,9 @@ void* arena_push(mem_arena* arena, u64 size, b32 non_zero) {
             u64 commit_size = arena->commit_size;
 
             if (size + ARENA_HEADER_SIZE > reserve_size) {
+                u32 page_size = plat_page_size();
                 reserve_size = ALIGN_UP_POW2(
-                    size + ARENA_HEADER_SIZE, ARENA_ALIGN
+                    size + ARENA_HEADER_SIZE, page_size
                 );
             }
 

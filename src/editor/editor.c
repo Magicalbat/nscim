@@ -72,6 +72,13 @@ editor_context* editor_create(void) {
 
     editor->count = 1;
 
+    editor->test_buf_a = PUSH_ARRAY(arena, f64, SHEET_MAX_ROWS);
+    editor->test_buf_b = PUSH_ARRAY(arena, f64, SHEET_MAX_ROWS);
+
+    for (u32 i = 0; i < SHEET_MAX_ROWS; i++) {
+        editor->test_buf_a[i] = (f64)i;
+    }
+
     editor->selected_register = EDITOR_REGISTER_DEFAULT;
     for (u32 i = 0; i < EDITOR_REGISTER_COUNT; i++) {
         u8 c = (u8)(i + EDITOR_REGISTER_FIRST); 
