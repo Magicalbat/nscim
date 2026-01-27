@@ -129,25 +129,17 @@ typedef struct sheet_buffer {
     struct sheet_buffer* next;
     struct sheet_buffer* prev;
 
-    u32 map_capacity;
-    u32 num_chunks;
+    // Bitmap of committed pages
+    // 0 - reserved, 1 - committed
+    u64* page_bitmap;
 
     // Mapping chunk positions -> chunk pointers
-    sheet_chunk** chunk_map;
+    sheet_chunk** chunks;
 
-    // Used to speed up repeated cell function calls
-    sheet_chunk* last_chunk;
-
-    // These two should not be accessed directly
     // Currently stored as numbers of characcters
-    u8* _column_widths;
+    u8* column_widths;
     // Currently stored as numbers of characcters
-    u8* _row_heights;
-
-    // Each bit corresponds to a page in memory,
-    // 0 - reserved, 1 - commited
-    u64* _col_width_bitfield;
-    u64* _row_height_bitfield;
+    u8* row_heights;
 } sheet_buffer;
 
 // `wb` can be NULL if create_if_empty is false
