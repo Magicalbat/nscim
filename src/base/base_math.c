@@ -1,22 +1,64 @@
 
-// TODO: clz versions of applicable functions for clang and gcc
+u32 clz_u64(u64 n) {
+    if (n == 0) { return 64; }
 
-// https://stackoverflow.com/questions/11376288/fast-computing-of-log2-for-64-bit-integers
-const u32 _log2_tab32[32] = {
-     0,  9,  1, 10, 13, 21,  2, 29,
-    11, 14, 16, 18, 22, 25,  3, 30,
-     8, 12, 20, 28, 15, 17, 24,  7,
-    19, 27, 23,  6, 26,  5,  4, 31
-};
+#if defined(COMPILER_CLANG) || defined (COMPILER_GCC)
+    return (u32)__builtin_clzll(n);
+#elif defined(COMPILER_MSVC)
+    return __lzcnt64(n);
+#else
 
-u32 log2_u32 (u32 value) {
-    value |= value >> 1;
-    value |= value >> 2;
-    value |= value >> 4;
-    value |= value >> 8;
-    value |= value >> 16;
+    // Based on this article and stackoverflow post:
+    // https://andrewlock.net/counting-the-leading-zeroes-in-a-binary-number/
+    // https://stackoverflow.com/questions/10439242/count-leading-zeroes-in-an-int32/10439333#10439333
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    n |= n >> 8;
+    n |= n >> 16;
+    n |= n >> 32;
 
-    return _log2_tab32[(u32)(value*0x07C4ACDD) >> 27];
+    n -= n >> 1 & 0x5555555555555555ULL;
+    n = (n >> 2 & 0x3333333333333333ULL) + (n & 0x3333333333333333ULL);
+    n = (n >> 4) + n & 0x0f0f0f0f0f0f0f0fULL;
+    n += n >> 8;
+    n += n >> 16;
+    n += n >> 32;
+
+    return 64 - (n & 0x7f);
+#endif
+}
+
+u32 clz_u32(u32 n) {
+    if (n == 0) { return 32; }
+
+#if defined(COMPILER_CLANG) || defined (COMPILER_GCC)
+    return (u32)__builtin_clz(n);
+#elif defined(COMPILER_MSVC)
+    return __lzcnt(n);
+#else
+
+    // Based on this article and stackoverflow post:
+    // https://andrewlock.net/counting-the-leading-zeroes-in-a-binary-number/
+    // https://stackoverflow.com/questions/10439242/count-leading-zeroes-in-an-int32/10439333#10439333
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    n |= n >> 8;
+    n |= n >> 16;
+
+    n -= n >> 1 & 0x55555555;
+    n = (n >> 2 & 0x33333333) + (n & 0x33333333);
+    n = (n >> 4) + n & 0x0f0f0f0f;
+    n += n >> 8;
+    n += n >> 16;
+
+    return 32 - (n & 0x3f);
+#endif
+}
+
+u32 log2_u32(u32 value) {
+    return 31 - clz_u32(value);
 }
 
 u32 round_up_pow2_u32(u32 n) {
