@@ -1,8 +1,4 @@
 
-#define SHEET_CHUNK_COLS 16
-#define SHEET_CHUNK_ROWS 128
-#define SHEET_CHUNK_SIZE (SHEET_CHUNK_COLS * SHEET_CHUNK_ROWS)
-
 #define SHEET_MAX_COLS KiB(32)
 #define SHEET_MAX_ROWS MiB(2)
 
@@ -10,9 +6,18 @@
 #define SHEET_MAX_COL_CHARS 4
 #define SHEET_MAX_ROW_CHARS 7
 
+#define SHEET_CHUNK_COLS 16
+#define SHEET_CHUNK_ROWS 128
+#define SHEET_CHUNK_SIZE (SHEET_CHUNK_COLS * SHEET_CHUNK_ROWS)
 #define SHEET_CHUNKS_X (SHEET_MAX_COLS / SHEET_CHUNK_COLS)
 #define SHEET_CHUNKS_Y (SHEET_MAX_ROWS / SHEET_CHUNK_ROWS)
 #define SHEET_MAX_CHUNKS (SHEET_CHUNKS_X * SHEET_CHUNKS_Y)
+
+#define SHEET_META_CHUNK_COLS 4
+#define SHEET_META_CHUNK_ROWS 4
+#define SHEET_META_CHUNK_SIZE (SHEET_META_CHUNK_ROWS * SHEET_META_CHUNK_COLS)
+#define SHEET_META_CHUNKS_X (SHEET_CHUNKS_X / SHEET_META_CHUNK_COLS)
+#define SHEET_META_CHUNKS_Y (SHEET_CHUNKS_Y / SHEET_META_CHUNK_ROWS)
 
 #define SHEET_DEF_COL_WIDTH 10
 #define SHEET_DEF_ROW_HEIGHT 1
@@ -129,9 +134,13 @@ typedef struct sheet_buffer {
     struct sheet_buffer* next;
     struct sheet_buffer* prev;
 
-    // Bitmap of committed pages
+    // Bitfield of committed pages
     // 0 - reserved, 1 - committed
-    u64* page_bitmap;
+    u64* page_bitfield;
+
+    // Start of dynamic pages (specified by page_bitfield)
+    // As of now, equal to chunks pointer
+    u8* dynamic_mem;
 
     // Mapping chunk positions -> chunk pointers
     sheet_chunk** chunks;
