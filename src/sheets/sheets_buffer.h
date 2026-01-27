@@ -138,9 +138,6 @@ typedef struct sheet_buffer {
     // Used to speed up repeated cell function calls
     sheet_chunk* last_chunk;
 
-    u32 num_column_widths;
-    u32 num_row_heights;
-
     // These two should not be accessed directly
     // Currently stored as numbers of characcters
     u8* _column_widths;

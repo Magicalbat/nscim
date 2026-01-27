@@ -160,25 +160,25 @@ void _sb_free_chunks(workbook* wb, sheet_buffer* sheet) {
 void _sheet_buffer_reset(workbook* wb, sheet_buffer* sheet) {
     _sb_free_chunks(wb, sheet);
 
+    memset(
+        sheet->_col_width_bitfield, 0,
+        _sb_info.width_bitfield_u64s * sizeof(u64)
+    );
+    memset(
+        sheet->_row_height_bitfield, 0,
+        _sb_info.height_bitfield_u64s * sizeof(u64)
+    );
+
     if (sheet->map_capacity > 0) {
-        plat_mem_decommit(sheet->chunk_map, sheet->map_capacity);
+        u64 decommit_size = _sb_info.total_reserve - _sb_info.page_size;
+        plat_mem_decommit(sheet->chunk_map, decommit_size);
     }
 
     // Reset initial map space
     _sb_chunk_map_grow(sheet, _sb_info.page_size / sizeof(sheet_chunk*));
 
-    if (sheet->num_column_widths > 0) {
-        plat_mem_decommit(sheet->_column_widths, sheet->num_column_widths);
-    }
-
-    if (sheet->num_row_heights > 0) {
-        plat_mem_decommit(sheet->_row_heights, sheet->num_row_heights);
-    }
-
     sheet->map_capacity = 0;
     sheet->num_chunks = 0;
-    sheet->num_column_widths = 0;
-    sheet->num_row_heights = 0;
 }
 
 void _sheet_buffer_destroy(workbook* wb, sheet_buffer* sheet) {
