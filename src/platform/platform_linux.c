@@ -1,4 +1,6 @@
 
+void plat_init(void) { }
+
 void plat_exit(i32 code) {
     exit(code);
 }
@@ -10,6 +12,17 @@ void plat_fatal_error(const char* msg, i32 code) {
 
 #define _POSIX_C_SOURCE 200809L 
 #include <time.h>
+
+u64 plat_now_usec(void) {
+    struct timespec ts = { 0 };
+
+    if (-1 == clock_gettime(CLOCK_MONOTONIC, &ts)) {
+        //error_emit("Failed to get time");
+        return 0;
+    }
+
+    return (u64)ts.tv_sec * 1000000 + (u64)ts.tv_nsec / 1000;
+}
 
 void plat_sleep_ms(u32 ms) {
     struct timespec dur = { .tv_nsec = (i64)ms * 1000000 };
