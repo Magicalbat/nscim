@@ -198,7 +198,6 @@ b32 _editor_do_normal(
             } break;
 
             // All of these begin multi-input actions
-            case 'T':
             case 'z':
             case 'f':
             case 'a':
@@ -210,20 +209,6 @@ b32 _editor_do_normal(
         }
     } else if (editor->cur_inputs_size == 1) {
         switch (editor->cur_inputs[0]) {
-            case 'T': {
-                switch (input) {
-                    case 'n': {
-                        for (u32 i = 0; i < SHEET_MAX_ROWS; i++) {
-                            editor->test_buf_b[i] += editor->test_buf_a[i];
-                        }
-                    } break;
-
-                    case 'c': {
-                        _add_test(editor, wb);
-                    } break;
-                }
-            }
-
             case 'z': {
                 switch (input) {
                     case WIN_INPUT_ARROW_LEFT:
@@ -414,24 +399,5 @@ execute_motion_action:
 consume_motion:
     _editor_consume_motion(editor);
     return true;
-}
-
-void _add_test(editor_context* editor, workbook* wb) {
-    sheet_buffer* sheet = editor_get_active_sheet(editor, wb, true);
-
-    for (u32 c_row = 0; c_row < SHEET_CHUNKS_Y; c_row++) {
-        sheet_chunk* chunk = sheet_get_chunk(
-            wb, sheet, (sheet_chunk_pos){ c_row, 0 }, true
-        );
-
-        for (u32 i = 0; i < SHEET_CHUNK_ROWS; i++) {
-            if (
-                chunk->types[i] == SHEET_CELL_TYPE_NUM &&
-                chunk->types[i + SHEET_CHUNK_ROWS] == SHEET_CELL_TYPE_NUM
-            ) {
-                chunk->nums[i + SHEET_CHUNK_ROWS] += chunk->nums[i];
-            }
-        }
-    }
 }
 

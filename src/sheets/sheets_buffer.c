@@ -19,7 +19,7 @@ Sheet Buffer Memory Allocation Scheme
     struct itself as well as two bitfields: `_col_width_bitfield` and
     `_row_height_bitfield`
 - The two bitfields store a 1 for pages in the corresponding arrays that are 
-    commited and a 0 for pages that are not committed yet
+    committed and a 0 for pages that are not committed yet
 - All of the offsets are only computed once and stored in a static struct
 
 Is this kind of insane, overkill, and dangerous?
@@ -28,85 +28,109 @@ Yes, but its also fun, and should be incredibly fast.
 */
 
 static struct {
-    u64 page_size;
+    b32 initialized;
+    u32 page_size;
 
-    u32 width_bitfield_u64s;
-    u32 height_bitfield_u64s;
+    u64 bitfield_u64s;
+    u64 bitfield_off;
+    u64 sb_and_bitfield_size;
 
-    u64 chunk_map_off;
+    u64 chunks_num_pages;
+    u64 column_widths_num_pages;
+    u64 row_heights_num_pages;
+
+    // Byte offsetes from start of allocation
+    u64 chunks_off;
     u64 column_widths_off;
     u64 row_heights_off;
+
+    // Page offsets from begining of dynamic page section
+    // i.e. start of chunks memory
+    u64 chunks_page_off;
+    u64 column_widths_page_off;
+    u64 row_heights_page_off;
 
     u64 total_reserve;
 
     u64 siphash_k0;
     u64 siphash_k1;
-
-    b32 initialized;
 } _sb_info = { 0 };
+
+#define _SB_CHUNK_PAGE(sheet, chunk_idx) (_sb_info.chunks_page_off + \
+    chunk_idx * sizeof(*sheet->chunks) / _sb_info.page_size)
+
+#define _SB_COL_WIDTH_PAGE(sheet, col) (_sb_info.column_widths_page_off + \
+    col * sizeof(*sheet->column_widths) / _sb_info.page_size)
+
+#define _SB_ROW_HEIGHT_PAGE(sheet, row) (_sb_info.row_heights_page_off + \
+    row * sizeof(*sheet->row_heights) / _sb_info.page_size)
+
+// Based from the start of dynamic section
+#define _SB_GET_PAGE_BIT(sheet, page) \
+    (((sheet)->page_bitfield[(page) / 64] >> ((page) % 64)) & 1)
+
+#define _SB_SET_PAGE_BIT(sheet, page) \
+    ((sheet)->page_bitfield[(page) / 64] |= ((u64)1 << ((page) % 64)))
 
 static void _sb_init_info(void) {
     _sb_info.page_size = plat_page_size();
 
-    // Number of bytes one u64 in the bitfield can cover
-    u32 bitfield_coverage = (u32)_sb_info.page_size * sizeof(u64) * 8;
+    sheet_buffer* null_buf = NULL;
 
-    // Number of u64s in the width bitfield
-    _sb_info.width_bitfield_u64s = (
-        SHEET_MAX_COLS * sizeof(u8) + bitfield_coverage - 1
-    ) / bitfield_coverage;
-
-    // Number of u64 in the height bitfield
-    _sb_info.height_bitfield_u64s = (
-        SHEET_MAX_ROWS * sizeof(u8) + bitfield_coverage - 1
-    ) / bitfield_coverage;
-
-    u32 total_sb_size = sizeof(sheet_buffer) + (
-        _sb_info.width_bitfield_u64s + _sb_info.height_bitfield_u64s
-    ) * sizeof(u64);
-
-    if (total_sb_size > _sb_info.page_size) {
-        plat_fatal_error("sheet_buffer cannot fit in memory page", 1);
-    }
-
-    _sb_info.chunk_map_off = _sb_info.page_size;
-    _sb_info.column_widths_off = ALIGN_UP_POW2(
-        _sb_info.chunk_map_off + sizeof(sheet_chunk*) * SHEET_MAX_CHUNKS,
+    u64 chunks_size = ALIGN_UP_POW2(
+        SHEET_MAX_CHUNKS * sizeof(*null_buf->chunks),
         _sb_info.page_size
+    );
+
+    u64 column_widths_size = ALIGN_UP_POW2(
+        SHEET_MAX_COLS * sizeof(*null_buf->column_widths),
+        _sb_info.page_size
+    );
+
+    u64 row_heights_size = ALIGN_UP_POW2(
+        SHEET_MAX_ROWS * sizeof(*null_buf->row_heights),
+        _sb_info.page_size
+    );
+
+    _sb_info.chunks_num_pages = chunks_size / _sb_info.page_size;
+    _sb_info.column_widths_num_pages = column_widths_size / _sb_info.page_size;
+    _sb_info.row_heights_num_pages = row_heights_size / _sb_info.page_size;
+
+    u64 total_dynamic_bytes = chunks_size +
+        column_widths_size + row_heights_size;
+    u32 bytes_per_u64 = _sb_info.page_size * sizeof(u64) * 8;
+
+    _sb_info.bitfield_u64s =
+        (total_dynamic_bytes + bytes_per_u64 - 1) / bytes_per_u64;
+    _sb_info.bitfield_off = ALIGN_UP_POW2(sizeof(sheet_buffer), ARENA_ALIGN);
+    _sb_info.sb_and_bitfield_size = ALIGN_UP_POW2(
+        _sb_info.bitfield_off + _sb_info.bitfield_u64s * sizeof(u64),
+        _sb_info.page_size
+    );
+
+    _sb_info.chunks_off = _sb_info.sb_and_bitfield_size;
+    _sb_info.column_widths_off = ALIGN_UP_POW2(
+        _sb_info.chunks_off + chunks_size, _sb_info.page_size
     );
     _sb_info.row_heights_off = ALIGN_UP_POW2(
-        _sb_info.column_widths_off + sizeof(u8) * SHEET_MAX_COLS,
-        _sb_info.page_size
+        _sb_info.column_widths_off + column_widths_size, _sb_info.page_size
     );
-
     _sb_info.total_reserve = ALIGN_UP_POW2(
-        _sb_info.row_heights_off + sizeof(u8) * SHEET_MAX_ROWS,
-        _sb_info.page_size
+        _sb_info.row_heights_off + row_heights_size, _sb_info.page_size
     );
 
+    _sb_info.chunks_page_off = 0;
+    _sb_info.column_widths_page_off = (
+        _sb_info.column_widths_off - _sb_info.chunks_off
+    ) / _sb_info.page_size;
+    _sb_info.row_heights_page_off = (
+        _sb_info.row_heights_off - _sb_info.chunks_off
+    ) / _sb_info.page_size;
+    
     _sb_info.siphash_k0 = ((u64)prng_rand() << 32) | (u64)prng_rand();
     _sb_info.siphash_k1 = ((u64)prng_rand() << 32) | (u64)prng_rand();
 
     _sb_info.initialized = true;
-}
-
-// Grow size is in `sheet_chunk*`s, not bytes
-void _sb_chunk_map_grow(sheet_buffer* sheet, u64 grow_size) {
-    grow_size = ALIGN_UP_POW2(grow_size, _sb_info.page_size / sizeof(sheet_chunk*));
-
-    if (sheet->map_capacity + grow_size > SHEET_MAX_CHUNKS) {
-        grow_size = SHEET_MAX_CHUNKS - sheet->map_capacity;
-    }
-
-    sheet_chunk** cur_commit = sheet->chunk_map + sheet->map_capacity;
-
-    if (!plat_mem_commit(cur_commit, grow_size * sizeof(sheet_chunk*))) {
-        plat_fatal_error("Failed to commit memory for sheet chunks", 1);
-    }
-
-    MEM_ZERO(cur_commit, grow_size * sizeof(sheet_chunk*));
-
-    sheet->map_capacity += grow_size;
 }
 
 sheet_buffer* _sheet_buffer_create(void) {
@@ -116,43 +140,48 @@ sheet_buffer* _sheet_buffer_create(void) {
 
     u8* mem = plat_mem_reserve(_sb_info.total_reserve);
 
-    if (mem == NULL || !plat_mem_commit(mem, _sb_info.page_size)) {
+    if (mem == NULL || !plat_mem_commit(mem, _sb_info.sb_and_bitfield_size)) {
         plat_fatal_error("Failed to allocate memory for sheet buffer", 1);
     }
 
-    MEM_ZERO(mem, _sb_info.page_size);
+    MEM_ZERO(mem, _sb_info.sb_and_bitfield_size);
     sheet_buffer* sheet = (sheet_buffer*)mem;
 
-    sheet->chunk_map = (sheet_chunk**)(mem + _sb_info.chunk_map_off);
-    sheet->_column_widths = (u8*)(mem + _sb_info.column_widths_off);
-    sheet->_row_heights = (u8*)(mem + _sb_info.row_heights_off);
-
-    sheet->_col_width_bitfield = (u64*)(mem + sizeof(sheet_buffer));
-    sheet->_row_height_bitfield = sheet->_col_width_bitfield +
-        _sb_info.width_bitfield_u64s;
-
-    MEM_ZERO(sheet->_col_width_bitfield,
-             _sb_info.width_bitfield_u64s * sizeof(u64));
-    MEM_ZERO(sheet->_row_height_bitfield,
-             _sb_info.height_bitfield_u64s * sizeof(u64));
-
-    // Allocate initial page for chunks
-    _sb_chunk_map_grow(sheet, _sb_info.page_size / sizeof(sheet_chunk*));
+    sheet->page_bitfield = (u64*)(mem + _sb_info.bitfield_off);
+    sheet->dynamic_mem = (u8*)(mem + _sb_info.sb_and_bitfield_size);
+    sheet->chunks = (sheet_chunk**)(mem + _sb_info.chunks_off);
+    sheet->column_widths = (u8*)(mem + _sb_info.column_widths_off);
+    sheet->row_heights = (u8*)(mem + _sb_info.row_heights_off);
 
     return sheet;
 }
 
 void _sb_free_chunks(workbook* wb, sheet_buffer* sheet) {
-    for (u32 i = 0; i < sheet->map_capacity; i++) {
-        sheet_chunk* cur_chunk = sheet->chunk_map[i];
-        sheet_chunk* next = NULL;
+    u32 chunks_per_page = _sb_info.page_size / sizeof(*sheet->chunks);
 
-        while (cur_chunk != NULL) {
-            next = cur_chunk->next;
+    for (
+        u32 i = 0, page = 0;
+        i < _sb_info.chunks_num_pages / 64;
+        i++, page += 64
+    ) {
+        if (sheet->page_bitfield[i] == 0) {
+            continue; 
+        }
 
-            wb_free_chunk(wb, cur_chunk);
+        u64 cur_bitfield = sheet->page_bitfield[i];
+        while (cur_bitfield) {
+            u32 cur_bit = 63 - clz_u64(cur_bitfield);
+            cur_bitfield &= ~((u64)1 << cur_bit);
 
-            cur_chunk = next;
+            u32 cur_page = page + cur_bit;
+            sheet_chunk** page_chunks = sheet->chunks +
+                (cur_page * chunks_per_page);
+
+            for (u32 j = 0; j < chunks_per_page; j++) {
+                if (page_chunks[j] == NULL) { continue; }
+
+                wb_free_chunk(wb, page_chunks[j]);
+            }
         }
     }
 }
@@ -160,25 +189,11 @@ void _sb_free_chunks(workbook* wb, sheet_buffer* sheet) {
 void _sheet_buffer_reset(workbook* wb, sheet_buffer* sheet) {
     _sb_free_chunks(wb, sheet);
 
-    memset(
-        sheet->_col_width_bitfield, 0,
-        _sb_info.width_bitfield_u64s * sizeof(u64)
+    memset(sheet->page_bitfield, 0, _sb_info.bitfield_u64s * sizeof(u64));
+    plat_mem_decommit(
+        sheet->dynamic_mem,
+        _sb_info.total_reserve - _sb_info.sb_and_bitfield_size
     );
-    memset(
-        sheet->_row_height_bitfield, 0,
-        _sb_info.height_bitfield_u64s * sizeof(u64)
-    );
-
-    if (sheet->map_capacity > 0) {
-        u64 decommit_size = _sb_info.total_reserve - _sb_info.page_size;
-        plat_mem_decommit(sheet->chunk_map, decommit_size);
-    }
-
-    // Reset initial map space
-    _sb_chunk_map_grow(sheet, _sb_info.page_size / sizeof(sheet_chunk*));
-
-    sheet->map_capacity = 0;
-    sheet->num_chunks = 0;
 }
 
 void _sheet_buffer_destroy(workbook* wb, sheet_buffer* sheet) {
@@ -187,56 +202,15 @@ void _sheet_buffer_destroy(workbook* wb, sheet_buffer* sheet) {
     plat_mem_release(sheet, _sb_info.total_reserve);
 }
 
-u64 _sb_chunk_hash(sheet_chunk_pos pos) {
-    u32 nums[2] = { pos.row, pos.col };
+u64 _sb_chunk_index(sheet_chunk_pos chunk_pos) {
+    u32 meta_chunk_row = chunk_pos.row / SHEET_META_CHUNK_ROWS;
+    u32 meta_chunk_col = chunk_pos.col / SHEET_META_CHUNK_COLS;
+    u32 local_chunk_row = chunk_pos.row % SHEET_META_CHUNK_ROWS;
+    u32 local_chunk_col = chunk_pos.col % SHEET_META_CHUNK_ROWS;
 
-    return siphash(
-        (u8*)nums, sizeof(nums),
-        _sb_info.siphash_k0, _sb_info.siphash_k1
-    );
-}
-
-// TODO: profile this function
-// Would it be worth it to multithread?
-void _sb_chunk_rehash(workbook* wb, sheet_buffer* sheet) {
-    sheet_chunk** scratch_chunks = _wb_get_scratch_chunks(
-        wb, sheet->num_chunks * sizeof(sheet_chunk*)
-    );
-
-    u32 chunk_index = 0;
-
-    for (u32 i = 0; i < sheet->map_capacity; i++) {
-        sheet_chunk* cur_chunk = sheet->chunk_map[i];
-        sheet_chunk* next = NULL;
-
-        while (cur_chunk != NULL) {
-            next = cur_chunk->next;
-            cur_chunk->next = NULL;
-
-            scratch_chunks[chunk_index++] = cur_chunk;
-
-            cur_chunk = next;
-        }
-    }
-
-    ASSERT(chunk_index == sheet->num_chunks);
-
-    MEM_ZERO(sheet->chunk_map, sizeof(sheet_chunk*) * sheet->map_capacity);
-
-    // Double in size
-    // TODO: test other growth factors?
-    _sb_chunk_map_grow(sheet, sheet->map_capacity);
-
-    for (u32 i = 0; i < sheet->num_chunks; i++) {
-        sheet_chunk* chunk = scratch_chunks[i];
-
-        u32 chunk_idx = chunk->hash % sheet->map_capacity;
-
-        // If there is no chunk there, the pointer should be NULL,
-        // so this line will still work correctly
-        chunk->next = sheet->chunk_map[chunk_idx];
-        sheet->chunk_map[chunk_idx] = chunk;
-    }
+    return SHEET_META_CHUNK_SIZE *
+        (meta_chunk_row + meta_chunk_col * SHEET_META_CHUNKS_Y) +
+        local_chunk_row + local_chunk_col * SHEET_META_CHUNK_COLS;
 }
 
 sheet_chunk* sheet_get_chunk(
@@ -244,79 +218,57 @@ sheet_chunk* sheet_get_chunk(
     sheet_chunk_pos chunk_pos, b32 create_if_empty
 ) {
     // This is the empty sheet
-    if (sheet->map_capacity == 0) { return NULL; }
+    if (sheet->chunks == NULL) { return NULL; }
 
     if (chunk_pos.row >= SHEET_CHUNKS_Y || chunk_pos.col >= SHEET_CHUNKS_X) {
         return NULL;
     }
 
-    if (
-        sheet->last_chunk != NULL &&
-        sheet->last_chunk->pos.row == chunk_pos.row &&
-        sheet->last_chunk->pos.col == chunk_pos.col
-    ) {
-        return sheet->last_chunk;
-    }
+    u64 chunk_idx = _sb_chunk_index(chunk_pos);
+    u64 chunk_page = _SB_CHUNK_PAGE(sheet, chunk_idx);
+    b32 page_committed = _SB_GET_PAGE_BIT(sheet, chunk_page);
 
-    u64 chunk_hash = _sb_chunk_hash(chunk_pos);
-    u64 chunk_idx = chunk_hash % sheet->map_capacity;
+    sheet_chunk* chunk = NULL;
 
-    sheet_chunk* chunk = sheet->chunk_map[chunk_idx];
-    while (
-        chunk != NULL && 
-        (chunk->pos.row != chunk_pos.row ||
-        chunk->pos.col != chunk_pos.col)
-    ) {
-        chunk = chunk->next;
+    if (page_committed) {
+        chunk = sheet->chunks[chunk_idx];
     }
 
     if (chunk == NULL && create_if_empty) {
+        if (!page_committed) {
+            u8* page_start = sheet->dynamic_mem +
+                (chunk_page * _sb_info.page_size);
+
+            if (!plat_mem_commit(page_start, _sb_info.page_size)) {
+                plat_fatal_error("Failed to allocate page for chunk array", 1);
+                return NULL;
+            }
+
+            _SB_SET_PAGE_BIT(sheet, chunk_page);
+
+            memset(page_start, 0, _sb_info.page_size);
+        }
+
         chunk = wb_create_chunk(wb);
         chunk->pos = chunk_pos;
-        chunk->hash = chunk_hash;
-
-        sheet->num_chunks++;
-
-        // If there is no chunk there, the pointer should be NULL,
-        // so this line will still work correctly
-        chunk->next = sheet->chunk_map[chunk_idx];
-        sheet->chunk_map[chunk_idx] = chunk;
-
-        // TODO: test other load factor thresholds?
-        if (sheet->num_chunks > sheet->map_capacity) {
-            _sb_chunk_rehash(wb, sheet);
-        }
+        
+        sheet->chunks[chunk_idx] = chunk;
     }
-
-    sheet->last_chunk = chunk;
 
     return chunk;
 }
 
 void _sb_chunk_free(workbook* wb, sheet_buffer* sheet, sheet_chunk* chunk) {
-    u64 chunk_idx = chunk->hash % sheet->map_capacity;
+    u64 chunk_idx = _sb_chunk_index(chunk->pos);
+    u64 chunk_page = _SB_CHUNK_PAGE(sheet, chunk_idx);
+    b32 page_committed = _SB_GET_PAGE_BIT(sheet, chunk_page);
 
-    if (sheet->chunk_map[chunk_idx] == chunk) {
-        sheet->chunk_map[chunk_idx] = chunk->next;
-        sheet->num_chunks--;
-    } else {
-        sheet_chunk* parent = sheet->chunk_map[chunk_idx];
-
-        while (parent != NULL && parent->next != chunk) {
-            parent = parent->next;
-        }
-
-        if (parent != NULL) {
-            parent->next = chunk->next;
-            sheet->num_chunks--;
-        }
+    if (!page_committed || sheet->chunks[chunk_idx] == NULL) {
+        return;
     }
 
-    if (chunk == sheet->last_chunk) {
-        sheet->last_chunk = NULL;
-    }
-
-    wb_free_chunk(wb, chunk);
+    wb_free_chunk(wb, sheet->chunks[chunk_idx]);
+    sheet->chunks[chunk_idx] = NULL;
 }
 
 sheet_chunk* sheet_get_cells_chunk(
@@ -587,7 +539,7 @@ void _sheet_clear_chunk(
 }
 
 void sheet_clear_range(workbook* wb, sheet_buffer* sheet, sheet_range in_range) {
-    if (sheet->map_capacity == 0) { return; }
+    if (sheet->chunks == NULL) { return; }
 
     sheet_range range = sheets_fix_range(in_range);
 
@@ -601,129 +553,91 @@ void sheet_clear_range(workbook* wb, sheet_buffer* sheet, sheet_range in_range) 
         range.end.col / SHEET_CHUNK_COLS,
     };
 
-    u32 num_chunks = (end_chunk.row - start_chunk.row + 1) *
-        (end_chunk.col - start_chunk.col + 1);
+    for (u32 c_col = start_chunk.col; c_col <= end_chunk.col; c_col++) {
+        for (u32 c_row = start_chunk.row; c_row <= end_chunk.row; c_row++) {
+            sheet_chunk* chunk = sheet_get_chunk(
+                wb, sheet, (sheet_chunk_pos){ c_row, c_col }, false
+            );
 
-    if (num_chunks < sheet->map_capacity) {
-        for (u32 c_col = start_chunk.col; c_col <= end_chunk.col; c_col++) {
-            for (u32 c_row = start_chunk.row; c_row <= end_chunk.row; c_row++) {
-                sheet_chunk* chunk = sheet_get_chunk(
-                    wb, sheet, (sheet_chunk_pos){ c_row, c_col }, false
-                );
+            if (chunk == NULL) { continue; }
 
-                if (chunk == NULL) { continue; }
-
-                _sheet_clear_chunk(
-                    wb, sheet, chunk, range, start_chunk, end_chunk
-                );
-            }
-        }
-    } else {
-        for (u32 i = 0; i < sheet->map_capacity; i++) {
-            sheet_chunk* chunk = sheet->chunk_map[i];
-            sheet_chunk* next = NULL;
-
-            while (chunk != NULL) {
-                next = chunk->next;
-
-                if (
-                    chunk->pos.row >= start_chunk.row &&
-                    chunk->pos.row <= end_chunk.row &&
-                    chunk->pos.col >= start_chunk.col &&
-                    chunk->pos.col <= end_chunk.col
-                ) {
-                    _sheet_clear_chunk(
-                        wb, sheet, chunk, range, start_chunk, end_chunk
-                    );
-                }
-
-                chunk = next;
-            }
+            _sheet_clear_chunk(
+                wb, sheet, chunk, range, start_chunk, end_chunk
+            );
         }
     }
 }
-
-#define _SB_GET_PAGE_BIT(field, byte_idx) \
-    ((field[(byte_idx) / (_sb_info.page_size * sizeof(u64) * 8)] >> \
-     (((byte_idx) / _sb_info.page_size) % (sizeof(u64) * 8))) & 0b1)
-
-#define _SB_SET_PAGE_BIT(field, byte_idx) \
-    field[(byte_idx) / (_sb_info.page_size * sizeof(u64) * 8)] |= \
-    ((u64)1 << (((byte_idx) / _sb_info.page_size) % (sizeof(u64) * 8)))
 
 u8 sheet_get_col_width(sheet_buffer* sheet, u32 col) {
     if (col >= SHEET_MAX_COLS){ return 0; }
+    if (sheet->page_bitfield == NULL) { return SHEET_DEF_COL_WIDTH; }
 
-    if (
-        sheet->_col_width_bitfield == NULL ||
-        _SB_GET_PAGE_BIT(sheet->_col_width_bitfield, col) == 0
-    ) {
+    u64 page = _SB_COL_WIDTH_PAGE(sheet, col);
+    if (_SB_GET_PAGE_BIT(sheet, page) == 0) {
         return SHEET_DEF_COL_WIDTH;
     }
 
-    return sheet->_column_widths[col];
+    return sheet->column_widths[col];
 }
 
 void sheet_set_col_width(sheet_buffer* sheet, u32 col, u8 width) {
-    if (col >= SHEET_MAX_COLS) {
-        return;
-    }
+    if (col >= SHEET_MAX_COLS) { return; }
 
-    if (_SB_GET_PAGE_BIT(sheet->_col_width_bitfield, col) == 0) {
-        u8* mem = (u8*)sheet->_column_widths;
-        mem += col - (col % _sb_info.page_size);
+    u64 page = _SB_COL_WIDTH_PAGE(sheet, col);
+    if (_SB_GET_PAGE_BIT(sheet, page) == 0) {
+        u8* mem = sheet->dynamic_mem + page * _sb_info.page_size;
 
         if (!plat_mem_commit(mem, _sb_info.page_size)) {
-            plat_fatal_error("Failed to commit memory for sheet buffer", 1);
+            plat_fatal_error(
+                "Failed to commit memory for column widths in sheet buffer", 1
+            );
         }
 
-        _SB_SET_PAGE_BIT(sheet->_col_width_bitfield, col);
+        _SB_SET_PAGE_BIT(sheet, page);
 
         u8* widths = mem;
-        for (u32 i = 0; i < (_sb_info.page_size); i++) {
+        for (u32 i = 0; i < _sb_info.page_size; i++) {
             widths[i] = SHEET_DEF_COL_WIDTH;
         }
     }
 
-    sheet->_column_widths[col] = width;
+    sheet->column_widths[col] = width;
 }
 
 u8 sheet_get_row_height(sheet_buffer* sheet, u32 row) {
-    if (row >= SHEET_MAX_ROWS) { return 0; }
+    if (row >= SHEET_MAX_ROWS){ return 0; }
+    if (sheet->page_bitfield == NULL) { return SHEET_DEF_ROW_HEIGHT; }
 
-    if (
-        sheet->_row_height_bitfield == NULL ||
-        _SB_GET_PAGE_BIT(sheet->_row_height_bitfield, row) == 0
-    ) {
+    u64 page = _SB_ROW_HEIGHT_PAGE(sheet, row);
+    if (_SB_GET_PAGE_BIT(sheet, page) == 0) {
         return SHEET_DEF_ROW_HEIGHT;
     }
 
-    return sheet->_row_heights[row];
+    return sheet->row_heights[row];
 }
 
 void sheet_set_row_height(sheet_buffer* sheet, u32 row, u8 height) {
-    if (row >= SHEET_MAX_ROWS) {
-        return;
-    }
+    if (row >= SHEET_MAX_ROWS) { return; }
 
-    if (_SB_GET_PAGE_BIT(sheet->_row_height_bitfield, row) == 0) {
-        u8* mem = (u8*)sheet->_row_heights;
-        mem += row - (row % _sb_info.page_size);
+    u64 page = _SB_ROW_HEIGHT_PAGE(sheet, row);
+    if (_SB_GET_PAGE_BIT(sheet, page) == 0) {
+        u8* mem = sheet->dynamic_mem + page * _sb_info.page_size;
 
         if (!plat_mem_commit(mem, _sb_info.page_size)) {
-            plat_fatal_error("Failed to commit memory for sheet buffer", 1);
+            plat_fatal_error(
+                "Failed to commit memory for row heights in sheet buffer", 1
+            );
         }
 
-        _SB_SET_PAGE_BIT(sheet->_row_height_bitfield, row);
+        _SB_SET_PAGE_BIT(sheet, page);
 
-        u8* heights = mem;
+        u8* widths = mem;
         for (u32 i = 0; i < _sb_info.page_size; i++) {
-            heights[i] = SHEET_DEF_ROW_HEIGHT;
+            widths[i] = SHEET_DEF_ROW_HEIGHT;
         }
     }
 
-    sheet->_row_heights[row] = height;
-
+    sheet->row_heights[row] = height;
 }
 
 

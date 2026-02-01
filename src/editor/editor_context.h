@@ -1,5 +1,5 @@
 
-#define EDITOR_ARENA_RESERVE_SIZE MiB(64)
+#define EDITOR_ARENA_RESERVE_SIZE MiB(1)
 #define EDITOR_ARENA_COMMIT_SIZE KiB(16)
 
 // Maximum langth of command string (bytes)
@@ -109,10 +109,6 @@ typedef struct editor_context {
     u32 pending_action_inputs_size;
 
     u32 flags;
-
-    #warning REMOVE TEST BUFFER
-    f64* test_buf_a;
-    f64* test_buf_b;
 
     u8 selected_register;
     b8 append_to_register;
