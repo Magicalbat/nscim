@@ -34,6 +34,11 @@ typedef struct {
     u32 len;
 } string_decode;
 
+// Used when a const string8 is being declared outside a function
+// MSVC gets mad when you include the (string8) in front of the 
+// intializer when it is const and outside a function  
+#define STR8_CONST_LIT(s) { (u8*)(s), sizeof(s) - 1 }
+
 #define STR8_LIT(s) (string8){ (u8*)(s), sizeof(s) - 1 }
 
 // This is used for printing string8s
@@ -63,6 +68,9 @@ string8 str8_concat(
     const string8_list* list,
     const string8_concat_desc* desc
 );
+
+string8 str8_pushfv(mem_arena* arena, const char* fmt, va_list args);
+string8 str8_pushf(mem_arena* arena, const char* fmt, ...);
 
 void str8_list_add_existing(string8_list* list, string8_node* node);
 void str8_list_add(mem_arena* arena, string8_list* list, string8 str);

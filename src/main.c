@@ -28,6 +28,8 @@ int main(void) {
 
     mem_arena* perm_arena = arena_create(MiB(64), MiB(1), ARENA_FLAG_GROWABLE);
 
+    return 0;
+
     #if 0
 
     term_context* term = term_init(perm_arena, MiB(4));

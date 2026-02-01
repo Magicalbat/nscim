@@ -353,16 +353,16 @@ void _editor_draw_sheet_win(
 }
 
 static string8 _editor_mode_names[_EDITOR_MODE_COUNT] = {
-    [EDITOR_MODE_NULL] = STR8_LIT("Null"),
+    [EDITOR_MODE_NULL] = STR8_CONST_LIT("Null"),
 
-    [EDITOR_MODE_NORMAL] = STR8_LIT("Normal"),
-    [EDITOR_MODE_VISUAL] = STR8_LIT("Visual"),
+    [EDITOR_MODE_NORMAL] = STR8_CONST_LIT("Normal"),
+    [EDITOR_MODE_VISUAL] = STR8_CONST_LIT("Visual"),
 
-    [EDITOR_MODE_CELL_EDIT] = STR8_LIT("Cell Edit"),
-    [EDITOR_MODE_CELL_VISUAL] = STR8_LIT("Cell Visual"),
-    [EDITOR_MODE_CELL_INSERT] = STR8_LIT("Cell Insert"),
+    [EDITOR_MODE_CELL_EDIT] = STR8_CONST_LIT("Cell Edit"),
+    [EDITOR_MODE_CELL_VISUAL] = STR8_CONST_LIT("Cell Visual"),
+    [EDITOR_MODE_CELL_INSERT] = STR8_CONST_LIT("Cell Insert"),
 
-    [EDITOR_MODE_CMD] = STR8_LIT("Command"),
+    [EDITOR_MODE_CMD] = STR8_CONST_LIT("Command"),
 };
 
 void _editor_draw_status(window* user_win, editor_context* editor) {

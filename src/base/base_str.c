@@ -185,6 +185,45 @@ string8 str8_concat(
     return out;
 }
 
+string8 str8_pushfv(mem_arena* arena, const char* fmt, va_list args) {
+    string8 out = { 0 };
+
+    va_list args2;
+    va_copy(args2, args);
+
+    i32 size = vsnprintf(NULL, 0, fmt, args);
+
+    if (size > 0) {
+        mem_arena_temp maybe_temp = arena_temp_begin(arena);
+
+        out.size = (u64)size;
+        out.str = PUSH_ARRAY_NZ(maybe_temp.arena, u8, out.size + 1);
+
+        size = vsnprintf((char*)out.str, out.size + 1, fmt, args2);
+
+        if (size <= 0) {
+            out = (string8){ 0 };
+            arena_temp_end(maybe_temp);
+        }
+    }
+
+    va_end(args2);
+
+    return out;
+}
+
+string8 str8_pushf(mem_arena* arena, const char* fmt, ...) {
+    va_list args;
+    
+    va_start(args, fmt);
+
+    string8 out = str8_pushfv(arena, fmt, args);
+
+    va_end(args);
+
+    return out;
+}
+
 void str8_list_add_existing(string8_list* list, string8_node* node) {
     list->count++;
     list->total_size += node->str.size;

@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <ctype.h>
+#include <stdarg.h>
 
 #if defined(__linux__)
 #   define PLATFORM_LINUX
@@ -106,6 +107,10 @@ STATIC_ASSERT(sizeof(f64) == 8, f64_size);
 #define SLL_POP_FRONT(f, l) ((f) == (l) ? \
     ((f) = (l) = NULL) :                  \
     ((f) = (f)->next))                    \
+
+#define SLL_STACK_PUSH(f, n) ((n)->next = (f), (f) = (n))
+
+#define SLL_STACK_POP(f) ((f) == NULL ? NULL : ((f) = (f)->next))
 
 #define DLL_PUSH_BACK(f, l, n) ((f) == 0 ? \
     ((f) = (l) = (n), (n)->next = (n)->prev = 0) : \
