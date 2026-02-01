@@ -169,4 +169,3 @@ void draw(
     win_update(win);
 }
 
-
