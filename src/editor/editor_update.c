@@ -20,11 +20,15 @@ void editor_update(
 
     _editor_process_inputs_raw(editor, wb);
 
-    // TODO: keep track of animations for drawing
-    if (true || win_needs_resize(win)) {
-        SET_FLAG_U32(editor->flags, EDITOR_FLAG_SHOULD_DRAW);
+    b8 anims_finished, anims_just_finished;
+    editor_win_update_anims(
+        editor, delta,
+        &anims_finished, &anims_just_finished
+    );
 
-        editor_win_update_anims(editor, delta);
+    // TODO: keep track of animations for drawing
+    if (!anims_finished || anims_just_finished || win_needs_resize(win)) {
+        SET_FLAG_U32(editor->flags, EDITOR_FLAG_SHOULD_DRAW);
     }
 }
 

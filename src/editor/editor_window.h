@@ -51,6 +51,9 @@ typedef struct editor_window {
     f32 anim_width;
     f32 anim_height;
 
+    b32 anims_finished;
+    b32 anims_just_finished;
+
     // Total rows and columns the window currently displays
     u32 num_rows;
     u32 num_cols;
@@ -101,7 +104,10 @@ void editor_win_compute_sizes(
     editor_context* editor, u32 total_width, u32 total_height
 );
 
-void editor_win_update_anims(editor_context* editor, f32 delta);
+void editor_win_update_anims(
+    editor_context* editor, f32 delta,
+    b8* finished, b8* just_finished
+);
 
 // Given the current height of the window,
 // this function updates the number of visible rows

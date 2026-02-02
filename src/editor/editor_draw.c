@@ -11,7 +11,7 @@ void _editor_draw_sheet_win(
     window* user_win, editor_context* editor,
     workbook* wb, editor_window* win
 ) {
-    win_buffer* buf = &user_win->back_buf;
+    win_buffer* buf = &user_win->buffer;
 
     u32 start_x = MIN((u32)win->anim_start_x, buf->width - 1);
     u32 start_y = MIN((u32)win->anim_start_y, buf->height - 1);
@@ -29,18 +29,15 @@ void _editor_draw_sheet_win(
 
     if (win_height == 0 || win_width == 0) { return; }
 
-    win_tile status_tile = {
-        .fg = editor->colors.status_fg,
-        .bg = editor->colors.status_bg,
-        .c = ' '
-    };
-
     sheet_cell_view cur_cell = sheet_get_cell_view(wb, sheet, win->cursor_pos);
 
     // First status row
     {
         for (u32 i = 0; i < win_width; i++) {
-            buf->tiles[i + start_x + y * buf->width] = status_tile;
+            u32 index = i + start_x + y * buf->width;
+
+            buf->fg_cols[index] = editor->colors.status_fg;
+            buf->bg_cols[index] = editor->colors.status_bg;
         }
 
         string8 name = sheet->name.size == 0 ?
@@ -52,7 +49,7 @@ void _editor_draw_sheet_win(
             if (x >= win_width) { break; }
 
             x += start_x;
-            buf->tiles[x + y * buf->width].c = name.str[i];
+            buf->chars[x + y * buf->width] = name.str[i];
         }
 
         u32 cell_pos_size = 3;
@@ -70,7 +67,7 @@ void _editor_draw_sheet_win(
             if (x >= win_width) { break; }
 
             x += start_x;
-            buf->tiles[x + y * buf->width].c = cell_pos_chars[i];
+            buf->chars[x + y * buf->width] = cell_pos_chars[i];
         }
 
         string8 type_str = { 0 };
@@ -98,7 +95,7 @@ void _editor_draw_sheet_win(
             if (x >= win_width) { break; }
 
             x += start_x;
-            buf->tiles[x + y * buf->width].c = type_str.str[i];
+            buf->chars[x + y * buf->width] = type_str.str[i];
         }
 
         y++;
@@ -132,13 +129,15 @@ void _editor_draw_sheet_win(
 
         for (u32 i = 0; i < win_width; i++) {
             u32 index = i + start_x + y * buf->width;
-            buf->tiles[index] = status_tile;
+
+            buf->fg_cols[index] = editor->colors.status_fg;
+            buf->bg_cols[index] = editor->colors.status_bg;
 
             if (
                 i >= EDITOR_SHEET_NAME_PAD &&
                 i < cell_chars_size + EDITOR_SHEET_NAME_PAD
             ) {
-                buf->tiles[index].c = cell_chars[i-EDITOR_SHEET_NAME_PAD];
+                buf->chars[index] = cell_chars[i-EDITOR_SHEET_NAME_PAD];
             }
         }
 
@@ -205,18 +204,24 @@ void _editor_draw_sheet_win(
             }
 
             for (u32 i = 0; i < width && x + i <= max_x; i++) {
-                buf->tiles[x + i + y * buf->width] = (win_tile){
-                    .fg = fg, .bg = bg,
-                    .c = i >= draw_start && i < draw_start + num_col_chars ?
-                        col_chars[i - draw_start] : ' '
-                };
+                u32 index = x + i + y * buf->width;
+
+                buf->fg_cols[index] = fg;
+                buf->bg_cols[index] = bg;
+
+                if (i >= draw_start && i < draw_start + num_col_chars) {
+                    buf->chars[index] = col_chars[i - draw_start];
+                }
             }
 
             x += width;
         }
 
         for (; x <= max_x; x++) {
-            buf->tiles[x + y * buf->width] = status_tile;
+            u32 index = x + y * buf->width;
+
+            buf->fg_cols[index] = editor->colors.status_fg;
+            buf->bg_cols[index] = editor->colors.status_bg;
         }
 
         y++;
@@ -263,20 +268,24 @@ void _editor_draw_sheet_win(
 
             for (u32 i = 0; i < height && y_tmp <= max_y; i++, y_tmp++) {
                 for (u32 j = 0; j < max_row_chars; j++) {
-                    buf->tiles[j + start_x + y_tmp * buf->width] =
-                    (win_tile){
-                        .fg = fg, .bg = bg,
-                        .c = i == 0 && j >= draw_start ?
-                            row_chars[j - draw_start] : ' '
-                    };
+                    u32 index = j + start_x + y_tmp * buf->width;
+
+                    buf->fg_cols[index] = fg;
+                    buf->bg_cols[index] = bg;
+
+                    if (i == 0 && j >= draw_start) {
+                        buf->chars[index] = row_chars[j - draw_start];
+                    }
                 }
             }
         }
 
         for (; y_tmp <= max_y; y_tmp++) {
             for (u32 x = 0; x < max_row_chars; x++) {
-                u32 idx = x + start_x + y_tmp * buf->width;
-                buf->tiles[idx] = status_tile;
+                u32 index = x + start_x + y_tmp * buf->width;
+
+                buf->fg_cols[index] = editor->colors.status_fg;
+                buf->bg_cols[index] = editor->colors.status_bg;
             }
         }
     }
@@ -339,9 +348,11 @@ void _editor_draw_sheet_win(
                     u8 c = i == 0 && j < cell_chars_size ? cell_chars[j] : ' ';
                     if (too_big) { c = '#'; }
 
-                    buf->tiles[x + j + (y + i) * buf->width] = (win_tile) {
-                        .fg = fg, .bg = bg, .c = c
-                    };
+                    u32 index = x + j + (y + i) * buf->width;
+
+                    buf->fg_cols[index] = fg;
+                    buf->bg_cols[index] = bg;
+                    buf->chars[index] = c;
                 }
             }
 
@@ -366,17 +377,12 @@ static string8 _editor_mode_names[_EDITOR_MODE_COUNT] = {
 };
 
 void _editor_draw_status(window* user_win, editor_context* editor) {
-    win_buffer* buf = &user_win->back_buf;
-
-    win_tile status_tile = {
-        .fg = editor->colors.status_fg,
-        .bg = editor->colors.status_bg,
-        .c = ' '
-    };
+    win_buffer* buf = &user_win->buffer;
 
     u32 status_offset = (buf->height - 1) * buf->width;
     for (u32 x = 0; x < buf->width; x++) {
-        buf->tiles[x + status_offset] = status_tile;
+        buf->fg_cols[x + status_offset] = editor->colors.status_fg;
+        buf->bg_cols[x + status_offset] = editor->colors.status_bg;
     }
 
     if (editor->mode == EDITOR_MODE_CMD) {
@@ -385,7 +391,7 @@ void _editor_draw_status(window* user_win, editor_context* editor) {
         memcpy(draw_chars + 1, editor->cmd_buf, editor->cmd_size);
 
         for ( u32 i = 0; i < buf->width && i < draw_size; i++) {
-            buf->tiles[i + status_offset].c = draw_chars[i];
+            buf->chars[i + status_offset] = draw_chars[i];
         }
 
         user_win->cursor_row = buf->height - 1;
@@ -404,8 +410,8 @@ void _editor_draw_status(window* user_win, editor_context* editor) {
                 u32 i = 0; i < (u32)time_size &&
                 i + EDITOR_STATUS_PAD < buf->width; i++
             ) {
-                buf->tiles[i + EDITOR_STATUS_PAD + status_offset].c =
-                    time_chars[i];
+                u32 index = i + EDITOR_STATUS_PAD + status_offset;
+                buf->chars[index] = time_chars[i];
             }
         }
 
@@ -419,7 +425,7 @@ void _editor_draw_status(window* user_win, editor_context* editor) {
             u32 i = 0; i + mode_draw_start < buf->width &&
             i < mode_str.size; i++
         ) {
-            buf->tiles[i + mode_draw_start + status_offset].c = mode_str.str[i];
+            buf->chars[i + mode_draw_start + status_offset] = mode_str.str[i];
         }
 
         u32 input_draw_offset = EDITOR_INPUT_SEQ_MAX + EDITOR_STATUS_PAD;
@@ -435,12 +441,13 @@ void _editor_draw_status(window* user_win, editor_context* editor) {
             win_input input = editor->input_queue[input_idx];
 
             if (input < '\x1b') {
-                buf->tiles[x + status_offset].c = '^';
+                buf->chars[x + status_offset] = '^';
+
                 if (++x < buf->width) {
-                    buf->tiles[x + status_offset].c = 'A' - 1 + input;
+                    buf->chars[x + status_offset] = 'A' - 1 + input;
                 }
             } else {
-                buf->tiles[x + status_offset].c = input;
+                buf->chars[x + status_offset] = input;
             }
 
             input_idx++;
@@ -450,7 +457,7 @@ void _editor_draw_status(window* user_win, editor_context* editor) {
 }
 
 void editor_draw(window* user_win, editor_context* editor, workbook* wb) {
-    win_buffer* buf = &user_win->back_buf;
+    win_buffer* buf = &user_win->buffer;
 
     if (buf->height < EDITOR_STATUS_ROWS) {
         return;

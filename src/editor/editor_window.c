@@ -344,7 +344,10 @@ void _editor_win_change_active(
     editor->active_win = cur;
 }
 
-void editor_win_update_anims(editor_context* editor, f32 delta) {
+void editor_win_update_anims(
+    editor_context* editor, f32 delta,
+    b8* finished, b8* just_finished
+) {
     f32 anim_speed = editor->settings.anim_speed;
 
     mem_arena_temp scratch = arena_scratch_get(NULL, 0);
@@ -354,6 +357,9 @@ void editor_win_update_anims(editor_context* editor, f32 delta) {
     );
 
     stack[stack_size++] = editor->root_win;
+
+    *finished = 1;
+    *just_finished = 0;
 
     while (stack_size != 0) {
         editor_window* cur = stack[--stack_size];
@@ -370,6 +376,22 @@ void editor_win_update_anims(editor_context* editor, f32 delta) {
         cur->anim_height = exp_anim(
             cur->anim_height, (f32)cur->height, anim_speed, delta, 1.0f
         );
+
+        b8 cur_finished = 1;
+        cur_finished &= cur->anim_start_x == (f32)cur->start_x;
+        cur_finished &= cur->anim_start_y == (f32)cur->start_y;
+        cur_finished &= cur->anim_width == (f32)cur->width;
+        cur_finished &= cur->anim_height == (f32)cur->height;
+
+        if (!cur->anims_finished && cur_finished) {
+            cur->anims_just_finished = true;
+        } else {
+            cur->anims_just_finished = false;
+        }
+        cur->anims_finished = cur_finished;
+
+        *finished &= cur_finished;
+        *just_finished |= cur->anims_just_finished; 
 
         // Ensure that child0 is processed first
         if (cur->child1 != NULL) { stack[stack_size++] = cur->child1; }

@@ -70,7 +70,7 @@ b32 win_needs_resize(window* win) {
     u32 width, height;
     term_get_size(win->_backend->term, &width, &height);
 
-    return width != win->front_buf.width || height != win->front_buf.height;
+    return width != win->buffer.width || height != win->buffer.height;
 }
 
 void _win_term_move_cursor(term_context* term, i32 change, b32 vert) {
@@ -120,64 +120,34 @@ void _win_term_set_col(term_context* term, win_col col, b32 fg) {
     term_write_c(term, 'm');
 }
 
-void _win_draw_front_buf(window* win) {
+void win_draw(window* win) {
     term_context* term = win->_backend->term;
 
-    b32 redraw = win->_first_draw || (
-        win->back_buf.width != win->front_buf.width ||
-        win->back_buf.height != win->front_buf.height
-    );
-    win->_first_draw = false;
+    win_col prev_fg = { { 0xff, 0xff, 0xff } };
+    win_col prev_bg = { { 0x00, 0x00, 0x00 } };
 
-    if (redraw) {
-        term_write(term, STR8_LIT("\x1b[2J"));
-    }
-    
-    win_tile prev_tile = WIN_EMPTY_TILE;
+    // Clear screen, reset cursor pos
+    term_write(term, STR8_LIT("\x1b[2J\x1b[H\x1b[?25l"));
+    _win_term_set_col(term, prev_fg, true);
+    _win_term_set_col(term, prev_bg, false);
 
-    // Reset cursor pos
-    term_write(term, STR8_LIT("\x1b[H\x1b[?25l"));
-    _win_term_set_col(term, prev_tile.fg, true);
-    _win_term_set_col(term, prev_tile.bg, false);
+    for (u32 y = 0; y < win->buffer.height; y++) {
+        for (u32 x = 0; x < win->buffer.width; x++) {
+            u32 index = x + y * win->buffer.width;
 
-    u32 cursor_x = 0;
-    u32 cursor_y = 0;
-
-    for (u32 y = 0; y < win->front_buf.height; y++) {
-        for (u32 x = 0; x < win->front_buf.width; x++) {
-            u32 index = x + y * win->front_buf.width;
-            win_tile tile = win->front_buf.tiles[index];
-
-            b32 draw = redraw || !win_tile_eq(tile, win->back_buf.tiles[index]);
-
-            if (!draw) continue;
-
-            if (x != cursor_x) {
-                _win_term_move_cursor(term, (i32)x-(i32)cursor_x, false);
-                cursor_x = x;
-            }
-
-            if (y != cursor_y) {
-                _win_term_move_cursor(term, (i32)y-(i32)cursor_y, true);
-                cursor_y = y;
-            }
-
-            if (!win_col_eq(prev_tile.fg, tile.fg)) {
-                _win_term_set_col(term, tile.fg, true);
-            }
+            if (!win_col_eq(prev_fg, win->buffer.fg_cols[index])) {
+                _win_term_set_col(term, win->buffer.fg_cols[index], true);
+                prev_fg = win->buffer.fg_cols[index];
+            } 
             
-            if (!win_col_eq(prev_tile.bg, tile.bg)) {
-                _win_term_set_col(term, tile.bg, false);
+            if (!win_col_eq(prev_bg, win->buffer.bg_cols[index])) {
+                _win_term_set_col(term, win->buffer.bg_cols[index], false);
+                prev_bg = win->buffer.bg_cols[index];
             }
 
-            term_write_c(term, tile.c);
-
-            if (x != win->front_buf.width - 1) {
-                cursor_x++;
-            }
-
-            prev_tile = tile;
+            term_write_c(term, win->buffer.chars[index]);
         }
+        term_write(term, STR8_LIT("\x1b[1E"));
     }
 
     

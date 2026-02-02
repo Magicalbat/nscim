@@ -7,20 +7,6 @@ typedef union {
     u8 c[3];
 } win_col;
 
-typedef struct {
-    win_col fg;
-    win_col bg;
-
-    // Character to be drawn
-    u8 c;
-} win_tile;
-
-#define WIN_EMPTY_TILE (win_tile){ \
-    .fg.r = 0xff, .fg.g = 0xff, .fg.b = 0xff, \
-    .bg.r = 0x00, .bg.g = 0x00, .bg.b = 0x00, \
-    .c = ' ' \
-}
-
 typedef enum {
     WIN_CUSOR_MODE_DEFAULT = 0,
     WIN_CURSOR_MODE_BLOCK_BLINK,
@@ -44,9 +30,10 @@ STATIC_ASSERT(
 
 typedef struct {
     u32 width, height;
-    // Stored row-major
-    // TODO: convert to SoA?
-    win_tile* tiles;
+
+    win_col* fg_cols;
+    win_col* bg_cols;
+    u8* chars;
 } win_buffer;
 
 typedef struct {
@@ -54,18 +41,13 @@ typedef struct {
 
     win_cursor_mode cursor_mode;
     win_cursor_mode _prev_cursor_mode;
-    b8 _first_draw;
 
     // Zero-based
     u32 cursor_row;
     // Zero-based
     u32 cursor_col;
 
-    // These are allocated each frame on frame areans
-    win_buffer front_buf;
-
-    // All active drawing should be done to the back buffer
-    win_buffer back_buf;
+    win_buffer buffer;
 } window;
 
 typedef u8 win_input;
@@ -89,7 +71,6 @@ typedef u8 win_input;
 #define WIN_INPUT_MAX (1 << (sizeof(win_input) * 8))
 
 b32 win_col_eq(win_col a, win_col b);
-b32 win_tile_eq(win_tile a, win_tile b);
 
 window* win_create(mem_arena* arena);
 void win_destroy(window* win);
@@ -102,6 +83,9 @@ win_input win_next_input(window* win);
 
 b32 win_needs_resize(window* win);
 
-void win_begin_frame(window* win, mem_arena* frame_arena);
-void win_update(window* win);
+void win_begin_frame(
+    window* win, mem_arena* frame_arena,
+    win_col clear_fg, win_col clear_bg, u8 clear_char
+);
+void win_draw(window* win);
 

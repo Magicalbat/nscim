@@ -28,8 +28,6 @@ int main(void) {
 
     mem_arena* perm_arena = arena_create(MiB(64), MiB(1), ARENA_FLAG_GROWABLE);
 
-    return 0;
-
     #if 0
 
     term_context* term = term_init(perm_arena, MiB(4));
@@ -164,10 +162,15 @@ void draw(
     window* win, workbook* wb,
     editor_context* editor, mem_arena* frame_arena
 ) {
-    win_begin_frame(win, frame_arena);
+    win_begin_frame(
+        win, frame_arena,
+        (win_col){ { 0xff, 0xff, 0xff } },
+        (win_col){ { 0x00, 0x00, 0x00 } },
+        ' '
+    );
 
     editor_draw(win, editor, wb);
 
-    win_update(win);
+    win_draw(win);
 }
 
