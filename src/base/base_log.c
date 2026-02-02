@@ -11,11 +11,15 @@ void log_frame_begin(void) {
     SLL_STACK_PUSH(_log_context.stack, frame);
 }
 
-const string8 level_prefixes[] = {
+const string8 _level_prefixes[] = {
     [LOG_INFO] = STR8_CONST_LIT("Info: "),
     [LOG_WARN] = STR8_CONST_LIT("Warning: "),
     [LOG_ERROR] = STR8_CONST_LIT("Error: "),
+    STR8_CONST_LIT("Unknown Log: "),
 };
+
+#define _LOG_PREFIX_INDEX(level) \
+    MIN(sizeof(_level_prefixes) / sizeof(_level_prefixes[0]) - 1, (u32)(level))
 
 string8 log_frame_peek(
     mem_arena* arena, i32 level_mask,
@@ -26,6 +30,56 @@ string8 log_frame_peek(
     string8 out = { 0 };
 
     if (res_type == LOG_RES_CONCAT) {
+        u32 num_logs = 0;
+        u64 output_size = 0;
+
+        for (
+            log_msg* cur_log = frame->first;
+            cur_log != NULL; cur_log = cur_log->next
+        ) {
+            if ((cur_log->level & level_mask) == 0) continue;
+
+            num_logs++;
+
+            u32 prefix_index = _LOG_PREFIX_INDEX(cur_log->level);
+            string8 prefix = prefix_level ?
+                _level_prefixes[prefix_index] : (string8){ 0 };
+
+            output_size += prefix.size;
+            output_size += cur_log->msg.size;
+        }
+
+        if (num_logs > 0) {
+            output_size += num_logs - 1;
+
+            out.size = output_size;
+            out.str = PUSH_ARRAY(arena, u8, out.size);
+
+            u64 out_pos = 0;
+
+            for (
+                log_msg* cur_log = frame->first;
+                cur_log != NULL; cur_log = cur_log->next
+            ) {
+                if ((cur_log->level & level_mask) == 0) continue;
+
+                num_logs++;
+
+                u32 prefix_index = _LOG_PREFIX_INDEX(cur_log->level);
+                string8 prefix = prefix_level ?
+                    _level_prefixes[prefix_index] : (string8){ 0 };
+
+                str8_memcpy(&out, &prefix, out_pos);
+                out_pos += prefix.size;
+
+                str8_memcpy(&out, &cur_log->msg, out_pos);
+                out_pos += cur_log->msg.size;
+
+                if (out_pos < out.size) {
+                    out.str[out_pos++] = LOG_CONCAT_CHAR;
+                }
+            }
+        }
     } else {
         log_msg* selected_log = NULL;
 
@@ -54,12 +108,9 @@ string8 log_frame_peek(
 
         if (selected_log != NULL) {
             string8 msg = selected_log->msg;
-            u32 prefix_index = MIN(
-                sizeof(level_prefixes) / sizeof(level_prefixes[0]),
-                (u32)selected_log->level
-            );
+            u32 prefix_index = _LOG_PREFIX_INDEX(selected_log->level);
             string8 prefix = prefix_level ?
-                level_prefixes[prefix_index] : (string8){ 0 };
+                _level_prefixes[prefix_index] : (string8){ 0 };
 
             out.size = msg.size + prefix.size;
             out.str = PUSH_ARRAY_NZ(arena, u8, out.size);

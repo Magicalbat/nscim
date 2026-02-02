@@ -6,6 +6,7 @@ typedef enum {
     LOG_INFO  = 0b001,
     LOG_WARN  = 0b010,
     LOG_ERROR = 0b100,
+    LOG_ALL   = 0b111,
 } log_level;
 
 typedef enum {

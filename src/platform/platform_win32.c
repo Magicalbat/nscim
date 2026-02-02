@@ -5,7 +5,7 @@ void plat_init(void) {
     LARGE_INTEGER perf_freq = { 0 };
 
     if (!QueryPerformanceFrequency(&perf_freq)) {
-        fprintf(stderr, "Failed to query performance frequency\n");
+        error_emit(STR8_LIT("Failed to query performance frequency"));
     } else {
         _w32_perf_freq = (u64)perf_freq.QuadPart;
     }

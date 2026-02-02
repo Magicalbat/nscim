@@ -119,7 +119,7 @@ string8 str8_to_lower(mem_arena* arena, string8 str) {
 
 }
 
-void _str8_memcpy_safe(string8* dest, const string8* src, u64 offset) {
+void str8_memcpy(string8* dest, const string8* src, u64 offset) {
     if (offset > dest->size) { return; }
 
     u64 size = MIN(src->size, dest->size - offset);
@@ -139,7 +139,7 @@ string8 str8_concat_simple(mem_arena* arena, const string8_list* list) {
     u64 pos = 0;
     string8_node* node = list->first;
     for (u32 i = 0; i < list->count && node != NULL; i++, node = node->next) {
-        _str8_memcpy_safe(&out, &node->str, pos);
+        str8_memcpy(&out, &node->str, pos);
         pos += node->str.size;
     }
 
@@ -165,22 +165,22 @@ string8 str8_concat(
 
     u64 pos = 0;
 
-    _str8_memcpy_safe(&out, &desc->begin, pos);
+    str8_memcpy(&out, &desc->begin, pos);
 
     pos += desc->begin.size;
 
     string8_node* node = list->first;
     for (u32 i = 0; i < list->count && node != NULL; i++, node = node->next) {
-        _str8_memcpy_safe(&out, &node->str, pos);
+        str8_memcpy(&out, &node->str, pos);
         pos += node->str.size;
 
         if (i < list->count - 1 && node->next != NULL) {
-            _str8_memcpy_safe(&out, &desc->delim, pos);
+            str8_memcpy(&out, &desc->delim, pos);
             pos += desc->delim.size;
         }
     }
 
-    _str8_memcpy_safe(&out, &desc->end, pos);
+    str8_memcpy(&out, &desc->end, pos);
 
     return out;
 }

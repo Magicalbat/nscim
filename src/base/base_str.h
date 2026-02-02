@@ -36,7 +36,7 @@ typedef struct {
 
 // Used when a const string8 is being declared outside a function
 // MSVC gets mad when you include the (string8) in front of the 
-// intializer when it is const and outside a function  
+// intializer when it is outside a function  
 #define STR8_CONST_LIT(s) { (u8*)(s), sizeof(s) - 1 }
 
 #define STR8_LIT(s) (string8){ (u8*)(s), sizeof(s) - 1 }
@@ -48,6 +48,9 @@ typedef struct {
 string8 str8_from_cstr(u8* cstr);
 u8* str8_to_cstr(mem_arena* arena, string8 str);
 string8 str8_copy(mem_arena* arena, string8 src);
+
+// Copies as much of src to dest.str + offset as possible
+void str8_memcpy(string8* dest, const string8* src, u64 offset);
 
 b32 str8_equals(string8 a, string8 b);
 
