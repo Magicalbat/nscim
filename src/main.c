@@ -106,6 +106,8 @@ int main(void) {
         (editor->flags & EDITOR_FLAG_SHOULD_QUIT) !=
         EDITOR_FLAG_SHOULD_QUIT
     ) {
+        log_frame_begin();
+
         u64 cur_frame_start = plat_now_usec();
         f32 delta = (f32)(cur_frame_start - prev_frame_start) * 1e-6f;
 
@@ -123,6 +125,21 @@ int main(void) {
         u32 frame_time_ms = (u32)((frame_end - cur_frame_start) / 1000);
         if (frame_time_ms < 16) {
             plat_sleep_ms(16 - frame_time_ms);
+        }
+
+        {
+            mem_arena_temp scratch = arena_scratch_get(NULL, 0);
+
+            string8 errors = log_frame_peek(scratch.arena, LOG_ERROR, LOG_RES_CONCAT, true);
+
+            if (errors.size) {
+                win_destroy(win);
+
+                u8* errors_cstr = str8_to_cstr(scratch.arena, errors);
+                plat_fatal_error((const char*)errors_cstr, 1);
+            }
+
+            arena_scratch_release(scratch);
         }
     }
 

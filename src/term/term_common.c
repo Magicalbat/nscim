@@ -17,6 +17,8 @@ term_context* term_init(mem_arena* arena, u32 draw_buf_capacity) {
 }
 
 void term_write(term_context* context, string8 str) {
+    if (context == NULL) { return; }
+
     while (str.size > 0) {
         u32 buf_left = context->draw_buf_capacity - context->draw_buf_pos;
         b32 need_flush = false;
@@ -39,6 +41,8 @@ void term_write(term_context* context, string8 str) {
 }
 
 void term_write_c(term_context* context, u8 c) {
+    if (context == NULL) { return; }
+
     context->draw_buf[context->draw_buf_pos++] = c;
 
     if (context->draw_buf_pos >= context->draw_buf_capacity) {
