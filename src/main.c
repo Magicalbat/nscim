@@ -80,9 +80,12 @@ int main(void) {
 #endif
 
     mem_arena* frame_arena = arena_create(MiB(64), MiB(1), 0);
-    mem_arena* prev_frame_arena = arena_create(MiB(64), MiB(1), 0);
 
     window* win = win_create(perm_arena);
+
+    draw(win, wb, editor, frame_arena);
+
+    u64 prev_frame_start = plat_now_usec();
 
     {
         mem_arena_temp scratch = arena_scratch_get(NULL, 0);
@@ -99,10 +102,6 @@ int main(void) {
         arena_scratch_release(scratch);
     }
     
-    draw(win, wb, editor, frame_arena);
-
-    u64 prev_frame_start = plat_now_usec();
-    
     while (
         (editor->flags & EDITOR_FLAG_SHOULD_QUIT) !=
         EDITOR_FLAG_SHOULD_QUIT
@@ -117,12 +116,7 @@ int main(void) {
         if ((editor->flags & EDITOR_FLAG_SHOULD_DRAW)) {
             draw(win, wb, editor, frame_arena);
 
-            {
-                mem_arena* tmp = prev_frame_arena;
-                prev_frame_arena = frame_arena;
-                frame_arena = tmp;
-                arena_clear(frame_arena);
-            }
+            arena_clear(frame_arena);
         }
 
         u64 frame_end = plat_now_usec();
@@ -135,7 +129,6 @@ int main(void) {
     win_destroy(win);
 
     arena_destroy(frame_arena);
-    arena_destroy(prev_frame_arena);
 
     editor_destroy(editor);
     wb_destroy(wb);

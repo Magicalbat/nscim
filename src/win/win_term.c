@@ -4,6 +4,8 @@ typedef struct _win_backend {
 } _win_backend;
 
 void _win_backend_create(mem_arena* arena, window* win) {
+    if (win == NULL) { return; }
+
     win->_backend = PUSH_STRUCT(arena, _win_backend);
 
     win->_backend->term = term_init(arena, MiB(4));
@@ -13,16 +15,22 @@ void _win_backend_create(mem_arena* arena, window* win) {
 }
 
 void _win_backend_destroy(window* win) {
+    if (win == NULL) { return; }
+
     term_write(win->_backend->term, STR8_LIT("\x1b[?1049l\x1b[?25h"));
     term_flush(win->_backend->term);
     term_quit(win->_backend->term);
 }
 
 void _win_get_size(window* win, u32* width, u32* height) {
+    if (win == NULL) { return; }
+
     term_get_size(win->_backend->term, width, height);
 }
 
 win_input win_next_input(window* win) {
+    if (win == NULL) { return 0; }
+
     term_context* term = win->_backend->term;
 
     u8 c = 0;
@@ -67,6 +75,8 @@ win_input win_next_input(window* win) {
 }
 
 b32 win_needs_resize(window* win) {
+    if (win == NULL) { return false; }
+
     u32 width, height;
     term_get_size(win->_backend->term, &width, &height);
 
@@ -121,6 +131,8 @@ void _win_term_set_col(term_context* term, win_col col, b32 fg) {
 }
 
 void win_draw(window* win) {
+    if (win == NULL) { return; }
+
     term_context* term = win->_backend->term;
 
     win_col prev_fg = { { 0xff, 0xff, 0xff } };

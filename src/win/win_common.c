@@ -15,6 +15,7 @@ window* win_create(mem_arena* arena) {
 }
 
 void win_destroy(window* win) {
+    if (win == NULL) { return; }
     _win_backend_destroy(win);
 }
 
@@ -22,6 +23,8 @@ void win_begin_frame(
     window* win, mem_arena* frame_arena,
     win_col clear_fg, win_col clear_bg, u8 clear_char
 ) {
+    if (win == NULL) { return; }
+
     u32 width = 0, height = 0;
     _win_get_size(win, &width, &height);
 

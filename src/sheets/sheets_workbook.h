@@ -23,13 +23,6 @@ typedef struct workbook {
     sheet_chunk* last_free_chunk;
 
     sheet_string_list free_strings[SHEET_NUM_STRLENS];
-
-    // Used when sheet_buffers need to rehash
-    // Allocated on its own
-    // Can only be used by one buffer at a time
-    sheet_chunk** scratch_chunks;
-    u64 scratch_chunks_reserve;
-    u64 scratch_chunks_commit;
 } workbook;
 
 workbook* wb_create(void);

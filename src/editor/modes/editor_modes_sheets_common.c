@@ -740,8 +740,13 @@ _editor_series_mode _editor_analyze_series(
             *step = 2.0f;
             *start_num = nums[0] * *step;
         } else {
-            *step = nums[0] / nums[1];
-            *start_num = nums[0] * *step;
+            if (nums[1] == 0) {
+                mode = _EDITOR_SERIES_INVALID;
+                error_emit(STR8_LIT("Unable to create exponential series starting with 0"));
+            } else {
+                *step = nums[0] / nums[1];
+                *start_num = nums[0] * *step;
+            }
         }
     }
 
@@ -789,6 +794,8 @@ void _editor_continue_series(
             &cur_num, &step
         );
 
+        if (series_mode == _EDITOR_SERIES_INVALID) { return; }
+
         for (
             i32 row = (i32)range.start.row;
             row != (i32)range.end.row + dir; row += dir
@@ -826,6 +833,7 @@ void _editor_continue_series(
             &cur_num, &step
         );
 
+        if (series_mode == _EDITOR_SERIES_INVALID) { return; }
 
         for (
             i32 col = (i32)range.start.col;

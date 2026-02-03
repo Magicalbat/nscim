@@ -22,7 +22,7 @@ const string8 _level_prefixes[] = {
     MIN(sizeof(_level_prefixes) / sizeof(_level_prefixes[0]) - 1, (u32)(level))
 
 string8 log_frame_peek(
-    mem_arena* arena, i32 level_mask,
+    mem_arena* arena, u32 level_mask,
     log_res_type res_type, b32 prefix_level
 ) {
     log_frame* frame = _log_context.stack;
@@ -124,7 +124,7 @@ string8 log_frame_peek(
 }
 
 string8 log_frame_end(
-    mem_arena* arena, i32 level_mask,
+    mem_arena* arena, u32 level_mask,
     log_res_type res_type, b32 prefix_level
 ) {
     string8 out = log_frame_peek(arena, level_mask, res_type, prefix_level);

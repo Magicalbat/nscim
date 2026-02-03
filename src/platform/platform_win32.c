@@ -28,6 +28,7 @@ u64 plat_now_usec(void) {
     LARGE_INTEGER ticks = { 0 };
 
     if (!QueryPerformanceCounter(&ticks)) {
+        error_emit(STR8_LIT("Failed to query performance counter"));
         return 0;
     }
 
@@ -75,7 +76,7 @@ u64 plat_file_size(string8 file_name) {
     arena_scratch_release(scratch);
 
     if (ret == false) {
-        //error_emitf("Failed to get size of file \"%.*s\"", (int)file_name.size, (char*)file_name.str);
+        error_emitf("Failed to get size of file \"%.*s\"", (int)file_name.size, (char*)file_name.str);
         return 0;
     }
 
@@ -94,13 +95,13 @@ string8 plat_file_read(mem_arena* arena, string8 file_name) {
     arena_scratch_release(scratch);
 
     if (file_handle == INVALID_HANDLE_VALUE) {
-        //error_emitf("Failed to open file \"%.*s\"", (int)file_name.size, (char*)file_name.str);
+        error_emitf("Failed to open file \"%.*s\"", (int)file_name.size, (char*)file_name.str);
         return (string8){ 0 };
     }
 
     LARGE_INTEGER file_size = { 0 };
     if (!GetFileSizeEx(file_handle, &file_size)) {
-        //error_emitf("Failed to get size of file \"%.*s\"", (int)file_name.size, (char*)file_name.str);
+        error_emitf("Failed to get size of file \"%.*s\"", (int)file_name.size, (char*)file_name.str);
         return (string8){ 0 };
     }
 
@@ -118,7 +119,7 @@ string8 plat_file_read(mem_arena* arena, string8 file_name) {
 
         DWORD cur_read = 0;
         if (!ReadFile(file_handle, out.str + total_read, to_read_capped, &cur_read, NULL)) {
-            //error_emitf("Failed to read from file \"%.*s\"", (int)file_name.size, (char*)file_name.str);
+            error_emitf("Failed to read from file \"%.*s\"", (int)file_name.size, (char*)file_name.str);
 
             arena_temp_end(maybe_temp);
             out = (string8){ 0 };
@@ -149,7 +150,7 @@ b32 plat_file_write(string8 file_name, const string8_list* list, b32 append) {
     arena_scratch_release(scratch);
 
     if (file_handle == INVALID_HANDLE_VALUE) {
-        //error_emitf("Failed to open file \"%.*s\"", (int)file_name.size, (char*)file_name.str);
+        error_emitf("Failed to open file \"%.*s\"", (int)file_name.size, (char*)file_name.str);
         return false;
     }
 
@@ -167,7 +168,7 @@ b32 plat_file_write(string8 file_name, const string8_list* list, b32 append) {
 
             DWORD written = 0;
             if (!WriteFile(file_handle, full_file.str + total_written, to_write_capped, &written, NULL)) {
-                //error_emitf("Failed to write to file \"%.*s\"", (int)file_name.size, (char*)file_name.str);
+                error_emitf("Failed to write to file \"%.*s\"", (int)file_name.size, (char*)file_name.str);
                 out = false;
 
                 break;
@@ -193,7 +194,7 @@ b32 plat_file_delete(string8 file_name) {
     arena_scratch_release(scratch);
 
     if (!ret) {
-        //error_emitf("Failed to delete file \"%.*s\"", (int)file_name.size, (char*)file_name.str);
+        error_emitf("Failed to delete file \"%.*s\"", (int)file_name.size, (char*)file_name.str);
     }
 
     return ret;

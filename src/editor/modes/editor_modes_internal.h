@@ -7,6 +7,7 @@ typedef enum {
     _EDITOR_SERIES_INFER = 0,
     _EDITOR_SERIES_LINEAR,
     _EDITOR_SERIES_EXPONENTIAL,
+    _EDITOR_SERIES_INVALID,
 } _editor_series_mode;
 
 b32 _editor_do_normal(editor_context*, workbook*, win_input, u32);

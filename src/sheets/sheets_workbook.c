@@ -15,14 +15,6 @@ workbook* wb_create(void) {
         wb->free_strings[i].str_capacity = str_capacity;
     }
 
-    u64 page_size = plat_page_size();
-    wb->scratch_chunks_reserve = ALIGN_UP_POW2(
-        sizeof(sheet_chunk*) * SHEET_MAX_CHUNKS,
-        page_size
-    );
-    wb->scratch_chunks_commit = 0;
-    wb->scratch_chunks = plat_mem_reserve(wb->scratch_chunks_reserve);
-
     return wb;
 }
 
@@ -44,8 +36,6 @@ void wb_destroy(workbook* wb) {
         next = sheet->next;
         _sheet_buffer_destroy(wb, sheet);
     }
-
-    plat_mem_release(wb->scratch_chunks, wb->scratch_chunks_reserve);
 
     arena_destroy(wb->arena);
 }
@@ -114,34 +104,6 @@ void wb_free_chunk(workbook* wb, sheet_chunk* chunk) {
     MEM_ZERO(chunk, sizeof(sheet_chunk));
 
     SLL_PUSH_BACK(wb->first_free_chunk, wb->last_free_chunk, chunk);
-}
-
-sheet_chunk** _wb_get_scratch_chunks(workbook* wb, u64 ensure_size) {
-    // This technically should not be possible
-    if (ensure_size > wb->scratch_chunks_reserve) {
-        plat_fatal_error("Unable to get memory for chunk rehashing", 1);
-        return NULL;
-    }
-
-    if (wb->scratch_chunks_commit < ensure_size) {
-        u32 page_size = plat_page_size();
-
-        u64 to_commit = ALIGN_UP_POW2(
-            ensure_size - wb->scratch_chunks_commit,
-            page_size
-        );
-
-        u8* ptr = (u8*)wb->scratch_chunks + wb->scratch_chunks_commit;
-
-        if (!plat_mem_commit(ptr, to_commit)) {
-            plat_fatal_error("Failed to commit memory for chunk rehashign", 1);
-            return NULL;
-        }
-
-        wb->scratch_chunks_commit += to_commit;
-    }
-
-    return wb->scratch_chunks;
 }
 
 // Also updates capacity to match

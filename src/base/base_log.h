@@ -7,7 +7,9 @@ typedef enum {
     LOG_WARN  = 0b010,
     LOG_ERROR = 0b100,
     LOG_ALL   = 0b111,
-} log_level;
+} log_level_enum;
+
+typedef u32 log_level;
 
 typedef enum {
     LOG_RES_NONE = 0,
@@ -49,11 +51,11 @@ typedef struct {
 
 void log_frame_begin(void);
 string8 log_frame_peek(
-    mem_arena* arena, i32 level_mask,
+    mem_arena* arena, u32 level_mask,
     log_res_type res_type, b32 prefix_level
 );
 string8 log_frame_end(
-    mem_arena* arena, i32 level_mask,
+    mem_arena* arena, u32 level_mask,
     log_res_type res_type, b32 prefix_level
 );
 

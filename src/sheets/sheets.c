@@ -5,10 +5,6 @@ sheet_buffer* _sheet_buffer_create(void);
 void _sheet_buffer_reset(workbook* wb, sheet_buffer* sheet);
 void _sheet_buffer_destroy(workbook* wb, sheet_buffer* sheet);
 
-// Only one buffer can the scratch chunks at a time
-// `ensure_size` should be in bytes
-sheet_chunk** _wb_get_scratch_chunks(workbook* wb, u64 ensure_size);
-
 #include "sheets_workbook.c"
 #include "sheets_buffer.c"
 #include "sheets_helpers.c"
