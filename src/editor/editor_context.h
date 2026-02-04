@@ -8,15 +8,12 @@
 #define EDITOR_INPUT_QUEUE_MAX 1024
 #define EDITOR_INPUT_SEQ_MAX 32
 
+#define EDITOR_MAX_COUNT 1000000000
+
 #define EDITOR_WIN_STATUS_ROWS_TOP 2
 #define EDITOR_WIN_STATUS_ROWS_BOTTOM 0
 #define EDITOR_WIN_STATUS_ROWS \
     (EDITOR_WIN_STATUS_ROWS_TOP + EDITOR_WIN_STATUS_ROWS_BOTTOM)
-
-#define EDITOR_REGISTER_FIRST ((u8)'"')
-#define EDITOR_REGISTER_LAST ((u8)'_')
-#define EDITOR_REGISTER_COUNT (EDITOR_REGISTER_LAST - EDITOR_REGISTER_FIRST + 1)
-#define EDITOR_REGISTER_DEFAULT '"'
 
 typedef enum {
     EDITOR_MODE_NULL = 0,
@@ -110,10 +107,6 @@ typedef struct editor_context {
 
     u32 flags;
 
-    u8 selected_register;
-    b8 append_to_register;
-    editor_register* registers[EDITOR_REGISTER_COUNT];
-
     win_input cur_inputs[EDITOR_INPUT_SEQ_MAX];
     win_input pending_action_inputs[EDITOR_INPUT_SEQ_MAX];
 
@@ -141,6 +134,4 @@ void editor_draw(window* win, editor_context* editor, workbook* wb);
 sheet_buffer* editor_get_active_sheet(
     editor_context* editor, workbook* wb, b32 create_if_empty
 );
-
-editor_register* editor_get_reg(editor_context* editor, u8 reg);
 

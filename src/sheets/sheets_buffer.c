@@ -4,22 +4,23 @@
 Sheet Buffer Memory Allocation Scheme
 
 - Each sheet buffer reserves its own section of virtual address space
-- In this region, the sheet buffer structure itself is stored,
-    as well as three dynamic arrays:
-    1) `chunk_map`, which is the storage for the chunk hash map
-    2) `column_widths`, which stores the column widths
-    3) `row_heights`, which stores the row heights
-- Each of these three arrays will dynamically commit virtual
-    address space as needed so as not to use too much memory
-    on small sheets
-- The `chunk_map` array commits memory linearly as needed for the hash map
-- The `column_widths` and `row_heights` work by committing individual
-    pages of virtual memory as needed when resizing columns or rows
-- The first page of the reserved section stores both the `sheet_buffer`
-    struct itself as well as two bitfields: `_col_width_bitfield` and
-    `_row_height_bitfield`
-- The two bitfields store a 1 for pages in the corresponding arrays that are 
-    committed and a 0 for pages that are not committed yet
+- The first few pages are used to store the `sheet_buffer` struct itself
+    as well as the `page_bitfield` array
+- The rest of the pages (starting at the `dynamic_mem` pointer) are committed
+    individually, based on the needs of the sheet. The `page_bitfield` bitfield
+    stores whether or not each page is committed
+- There are three arrays in this dynamic memory:
+    1) `chunks` - Stores the array of `sheet_chunk` pointers. Chunks are
+        indexed based on their position in a way meant to keep close chunks
+        close together in the `chunks` array. See `_sb_chunk_index` for
+        specifics
+    2) `column_widths` - Stores the widths of each column in the sheet.
+        Pages that are not committed are assumed to be the default column
+        width, `SHEET_DEF_COL_WIDTH`. When a page is committed, it is filled
+        with this default.
+    3) `row_heights` - Stores the heights of each row in the sheet.
+        Basically the same as `columns_widths` except it uses the default
+        `SHEET_DEF_ROW_HEIGHT`
 - All of the offsets are only computed once and stored in a static struct
 
 Is this kind of insane, overkill, and dangerous?

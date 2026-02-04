@@ -51,8 +51,7 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb) {
 
             SET_FLAG_U32(editor->flags, _EDITOR_FLAG_READING_NUM);
 
-            // Ignore any counts over ten million
-            if (editor->count >= 1e7) { goto ignore_input; }
+            if (editor->count >= EDITOR_MAX_COUNT) { goto ignore_input; }
 
             editor->count *= 10;
             editor->count += cur_input - '0';
@@ -85,7 +84,6 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb) {
                     editor->flags, _EDITOR_FLAG_CONTINUE_ACTION
                 )) {
                     editor->action_start_input = editor->input_queue_end;
-                    editor->selected_register = EDITOR_REGISTER_DEFAULT;
                     editor->last_action_time_us = (f32)(action_end_us - action_start_us);
                 }
             } else if (editor->cur_inputs_size < EDITOR_INPUT_SEQ_MAX) {

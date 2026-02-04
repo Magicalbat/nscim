@@ -117,7 +117,6 @@ typedef struct sheet_chunk {
         f64 nums[SHEET_CHUNK_SIZE];
         sheet_string* strings[SHEET_CHUNK_SIZE];
     };
-
 } sheet_chunk;
 
 typedef struct {

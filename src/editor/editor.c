@@ -15,7 +15,6 @@ b32 _editor_do_cell_visual(editor_context*, workbook*, win_input, u32) {
 #include "modes/editor_modes_internal.h"
 
 #include "editor_window.c"
-#include "editor_register.c"
 
 #include "editor_update.c"
 #include "editor_draw.c"
@@ -72,44 +71,10 @@ editor_context* editor_create(void) {
 
     editor->count = 1;
 
-    editor->selected_register = EDITOR_REGISTER_DEFAULT;
-    for (u32 i = 0; i < EDITOR_REGISTER_COUNT; i++) {
-        u8 c = (u8)(i + EDITOR_REGISTER_FIRST); 
-
-        editor_register_type reg_type = EDITOR_REGISTER_TYPE_INVALID;
-        
-        if (
-            (c == '"') ||
-            (c >= 'A' && c <= 'Z') ||
-            (c >= '0' && c <+ '9')
-        ) {
-            reg_type = EDITOR_REGISTER_TYPE_EMPTY;
-        }
-
-        if (c == '_') {
-            reg_type = EDITOR_REGISTER_TYPE_BLACKHOLE;
-        }
-
-        editor_register* reg = NULL;
-
-        if (reg_type != EDITOR_REGISTER_TYPE_INVALID) {
-            reg = PUSH_STRUCT(arena, editor_register);
-            editor_reg_create(reg, reg_type, true);
-        }
-
-        editor->registers[i] = reg;
-    }
-
     return editor;
 }
 
 void editor_destroy(editor_context* editor) {
-    for (u32 i = 0; i < EDITOR_REGISTER_COUNT; i++) {
-        if (editor->registers[i] != NULL) {
-            editor_reg_destroy(editor->registers[i]);
-        }
-    }
-
     arena_destroy(editor->arena);
 }
 
@@ -119,14 +84,6 @@ sheet_buffer* editor_get_active_sheet(
     return editor_win_get_sheet(
         editor, wb, editor->active_win, create_if_empty
     );
-}
-
-editor_register* editor_get_reg(editor_context* editor, u8 reg) {
-    if (reg < EDITOR_REGISTER_FIRST || reg > EDITOR_REGISTER_LAST) {
-        return NULL;
-    }
-
-    return editor->registers[reg - EDITOR_REGISTER_FIRST];
 }
 
 editor_window* _editor_create_win(editor_context* editor) {

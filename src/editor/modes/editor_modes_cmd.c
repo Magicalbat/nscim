@@ -1,4 +1,6 @@
 
+void _editor_exec_cmd(editor_context* editor, workbook* wb);
+
 b32 _editor_do_cmd(
     editor_context* editor, workbook* wb,
     win_input input, u32 count
@@ -34,7 +36,7 @@ b32 _editor_do_cmd(
         } break;
 
         case '\r': {
-            // TODO: executing command
+            _editor_exec_cmd(editor, wb);
             editor->mode = EDITOR_MODE_NORMAL;
         } break;
 
@@ -63,5 +65,16 @@ b32 _editor_do_cmd(
     }
 
     return true;
+}
+
+void _editor_exec_cmd(editor_context* editor, workbook* wb) {
+    string8 cmd = (string8){
+        .str = editor->cmd_buf,
+        .size = editor->cmd_size 
+    };
+
+    if (str8_equals(STR8_LIT("q"), cmd)) {
+        SET_FLAG_U32(editor->flags, EDITOR_FLAG_SHOULD_QUIT);
+    }
 }
 

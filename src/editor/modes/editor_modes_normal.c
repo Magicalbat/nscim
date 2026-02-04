@@ -46,7 +46,10 @@ b32 _editor_do_normal(
     }
 
     if (IS_FLAG_SET_U32(editor->flags, _EDITOR_FLAG_PENDING_MOTION)) {
-        count *= editor->pending_action_count;
+        count = (u32)MIN(
+            (u64)count * editor->pending_action_count,
+            EDITOR_MAX_COUNT
+        );
     }
     
     if (editor->cur_inputs_size == 0) {
@@ -175,15 +178,6 @@ b32 _editor_do_normal(
                 _editor_move_win_multiple_horz(editor, wb, -(f32)count * 0.5f);
             } break;
 
-            case 'p': {
-                editor_register* reg = editor_get_reg(
-                    editor, editor->selected_register
-                );
-
-                sheet_buffer* sheet = editor_get_active_sheet(editor, wb, true);
-                editor_reg_put_cells(reg, wb, sheet, active_win->cursor_pos);
-            } break;
-
             case 'x': {
                 sheet_buffer* sheet = editor_get_active_sheet(editor, wb, false);
                 // Clear cell will do nothing on an empty sheet
@@ -291,10 +285,6 @@ b32 _editor_do_normal(
                         return true;
                     } break;
                 }
-            } break;
-
-            case '"': {
-                _editor_try_select_register(editor, input);
             } break;
 
             // Window Commands 
