@@ -53,6 +53,9 @@ editor_context* editor_create(void) {
         .selection_bg       = { { 200, 200, 200 } },
         .rc_fg              = { { 131,  27,  88 } },
         .rc_bg              = { { 214, 212, 243 } },
+        .error_fg           = { { 255,   0,   0 } },
+        .warning_fg         = { { 255, 255,   0 } },
+        .info_fg            = { { 255, 255, 255 } },
     };
 
     editor->settings = (editor_settings) {
@@ -71,10 +74,13 @@ editor_context* editor_create(void) {
 
     editor->count = 1;
 
+    editor->output_arena = arena_create(KiB(16), KiB(4), ARENA_FLAG_GROWABLE);
+
     return editor;
 }
 
 void editor_destroy(editor_context* editor) {
+    arena_destroy(editor->output_arena);
     arena_destroy(editor->arena);
 }
 

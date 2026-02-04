@@ -397,24 +397,6 @@ void _editor_draw_status(window* user_win, editor_context* editor) {
         user_win->cursor_row = buf->height - 1;
         user_win->cursor_col = MIN(buf->width - 1, editor->cmd_cursor + 1);
     } else {
-        u8 time_chars[256] = { 0 };
-        f32 action_time = editor->last_action_time_us;
-        i32 time_size = snprintf(
-            (char*)time_chars, sizeof(time_chars),
-            "Action took %.3fs (%.3fms or %.0fus)",
-            action_time * 1e-6f, action_time * 1e-3f, action_time
-        );
-
-        if (time_size > 0) {
-            for (
-                u32 i = 0; i < (u32)time_size &&
-                i + EDITOR_STATUS_PAD < buf->width; i++
-            ) {
-                u32 index = i + EDITOR_STATUS_PAD + status_offset;
-                buf->chars[index] = time_chars[i];
-            }
-        }
-
         string8 mode_str = _editor_mode_names[editor->mode];
 
         u32 mode_draw_offset = EDITOR_STATUS_PAD + (u32)mode_str.size;
@@ -452,6 +434,31 @@ void _editor_draw_status(window* user_win, editor_context* editor) {
 
             input_idx++;
             input_idx %= EDITOR_INPUT_QUEUE_MAX;
+        }
+
+        win_col output_fg = editor->colors.status_fg;
+
+        string8 err_str = STR8_LIT("Error");
+        string8 warn_str = STR8_LIT("Warning");
+        string8 info_str = STR8_LIT("Info");
+
+        if (str8_start_equals(editor->output, err_str)) {
+            output_fg = editor->colors.error_fg;
+        } else if (str8_start_equals(editor->output, warn_str)) {
+            output_fg = editor->colors.warning_fg;
+        } else if (str8_start_equals(editor->output, info_str)) {
+            output_fg = editor->colors.info_fg;
+        }
+
+        u32 output_start = EDITOR_STATUS_PAD;
+        for (
+            u32 i = 0;
+            i + output_start < input_draw_start &&
+            i < editor->output.size; i++
+        ) {
+            u32 index = i + output_start + status_offset;
+            buf->fg_cols[index] = output_fg;
+            buf->chars[index] = editor->output.str[i];
         }
     }
 }

@@ -54,6 +54,9 @@ void str8_memcpy(string8* dest, const string8* src, u64 offset);
 
 b32 str8_equals(string8 a, string8 b);
 
+// Compares as many chars as they share (MIN(a.size, b.size))
+b32 str8_start_equals(string8 a, string8 b);
+
 string8 str8_substr(string8 base, u64 start, u64 end);
 string8 str8_substr_size(string8 base, u64 start, u64 size);
 

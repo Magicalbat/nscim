@@ -44,6 +44,18 @@ b32 str8_equals(string8 a, string8 b) {
     return true;
 }
 
+b32 str8_start_equals(string8 a, string8 b) {
+    u64 size = MIN(a.size, b.size);
+
+    for (u64 i = 0; i < size; i++) {
+        if (a.str[i] != b.str[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 string8 str8_substr(string8 base, u64 start, u64 end) {
     end = MIN(base.size, end);
     start = MIN(end, start);

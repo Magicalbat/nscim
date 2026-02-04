@@ -138,8 +138,8 @@ void win_draw(window* win) {
     win_col prev_fg = { { 0xff, 0xff, 0xff } };
     win_col prev_bg = { { 0x00, 0x00, 0x00 } };
 
-    // Clear screen, reset cursor pos
-    term_write(term, STR8_LIT("\x1b[2J\x1b[H\x1b[?25l"));
+    // Reset cursor pos, hide cursor
+    term_write(term, STR8_LIT("\x1b[H\x1b[?25l"));
     _win_term_set_col(term, prev_fg, true);
     _win_term_set_col(term, prev_bg, false);
 

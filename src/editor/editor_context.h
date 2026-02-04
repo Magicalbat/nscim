@@ -55,6 +55,10 @@ typedef struct {
 
     win_col rc_fg;
     win_col rc_bg;
+
+    win_col error_fg;
+    win_col warning_fg;
+    win_col info_fg;
 } editor_colors;
 
 typedef struct {
@@ -83,8 +87,6 @@ typedef struct editor_context {
 
     sheet_pos motion_start;
 
-    f32 last_action_time_us;
-
     // Index into input queue, where the action began
     u32 action_start_input;
     u32 pending_action_count;
@@ -104,6 +106,10 @@ typedef struct editor_context {
 
     u32 cur_inputs_size;
     u32 pending_action_inputs_size;
+
+    // The output is displayed on the bottom status after an action
+    mem_arena* output_arena;
+    string8 output;
 
     u32 flags;
 

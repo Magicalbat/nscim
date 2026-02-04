@@ -84,7 +84,12 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb) {
                     editor->flags, _EDITOR_FLAG_CONTINUE_ACTION
                 )) {
                     editor->action_start_input = editor->input_queue_end;
-                    editor->last_action_time_us = (f32)(action_end_us - action_start_us);
+
+                    f32 action_time_ms = (f32)(
+                        action_end_us - action_start_us
+                    ) * 1e-3f;
+
+                    info_emitf("Action took %.3f ms", action_time_ms);
                 }
             } else if (editor->cur_inputs_size < EDITOR_INPUT_SEQ_MAX) {
                 editor->cur_inputs[editor->cur_inputs_size++] = cur_input;

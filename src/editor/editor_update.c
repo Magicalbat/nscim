@@ -32,17 +32,9 @@ void editor_update(
         SET_FLAG_U32(editor->flags, EDITOR_FLAG_SHOULD_DRAW);
     }
 
-    {
-        mem_arena_temp scratch = arena_scratch_get(NULL, 0);
-
-        string8 error = log_frame_end(scratch.arena, LOG_ERROR, LOG_RES_FIRST, true);
-
-        if (error.size) {
-            sheet_buffer* sheet = editor_get_active_sheet(editor, wb, true);
-            sheet_set_cell_str(wb, sheet, (sheet_pos){ 0 }, error);
-        }
-
-        arena_scratch_release(scratch);
-    }
+    arena_clear(editor->output_arena);
+    editor->output = log_frame_end(
+        editor->output_arena, LOG_ALL, LOG_RES_FIRST, true
+    );
 }
 

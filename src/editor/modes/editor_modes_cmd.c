@@ -75,6 +75,9 @@ void _editor_exec_cmd(editor_context* editor, workbook* wb) {
 
     if (str8_equals(STR8_LIT("q"), cmd)) {
         SET_FLAG_U32(editor->flags, EDITOR_FLAG_SHOULD_QUIT);
+        return;
     }
+
+    error_emitf("Unknown command \"%.*s\"", STR8_FMT(cmd));
 }
 
