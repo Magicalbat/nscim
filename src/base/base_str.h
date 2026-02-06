@@ -60,6 +60,10 @@ b32 str8_start_equals(string8 a, string8 b);
 string8 str8_substr(string8 base, u64 start, u64 end);
 string8 str8_substr_size(string8 base, u64 start, u64 size);
 
+// Finds the first occurance of some character `c`
+// Returns `str.size` if `c` if not in the string
+u64 str8_find_first(string8 str, u8 c);
+
 // Will fill as much of out as it can
 void str8_to_upper_ip(string8 in, string8* out);
 // Will fill as much of out as it can

@@ -376,7 +376,26 @@ static string8 _editor_mode_names[_EDITOR_MODE_COUNT] = {
     [EDITOR_MODE_CMD] = STR8_CONST_LIT("Command"),
 };
 
-void _editor_draw_status(window* user_win, editor_context* editor) {
+win_col _editor_output_line_color(editor_context* editor, string8 line) {
+    win_col col = editor->colors.status_fg;
+
+    string8 err_str = STR8_LIT("Error");
+    string8 warn_str = STR8_LIT("Warning");
+    string8 info_str = STR8_LIT("Info");
+
+    if (str8_start_equals(line, err_str)) {
+        col = editor->colors.error_fg;
+    } else if (str8_start_equals(line, warn_str)) {
+        col = editor->colors.warning_fg;
+    } else if (str8_start_equals(line, info_str)) {
+        col = editor->colors.info_fg;
+    }
+
+    return col;
+}
+
+// Draws status when `editor->output` has only one line
+void _editor_draw_typical_status(window* user_win, editor_context* editor) {
     win_buffer* buf = &user_win->buffer;
 
     u32 status_offset = (buf->height - 1) * buf->width;
@@ -436,20 +455,7 @@ void _editor_draw_status(window* user_win, editor_context* editor) {
             input_idx %= EDITOR_INPUT_QUEUE_MAX;
         }
 
-        win_col output_fg = editor->colors.status_fg;
-
-        string8 err_str = STR8_LIT("Error");
-        string8 warn_str = STR8_LIT("Warning");
-        string8 info_str = STR8_LIT("Info");
-
-        if (str8_start_equals(editor->output, err_str)) {
-            output_fg = editor->colors.error_fg;
-        } else if (str8_start_equals(editor->output, warn_str)) {
-            output_fg = editor->colors.warning_fg;
-        } else if (str8_start_equals(editor->output, info_str)) {
-            output_fg = editor->colors.info_fg;
-        }
-
+        win_col output_fg = _editor_output_line_color(editor, editor->output);
         u32 output_start = EDITOR_STATUS_PAD;
         for (
             u32 i = 0;
@@ -461,6 +467,91 @@ void _editor_draw_status(window* user_win, editor_context* editor) {
             buf->chars[index] = editor->output.str[i];
         }
     }
+}
+
+void _editor_draw_output_status(window* user_win, editor_context* editor) {
+    win_buffer* buf = &user_win->buffer;
+
+    string8 output = editor->output;
+
+    // One line for the initial (before any new line)
+    // One line for the "Enter any key yada yada" message at the bottom
+    u32 num_lines = 2;
+    for (u64 i = 0; i < output.size; i++) {
+        if (output.str[i] == '\n') {
+            num_lines++;
+        }
+    }
+
+    u32 y_start = num_lines < buf->height ? buf->height - num_lines : 0;
+
+    for (u32 y = y_start; y < buf->height; y++) {
+        for (u32 x = 0; x < buf->width; x++) {
+            u32 index = x + y * buf->width;
+
+            buf->bg_cols[index] = editor->colors.status_bg;
+            buf->fg_cols[index] = editor->colors.status_fg;
+            buf->chars[index] = ' ';
+        }
+    }
+
+    u32 num_draw_lines = buf->height - y_start;
+    u32 lines_offset = num_lines - num_draw_lines;
+
+    for (u32 i = 0; output.size > 0 && i < lines_offset; i++) {
+        u64 newline_index = str8_find_first(output, '\n');
+        output = str8_substr(output, newline_index + 1, output.size);
+    }
+
+    for (
+        u32 i = lines_offset;
+        output.size > 0 && (i32)i < (i32)num_lines - 1;
+        i++
+    ) {
+        u64 newline_index = str8_find_first(output, '\n');
+        string8 line = str8_substr(output, 0, newline_index);
+        output = str8_substr(output, newline_index + 1, output.size);
+
+        win_col line_col = _editor_output_line_color(editor, line);
+        u32 to_draw = MIN((u32)line.size, buf->width - EDITOR_STATUS_PAD);
+
+        for (u32 j = 0; j < to_draw; j++) {
+            u32 index = j + EDITOR_STATUS_PAD +
+                (y_start + i - lines_offset) * buf->width;
+
+            buf->fg_cols[index] = line_col;
+            buf->chars[index] = line.str[j];
+        }
+    }
+
+    if (num_lines > 0) {
+        string8 continue_msg = STR8_LIT("Press any key to continue");
+
+        u32 to_draw = MIN(
+            (u32)continue_msg.size,
+            buf->width - EDITOR_STATUS_PAD
+        );
+
+        for (u32 i = 0; i < to_draw; i++) {
+            u32 index = (i + EDITOR_STATUS_PAD) + 
+                (y_start + num_lines - 1) * buf->width;
+
+            buf->chars[index] = continue_msg.str[i];
+        }
+    }
+}
+
+void _editor_draw_status(window* user_win, editor_context* editor) {
+    string8 output = editor->output;
+
+    if (str8_find_first(output, '\n') == output.size) {
+        // There is only one line of the output
+        _editor_draw_typical_status(user_win, editor);
+    } else {
+        // There are multiple output lines
+        _editor_draw_output_status(user_win, editor);
+    }
+
 }
 
 void editor_draw(window* user_win, editor_context* editor, workbook* wb) {
@@ -494,8 +585,6 @@ void editor_draw(window* user_win, editor_context* editor, workbook* wb) {
     editor_win_compute_sizes(
         editor, buf->width, buf->height - EDITOR_STATUS_ROWS
     );
-
-    _editor_draw_status(user_win, editor);
     
     mem_arena_temp scratch = arena_scratch_get(NULL, 0);
 
@@ -515,6 +604,8 @@ void editor_draw(window* user_win, editor_context* editor, workbook* wb) {
             _editor_draw_sheet_win(user_win, editor, wb, cur);
         }
     }
+
+    _editor_draw_status(user_win, editor);
 
     arena_scratch_release(scratch);
 }

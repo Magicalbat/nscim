@@ -130,7 +130,7 @@ int main(void) {
         {
             mem_arena_temp scratch = arena_scratch_get(NULL, 0);
 
-            string8 errors = log_frame_peek(scratch.arena, LOG_ERROR, LOG_RES_CONCAT, true);
+            string8 errors = log_frame_end(scratch.arena, LOG_ERROR, LOG_RES_CONCAT, true);
 
             if (errors.size) {
                 win_destroy(win);

@@ -11,6 +11,26 @@ void log_frame_begin(void) {
     SLL_STACK_PUSH(_log_context.stack, frame);
 }
 
+u32 log_frame_peek_count(u32 level_mask) {
+    if (_log_context.arena == NULL) { return 0; }
+
+    log_frame* frame = _log_context.stack;
+
+    if (level_mask == LOG_ALL) { return frame->num_logs; }
+
+    u32 count = 0;
+
+    for (
+        log_msg* msg = frame->first; msg != NULL; msg = msg->next
+    ) {
+        if (msg->level & level_mask) {
+            count++;
+        }
+    }
+
+    return count;
+}
+
 const string8 _level_prefixes[] = {
     [LOG_INFO] = STR8_CONST_LIT("Info: "),
     [LOG_WARN] = STR8_CONST_LIT("Warning: "),
@@ -25,6 +45,8 @@ string8 log_frame_peek(
     mem_arena* arena, u32 level_mask,
     log_res_type res_type, b32 prefix_level
 ) {
+    if (_log_context.arena == NULL) { return (string8){ 0 }; }
+
     log_frame* frame = _log_context.stack;
 
     string8 out = { 0 };
@@ -127,6 +149,8 @@ string8 log_frame_end(
     mem_arena* arena, u32 level_mask,
     log_res_type res_type, b32 prefix_level
 ) {
+    if (_log_context.arena == NULL) { return (string8){ 0 }; }
+
     string8 out = log_frame_peek(arena, level_mask, res_type, prefix_level);
 
     arena_pop_to(_log_context.arena, _log_context.stack->arena_start_pos);
@@ -148,11 +172,15 @@ void _log_emit_impl(log_level level, string8 msg) {
 }
 
 void log_emit(log_level level, string8 orig_msg) {
+    if (_log_context.arena == NULL) { return; }
+
     string8 msg = str8_copy(_log_context.arena, orig_msg);
     _log_emit_impl(level, msg);
 }
 
 void log_emitf(log_level level, const char* fmt, ...) {
+    if (_log_context.arena == NULL) { return; }
+
     va_list args;
     va_start(args, fmt);
 

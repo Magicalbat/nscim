@@ -54,6 +54,16 @@ b32 _editor_do_normal(
     
     if (editor->cur_inputs_size == 0) {
         switch (input) {
+            case 't': {
+                for (u32 i = 0; i < 10; i++) {
+                    if (i % 2) {
+                        error_emitf("Test error %u", i);
+                    } else {
+                        warn_emitf("Test warning %u", i);
+                    }
+                }
+            } break;
+
             case 'v': {
                 editor_window* win = active_win;
 

@@ -50,6 +50,7 @@ typedef struct {
 #define error_emitf(fmt, ...) log_emitf(LOG_ERROR, (fmt), __VA_ARGS__)
 
 void log_frame_begin(void);
+u32 log_frame_peek_count(u32 level_mask);
 string8 log_frame_peek(
     mem_arena* arena, u32 level_mask,
     log_res_type res_type, b32 prefix_level

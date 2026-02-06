@@ -34,7 +34,7 @@ void editor_update(
 
     arena_clear(editor->output_arena);
     editor->output = log_frame_end(
-        editor->output_arena, LOG_ALL, LOG_RES_FIRST, true
+        editor->output_arena, LOG_ALL, LOG_RES_CONCAT, true
     );
 }
 

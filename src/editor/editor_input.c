@@ -66,15 +66,11 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb) {
                 editor->mode = EDITOR_MODE_NORMAL;
             }
 
-            u64 action_start_us = plat_now_usec();
-
             // Actually executing whatever editor mode we are in
             // This is where the bulk of the editor logic lies
             b32 consumed_input = _mode_funcs[editor->mode](
                 editor, wb, cur_input, editor->count
             );
-
-            u64 action_end_us = plat_now_usec();
 
             if (consumed_input) {
                 editor->cur_inputs_size = 0;
@@ -84,12 +80,6 @@ void _editor_process_inputs_raw(editor_context* editor, workbook* wb) {
                     editor->flags, _EDITOR_FLAG_CONTINUE_ACTION
                 )) {
                     editor->action_start_input = editor->input_queue_end;
-
-                    f32 action_time_ms = (f32)(
-                        action_end_us - action_start_us
-                    ) * 1e-3f;
-
-                    info_emitf("Action took %.3f ms", action_time_ms);
                 }
             } else if (editor->cur_inputs_size < EDITOR_INPUT_SEQ_MAX) {
                 editor->cur_inputs[editor->cur_inputs_size++] = cur_input;

@@ -76,6 +76,16 @@ string8 str8_substr_size(string8 base, u64 start, u64 size) {
     };
 }
 
+u64 str8_find_first(string8 str, u8 c) {
+    u64 i = 0;
+
+    for (; i < str.size; i++) {
+        if (str.str[i] == c) { break; }
+    }
+
+    return i;
+}
+
 void str8_to_upper_ip(string8 in, string8* out) {
     u64 size = MIN(in.size, out->size);
     out->size = size;
